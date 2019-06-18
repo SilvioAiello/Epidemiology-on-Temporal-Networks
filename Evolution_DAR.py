@@ -50,7 +50,8 @@ for t in range(1,T):
     temporal_network[t] = [[temporal_network[t,j,i] if j<i else temporal_network[t,i,j] for j in range(N)] for i in range(N)]
 
 #RESULTS PRINT:
-degree_evolution = []
+start_name = 'Examples/DAR' #begin of the name of files that will be saved (txt,img...)
+degree_evolution = [] #here the sequence of mean degrees will be held
 for t in range(T):
     plt.figure(fig_count)
     fig_count+=1
@@ -60,5 +61,13 @@ for t in range(T):
     degree_evolution.append(sum([grafo.degree(i) for i in range(N)])/N)
     #Function draw is provided of two informations: draw a circular plot and show the label (i.e. the number) of each node
     nx.draw(grafo, pos = nx.drawing.layout.circular_layout(grafo), with_labels = True)
+    #plt.savefig(start_name+'%i_N%i_image_t=%i.pdf' %(P,N,t))
     plt.show()
 print(degree_evolution)
+
+#Save the network for further use
+#Save the network for further use
+np.savetxt(start_name+'%i__N%i_wholenetwork_T%i.txt' %(P,N,T), temporal_network.reshape(T,N*N))
+#To import:
+#new_data = np.loadtxt('Examples/FITN_N%iT%i.txt' %(N,T))
+#new_data = new_data.reshape((T,N,N))
