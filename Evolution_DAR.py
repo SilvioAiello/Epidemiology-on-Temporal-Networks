@@ -49,7 +49,7 @@ for t in range(1,T):
     temporal_network[t] = [[np.random.choice((temporal_network[t-P,i,j],np.random.choice((1,0), p=(xi[i,j],1-xi[i,j]))),p=(alpha[i,j],1-alpha[i,j])) if j>i else 0 for j in range(N)] for i in range(N)]
     temporal_network[t] = [[temporal_network[t,j,i] if j<i else temporal_network[t,i,j] for j in range(N)] for i in range(N)]
 
-#RESULTS PRINT:
+### RESULTS PRINT AND SAVE:
 start_name = 'Examples/DAR' #begin of the name of files that will be saved (txt,img...)
 degree_evolution = [] #here the sequence of mean degrees will be held
 for t in range(T):
@@ -69,5 +69,5 @@ print(degree_evolution)
 #Save the network for further use
 np.savetxt(start_name+'%i__N%i_wholenetwork_T%i.txt' %(P,N,T), temporal_network.reshape(T,N*N))
 #To import:
-#new_data = np.loadtxt('Examples/FITN_N%iT%i.txt' %(N,T))
+#new_data = np.loadtxt('start_name+'%i__N%i_wholenetwork_T%i.txt' %(P,N,T))
 #new_data = new_data.reshape((T,N,N))

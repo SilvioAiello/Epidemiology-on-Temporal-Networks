@@ -57,7 +57,7 @@ for t in range(T):
                 if temporal_network[t,i,j] == 1: #symmetrization
                     temporal_network[t,j,i] = 1
 
-#RESULTS PRINT AND SAVE:
+### RESULTS PRINT AND SAVE:
 start_name = 'Examples/FITN' #begin of the name of files that will be saved (txt,img...)
 degree_evolution = [] #here the sequence of mean degrees will be held
 for t in range(T):
@@ -76,5 +76,5 @@ print(degree_evolution)
 #Save the network for further use
 np.savetxt(start_name+'_N%i_wholenetwork_T%i.txt' %(N,T), temporal_network.reshape(T,N*N))
 #To import:
-#new_data = np.loadtxt('Examples/FITN_N%iT%i.txt' %(N,T))
+#new_data = np.loadtxt(start_name+'_N%i_wholenetwork_T%i.txt' %(N,T))
 #new_data = new_data.reshape((T,N,N))
