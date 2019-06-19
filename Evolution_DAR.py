@@ -66,7 +66,6 @@ for t in range(T):
 print(degree_evolution)
 
 #Save the network for further use
-#Save the network for further use
 np.savetxt(start_name+'%i__N%i_wholenetwork_T%i.txt' %(P,N,T), temporal_network.reshape(T,N*N))
 #To import:
 #new_data = np.loadtxt('start_name+'%i__N%i_wholenetwork_T%i.txt' %(P,N,T))
