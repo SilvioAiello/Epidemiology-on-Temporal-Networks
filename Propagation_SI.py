@@ -96,7 +96,7 @@ print("Infection rate at T: %.f %%" %(100*infected_counter(label_dar[T-1])/N))
 print("Best 10 infecting node:")
 print(rankings_infections_dar[0:10])
 print("and their percentages:")
-print(infect_score_dar(rankings_infections_dar[0:10]))
+print(infect_score_dar[rankings_infections_dar[0:10]])
 print("")
 print("")
 print("Epidemiological results, FITN:")
@@ -106,7 +106,7 @@ print("Infection rate at T: %.f %%" %(100*infected_counter(label_fitn[T-1])/N))
 print("Best 10 infecting node:")
 print(rankings_infections_fitn[0:10])
 print("and their percentages:")
-print(infect_score_fitn(rankings_infections_fitn[0:10]))
+print(infect_score_fitn[rankings_infections_fitn[0:10]])
 ### PLOTS
 ##To get some "readable" graphics, one can tell nx to show in red infected nodes, and in blue the others
 ##So, here is a functions that thakes the vector of state at time t and return a sequence of colours

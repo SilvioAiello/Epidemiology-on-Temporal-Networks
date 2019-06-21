@@ -61,9 +61,9 @@ for t in range(T):
     #Since it's not possible to directly handle the mean degree, here it is computed:
     degree_evolution.append(sum([grafo.degree(i) for i in range(N)])/N)
     #Function draw is provided of two informations: draw a circular plot and show the label (i.e. the number) of each node
-    nx.draw(grafo, pos = nx.drawing.layout.circular_layout(grafo), with_labels = True)
+    #nx.draw(grafo, pos = nx.drawing.layout.circular_layout(grafo), with_labels = True)
     #plt.savefig(start_name+'%i_N%i_image_t=%i.pdf' %(P,N,t))
-    plt.show()
+    #plt.show()
 print(degree_evolution)
 
 ### TESTS:
