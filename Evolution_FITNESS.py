@@ -10,8 +10,8 @@ import matplotlib.pyplot as plt #Used for graphic belluries
 
 ### PARAMETERS OF THE SYSTEM
 
-N = 10 #number of nodes of the network
-T = 10 #number of steps of temporal evolution
+N = 100 #number of nodes of the network
+T = 100 #number of steps of temporal evolution
 K = 100 #number of repetitions 
 fig_count = 0 #several figures will be printed
 
