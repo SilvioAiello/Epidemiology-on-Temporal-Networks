@@ -21,7 +21,6 @@ fig_count = 0 #several figures will be printed
 #First, the evolution of fitnesses, which is a kind of random walk, is separately performed.
 #It is stored in a matrix, theta, whose entry ij is the value of i-node's fitness at t = j.
 #The random walk has, for each step, an increment extracted by a gaussian with 0-mean and 1-variance
-
 phi0 = 0.27*np.ones(N) #intercepts, typical of each node
 phi1 = 0.18*np.ones(N) #slopes, typical of each node
 theta = np.zeros((N,T)) #fitness matrix creation
@@ -72,6 +71,11 @@ for t in range(T):
     #plt.savefig(start_name+'_N%i_image_t=%i.pdf' %(N,t))
     plt.show()
 print(degree_evolution)
+
+### TESTS:
+for t in range(T):
+    assert (temporal_network[t] == temporal_network[t].T).any, "Error: network at t = %i is not symmetric" %t
+    assert sum(np.diag(temporal_network[t])) == 0, "Error: network at t = %i has not-0 diagonal" %t
 
 #Save the network for further use
 np.savetxt(start_name+'_N%i_wholenetwork_T%i.txt' %(N,T), temporal_network.reshape(T,N*N))

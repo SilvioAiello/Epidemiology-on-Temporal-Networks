@@ -35,7 +35,8 @@ xi = 0.5*np.ones((N,N))
 
 #Initial state is generated randomly
 #np.random.seed(1)
-initial_state = np.random.choice((0,1),p=(0.5,1-0.5),size=(N,N))
+initial_state = [[np.random.choice((0,1),p=(0.5,1-0.5)) if j>i else 0 for j in range(N)] for i in range(N)]
+initial_state = [[initial_state[j][i] if j<i else initial_state[i][j] for j in range(N)] for i in range(N)]
 
 #Tensor generation, T=0 equal to initial_state
 temporal_network = np.zeros((T,N,N))
@@ -65,8 +66,12 @@ for t in range(T):
     plt.show()
 print(degree_evolution)
 
+### TESTS:
+for t in range(T):
+    assert (temporal_network[t] == temporal_network[t].T).any, "Error: network at t = %i is not symmetric" %t
+    assert sum(np.diag(temporal_network[t])) == 0, "Error: network at t = %i has not-0 diagonal" %t
 #Save the network for further use
-np.savetxt(start_name+'%i_N%i_wholenetwork_T%i.txt' %(P,N,T), temporal_network.reshape(T,N*N))
+np.savetxt(start_name+'%i_N%i_wholenetwork_T%i.txt' %(P,N,T), temporal_network.reshape(T*N*N,1))
 #To import:
 #new_data = np.loadtxt('start_name+'%i__N%i_wholenetwork_T%i.txt' %(P,N,T))
 #new_data = new_data.reshape((T,N,N))
