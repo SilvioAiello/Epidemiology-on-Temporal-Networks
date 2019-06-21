@@ -10,8 +10,8 @@ import networkx as nx #Used to extract information from networks, and plot them
 import matplotlib.pyplot as plt #Used for graphic belluries
 
 ### PARAMETERS OF THE SYSTEM
-N = 10 #number of nodes of the network
-T = 10 #number of steps of temporal evolution
+N = 100 #number of nodes of the network
+T = 100 #number of steps of temporal evolution
 K = 100 #number of repetitions 
 P = 1 #DAR(P)
 fig_count = 0 #several figures will be printed
@@ -81,8 +81,11 @@ for t in range(T-1): #updating label state for both networks, providing the prev
     label_dar[t+1],infect_score_dar =propagation(temporal_dar[t],label_dar[t],infect_score_dar)
     label_fitn[t+1],infect_score_fitn=propagation(temporal__fitn[t],label_fitn[t],infect_score_fitn)
 #Normalization of infection scores, so each i-th entry is the percentage of the network infected by the i-th node:
-#infect_score_dar = 100*infect_score_dar/N 
-#infect_score_fitn = 100*infect_score_fitn/N
+infect_score_dar = 100*infect_score_dar/N
+infect_score_fitn = 100*infect_score_fitn/N
+#Using flip sort (L'HO SPIEGATA PIU AVANTI) we obtain a list of most infective nodes
+rankings_infections_dar = np.flip(np.argsort(infect_score_dar))
+rankings_infections_fitn = np.flip(np.argsort(infect_score_fitn))
 
 
 ### PRINTS
@@ -90,32 +93,43 @@ print("Epidemiological results, DAR:")
 print("Infection rate at 0: %.f %%" %(100*infected_counter(label_dar[0])/N))
 print("Infection rate at T/2: %.f %%" %(100*infected_counter(label_dar[int(T/2)])/N))
 print("Infection rate at T: %.f %%" %(100*infected_counter(label_dar[T-1])/N))
-print("Percentage of infections due to each node:")
-print(infect_score_dar)
-
+print("Best 10 infecting node:")
+print(rankings_infections_dar[0:10])
+print("and their percentages:")
+print(infect_score_dar(rankings_infections_dar[0:10]))
+print("")
+print("")
+print("Epidemiological results, FITN:")
+print("Infection rate at 0: %.f %%" %(100*infected_counter(label_fitn[0])/N))
+print("Infection rate at T/2: %.f %%" %(100*infected_counter(label_fitn[int(T/2)])/N))
+print("Infection rate at T: %.f %%" %(100*infected_counter(label_fitn[T-1])/N))
+print("Best 10 infecting node:")
+print(rankings_infections_fitn[0:10])
+print("and their percentages:")
+print(infect_score_fitn(rankings_infections_fitn[0:10]))
 ### PLOTS
-#To get some "readable" graphics, one can tell nx to show in red infected nodes, and in blue the others
-#So, here is a functions that thakes the vector of state at time t and return a sequence of colours
-def colorstate(state):
-    colormap = []
-    for node in range(N):
-        if state[node] == 1:
-            colormap.append('r')
-        elif state[node]==0:
-            colormap.append('b')
-    return colormap
-#Plot DAR
-for t in range(T):
-    #What to plot:
-    graph = nx.convert_matrix.from_numpy_matrix(temporal_dar[t])
-    colors = colorstate(label_dar[t])
-    #Plotting settings
-    plt.figure(fig_count)
-    fig_count+=1
-    plt.title(r"DAR(%i) SI-Epidemiology,$\beta$ = %.2f, N=%i,T=%i" %(P,beta,N,T))
-    nx.draw(graph, pos = nx.drawing.layout.circular_layout(graph),node_color = colors, with_labels = True)
-    plt.show()
-##Plot FITN
+##To get some "readable" graphics, one can tell nx to show in red infected nodes, and in blue the others
+##So, here is a functions that thakes the vector of state at time t and return a sequence of colours
+#def colorstate(state):
+#    colormap = []
+#    for node in range(N):
+#        if state[node] == 1:
+#            colormap.append('r')
+#        elif state[node]==0:
+#            colormap.append('b')
+#    return colormap
+##Plot DAR
+#for t in range(T):
+#    #What to plot:
+#    graph = nx.convert_matrix.from_numpy_matrix(temporal_dar[t])
+#    colors = colorstate(label_dar[t])
+#    #Plotting settings
+#    plt.figure(fig_count)
+#    fig_count+=1
+#    plt.title(r"DAR(%i) SI-Epidemiology,$\beta$ = %.2f, N=%i,T=%i" %(P,beta,N,T))
+#    nx.draw(graph, pos = nx.drawing.layout.circular_layout(graph),node_color = colors, with_labels = True)
+#    plt.show()
+#Plot FITN
 #for t in range(T):
 #    #What to plot:
 #    graph = nx.convert_matrix.from_numpy_matrix(temporal__fitn[t])
@@ -127,14 +141,16 @@ for t in range(T):
 #    nx.draw(graph, pos = nx.drawing.layout.circular_layout(graph),node_color = colors, with_labels = True)
 #    plt.show()
 
-    
-### CENTRALITY MEASURES
-start_name = 'Examples/SI_EPIDEMIC_' #begin of the name of files that will be saved (txt,img...)
+###SAVINGS
+#start_name = 'Examples/SI_EPIDEMIC_' #begin of the name of files that will be saved (txt,img...)
 #np.savetxt(start_name+'DAR1_N%i_T%i.txt' %(N,T), temporal__dar.reshape(T,N*N))
 #np.savetxt(start_name+'_LABELS_DAR1_N%i_T%i.txt' %(N,T), label_dar) #saving labels in a separate file
 #np.savetxt(start_name+'FITN_N%i_T%i.txt' %(N,T), temporal__fitn.reshape(T,N*N))
 #np.savetxt(start_name+'_LABELS_FITN_N%i_T%i.txt' %(N,T), label_fitn) #saving labels in a separate file
 
+
+### CENTRALITY MEASURES
+    
 #Communicability analysis
 #Building of Communicability matrix, just by applying definition and using some useful np functions:
 def communicability(temporal_): 
