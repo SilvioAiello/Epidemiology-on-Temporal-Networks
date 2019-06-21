@@ -18,57 +18,96 @@ fig_count = 0 #several figures will be printed
 
 
 ### NETWORKS IMPORT
-temporal_network_dar = np.loadtxt('Examples/DAR'+'%i__N%i_wholenetwork_T%i.txt' %(P,N,T))
-temporal_network_dar = temporal_network_dar.reshape((T,N,N))
-temporal_network_fitn= np.loadtxt('Examples/FITN'+'_N%i_wholenetwork_T%i.txt' %(N,T))
-temporal_network_fitn= temporal_network_fitn.reshape((T,N,N))
+temporal_dar = np.loadtxt('Examples/DAR'+'%i_N%i_wholenetwork_T%i.txt' %(P,N,T))
+temporal_dar = temporal_dar.reshape((T,N,N)) #salvatolo come unica colonna, confermo che vuole tempo righe colonne
+temporal__fitn= np.loadtxt('Examples/FITN'+'_N%i_wholenetwork_T%i.txt' %(N,T))
+temporal__fitn= temporal__fitn.reshape((T,N,N))
 
 
-### EPIDEMIC FUNCTION BUILDING
-#The idea of SI model is that one infect node, at t-1, can make infect one of its neighboroughs at t-1, with probability beta
+### EPIDEMIC FUNCTIONS BUILDING
+#The idea of SI model is that one infected node, at t-1, can infect one of its neighboroughs with probability beta
 beta = 0.15
-#The following matrices (T,N) will keep track of node-labels evolution in time, so the entry ij means "state at time i for node j":
-label_dar = np.zeros((T,N))
-label_fitn = np.zeros((T,N))
-#They are both initialized randomly, according to beta
-label_dar[0]=np.random.choice((0,1),p=(1-beta,beta), size=N)
-label_fitn[0]=np.random.choice((0,1),p=(1-beta,beta), size=N)
-
 #Since the spread will be performed two times, on two different network, a function can be useful:
-def propagation(adiacency,state):
-    #This function takes the neighboroughs of all infected nodes, and infects them with probability beta
-    nextstate = state #next state vector is initialized as equal to the previous, so who is infected will stay infected
-    graph = nx.from_numpy_matrix(adiacency) #make adiacency a nx graph, so finding neighboroughs is straightforward
-    for i in range(N): #for each node...
-        if state[i] == 1: #... if the node is infected...
-            neighb = list(nx.neighbors(graph, i)) #...take its neighb. and put them in a list.
-            for n in neighb: # Then, for each neighb...
-                if state[n] == 0: #...if it is susceptible...
-                    nextstate[n] = np.random.choice((0,1),p=(1-beta,beta)) #...infect him with probabilty beta
-    return(nextstate)
+#This function takes the neighboroughs of all infected nodes, and infects them with probability beta
+#It also updates the number of infections caused by that node
+def propagation(adiacency,state,killed):
+    nextstate = np.zeros(N)
+    for i in range(N):
+        if state[i]==1:
+            nextstate[i] = 1 #next state-vector is state be initially equal to the previous, so who is infected will stay infected
+    graph = nx.convert_matrix.from_numpy_matrix(adiacency) #make adiacency a nx-graph, so finding neighboroughs is straightforward
+    infected = [z for z in range(N) if state[z]==1]
+    #print(infected)
+    for i in infected: #for each infected node...
+        neighb = list(nx.neighbors(graph, i)) #...take its neighboroughs and put them in a list.
+        #print("Nodo infetto # %i, i suoi vicini sono " %i + str(neighb))
+        for n in neighb: # Then, for each neighb...
+            if nextstate[n] == 0: #...if it is (still!) susceptible...
+                nextstate[n] = np.random.choice((0,1),p=(1-beta,beta)) #...infect him with probabilty beta...
+                if nextstate[n] == 1: #...and if there is infection... 
+                    #print("New infection! %i infected by %i" %(n,i))
+                    killed[i]+=1 #...update the infecting score of the i-th node
+    #print("Giro concluso, nuovo label state:")
+    #print(nextstate)
+    #print("")
+    return(nextstate,killed)
+
+#It may be useful a function that counts the number of infected nodes at a certain time:
+def infected_counter(infected):
+    assert len(infected)==N, "Error: array has not length N"
+    assert sum(infected)<=N, "Error: there are more infections then the actual number of nodes"
+    counter = 0
+    for i in range(N):
+        if infected[i]==1:
+            counter+=1
+    return counter
 
 ### EPIDEMIOLOGY ON DAR NETWORK:
+#The following (T,N)matrices will keep track of node-labels evolution in time, so the entry ij means "state, at time i, of node j":
+label_dar = np.zeros((T,N))
+label_fitn = np.zeros((T,N))
+#They are both initialized randomly, according to beta:
+label_dar[0]=np.random.choice((0,1),p=(1-beta,beta), size=N)
+
+label_fitn[0]=np.random.choice((0,1),p=(1-beta,beta), size=N)
+#Infective score is also created now; it will be used later to make comparisons with structural measures:
+infect_score_dar = np.zeros(N)
+infect_score_fitn = np.zeros(N)
+#Actual propagation:
 for t in range(T-1): #updating label state for both networks, providing the previous state
-    label_dar[t+1] = propagation(temporal_network_dar[t],label_dar[t])
-    label_fitn[t+1]=propagation(temporal_network_fitn[t],label_fitn[t])
- 
-### RESULTS PRINT
+#    print("t = %i" %t)
+#    print("Stato infettivo:")
+#    print(label_dar[t])
+    label_dar[t+1],infect_score_dar =propagation(temporal_dar[t],label_dar[t],infect_score_dar)
+    label_fitn[t+1],infect_score_fitn=propagation(temporal__fitn[t],label_fitn[t],infect_score_fitn)
+#Normalization of infection scores, so each i-th entry is the percentage of the network infected by the i-th node:
+#infect_score_dar = 100*infect_score_dar/N 
+#infect_score_fitn = 100*infect_score_fitn/N
+
+
+### PRINTS
+print("Epidemiological results, DAR:")
+print("Infection rate at 0: %.f %%" %(100*infected_counter(label_dar[0])/N))
+print("Infection rate at T/2: %.f %%" %(100*infected_counter(label_dar[int(T/2)])/N))
+print("Infection rate at T: %.f %%" %(100*infected_counter(label_dar[T-1])/N))
+print("Percentage of infections due to each node:")
+print(infect_score_dar)
+
+### PLOTS
 #To get some "readable" graphics, one can tell nx to show in red infected nodes, and in blue the others
 #So, here is a functions that thakes the vector of state at time t and return a sequence of colours
 def colorstate(state):
     colormap = []
     for node in range(N):
         if state[node] == 1:
-            colormap.append("red")
+            colormap.append('r')
         elif state[node]==0:
-            colormap.append("blue")
+            colormap.append('b')
     return colormap
-
-
 #Plot DAR
 for t in range(T):
     #What to plot:
-    graph = nx.from_numpy_matrix(temporal_network_dar[t])
+    graph = nx.convert_matrix.from_numpy_matrix(temporal_dar[t])
     colors = colorstate(label_dar[t])
     #Plotting settings
     plt.figure(fig_count)
@@ -76,41 +115,40 @@ for t in range(T):
     plt.title(r"DAR(%i) SI-Epidemiology,$\beta$ = %.2f, N=%i,T=%i" %(P,beta,N,T))
     nx.draw(graph, pos = nx.drawing.layout.circular_layout(graph),node_color = colors, with_labels = True)
     plt.show()
+##Plot FITN
+#for t in range(T):
+#    #What to plot:
+#    graph = nx.convert_matrix.from_numpy_matrix(temporal__fitn[t])
+#    colors = colorstate(label_fitn[t])
+#    #Plotting settings
+#    plt.figure(fig_count)
+#    fig_count+=1
+#    plt.title(r"FITN SI-Epidemiology,$\beta$ = %.2f, N=%i,T=%i" %(beta,N,T))
+#    nx.draw(graph, pos = nx.drawing.layout.circular_layout(graph),node_color = colors, with_labels = True)
+#    plt.show()
 
-#Plot FITN
-for t in range(T):
-    #What to plot:
-    graph = nx.from_numpy_matrix(temporal_network_fitn[t])
-    colors = colorstate(label_fitn[t])
-    #Plotting settings
-    plt.figure(fig_count)
-    fig_count+=1
-    plt.title(r"FITN SI-Epidemiology,$\beta$ = %.2f, N=%i,T=%i" %(beta,N,T))
-    nx.draw(graph, pos = nx.drawing.layout.circular_layout(graph),node_color = colors, with_labels = True)
-    plt.show()
     
-### NETWORK ANALYSIS
-    
+### CENTRALITY MEASURES
 start_name = 'Examples/SI_EPIDEMIC_' #begin of the name of files that will be saved (txt,img...)
-#np.savetxt(start_name+'DAR1_N%i_T%i.txt' %(N,T), temporal_network_dar.reshape(T,N*N))
+#np.savetxt(start_name+'DAR1_N%i_T%i.txt' %(N,T), temporal__dar.reshape(T,N*N))
 #np.savetxt(start_name+'_LABELS_DAR1_N%i_T%i.txt' %(N,T), label_dar) #saving labels in a separate file
-#np.savetxt(start_name+'FITN_N%i_T%i.txt' %(N,T), temporal_network_fitn.reshape(T,N*N))
+#np.savetxt(start_name+'FITN_N%i_T%i.txt' %(N,T), temporal__fitn.reshape(T,N*N))
 #np.savetxt(start_name+'_LABELS_FITN_N%i_T%i.txt' %(N,T), label_fitn) #saving labels in a separate file
 
 #Communicability analysis
 #Building of Communicability matrix, just by applying definition and using some useful np functions:
-def communicability(temporal_network): 
+def communicability(temporal_): 
     #As known, to compute communicability one as to choose a coefficient that multiplicates adiacencies
     #At the moment, this function takes as default, as coefficient, a quarter of the inverse of max spectral radius
     #Find max spectral radius:
     spec = []
     for t in range(T):
-        spec.append(np.real(max(np.linalg.eigvals(temporal_network[t])))) #find max eigenvalue for each adiacency, taking only RE
+        spec.append(np.real(max(np.linalg.eigvals(temporal_[t])))) #find max eigenvalue for each adiacency, taking only RE
     maxradius = 1/max(spec) #maximum is the reciprocal of the maximum eigenvalue
     #Communicability builing
     Q = np.identity(N) 
     for t in range(T):
-        inv = np.linalg.inv(np.identity(N)-0.25*maxradius*temporal_network[t]) #inverse factor, which has to be multiplicated to the previous Q
+        inv = np.linalg.inv(np.identity(N)-0.25*maxradius*temporal_[t]) #inverse factor, which has to be multiplicated to the previous Q
         Q = np.matmul(Q,inv)/np.linalg.norm(np.matmul(Q,inv)) #updating and normalizing of Q
     return(maxradius,Q) #just for sake of completeness, also tha max spectral radius is returned
 
@@ -133,7 +171,7 @@ def receive_ranking(Q):
 
 #Everything is set to perform analysis over the imported netowrks:
 #DAR
-spec_radius_dar, Q_dar = communicability(temporal_network_dar)
+spec_radius_dar, Q_dar = communicability(temporal_dar)
 nodes_Bcentrality_dar, nodes_Brank_dar = broadcast_ranking(Q_dar) #scores, node rankings
 nodes_Rcentrality_dar, nodes_Rrank_dar = receive_ranking(Q_dar) #cores, node rankings
 print("Top 3-ranked Broadcast centrality, and their score [DAR]:")
@@ -141,7 +179,7 @@ for i in range(3):
     print(nodes_Brank_dar[i], nodes_Bcentrality_dar[nodes_Brank_dar[i]])
 
 #FITN
-spec_radius_fitn, Q_fitn = communicability(temporal_network_fitn)
+spec_radius_fitn, Q_fitn = communicability(temporal__fitn)
 nodes_Bcentrality_fitn, nodes_Brank_fitn = broadcast_ranking(Q_fitn)
 nodes_Rcentrality_fitn, nodes_Rrank_fitn = receive_ranking(Q_fitn)
 print("Top 3-ranked Receive centrality, and their score [FITN]:")
