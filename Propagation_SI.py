@@ -27,10 +27,31 @@ temporal__fitn= temporal__fitn.reshape((T,N,N))
 ### EPIDEMIC FUNCTIONS BUILDING
 #The idea of SI model is that one infected node, at t-1, can infect one of its neighboroughs with probability beta
 beta = 0.15
+
+### LAVORI IN CORSO
+from scipy.integrate import quad
+def poisson_probability(t):
+    lam = -np.log(1-beta) #applico la formula del Chen (pag 17), ma invece di 60 faccio direttamente 1
+    return(lam*np.exp(-lam*t))
+quad(poisson_probability,0,np.inf)   
+
+
+def infect_extraction(t):
+    I = quad(poisson_probability,0,t)
+    x = np.random.uniform(0,1) #soglia di probabilità da superare
+    if I[0] > x:
+        return True #se l'integrale è maggiore, allora dai l'ok
+    else:
+        return False
+
+
+### FINE LAVORI IN CORSO
+
+
 #Since the spread will be performed two times, on two different network, a function can be useful:
 #This function takes the neighboroughs of all infected nodes, and infects them with probability beta
 #It also updates the number of infections caused by that node
-def propagation(adiacency,state,killed):
+def propagation(adiacency,state,killed,t):
     nextstate = np.zeros(N)
     for i in range(N):
         if state[i]==1:
@@ -43,10 +64,10 @@ def propagation(adiacency,state,killed):
         #print("Nodo infetto # %i, i suoi vicini sono " %i + str(neighb))
         for n in neighb: # Then, for each neighb...
             if nextstate[n] == 0: #...if it is (still!) susceptible...
-                nextstate[n] = np.random.choice((0,1),p=(1-beta,beta)) #...infect him with probabilty beta...
-                if nextstate[n] == 1: #...and if there is infection... 
+                if infect_extraction(t) == True: #...and the extraction is successful...
+                    nextstate[n] = 1 #...infect the node...
                     #print("New infection! %i infected by %i" %(n,i))
-                    killed[i]+=1 #...update the infecting score of the i-th node
+                    killed[i]+=1 #...and update the infecting score of the i-th node
     #print("Giro concluso, nuovo label state:")
     #print(nextstate)
     #print("")
@@ -78,8 +99,8 @@ for t in range(T-1): #updating label state for both networks, providing the prev
 #    print("t = %i" %t)
 #    print("Stato infettivo:")
 #    print(label_dar[t])
-    label_dar[t+1],infect_score_dar =propagation(temporal_dar[t],label_dar[t],infect_score_dar)
-    label_fitn[t+1],infect_score_fitn=propagation(temporal__fitn[t],label_fitn[t],infect_score_fitn)
+    label_dar[t+1],infect_score_dar =propagation(temporal_dar[t],label_dar[t],infect_score_dar,t)
+    label_fitn[t+1],infect_score_fitn=propagation(temporal__fitn[t],label_fitn[t],infect_score_fitn,t)
 #Normalization of infection scores, so each i-th entry is the percentage of the network infected by the i-th node:
 infect_score_dar = 100*infect_score_dar/N
 infect_score_fitn = 100*infect_score_fitn/N
@@ -162,7 +183,7 @@ def communicability(temporal_):
         spec.append(np.real(max(np.linalg.eigvals(temporal_[t])))) #find max eigenvalue for each adiacency, taking only RE
     maxradius = 1/max(spec) #maximum is the reciprocal of the maximum eigenvalue
     #Communicability builing
-    Q = np.identity(N) 
+    Q = np.identity(N)/np.linalg.norm(np.identity(N))
     for t in range(T):
         inv = np.linalg.inv(np.identity(N)-0.25*maxradius*temporal_[t]) #inverse factor, which has to be multiplicated to the previous Q
         Q = np.matmul(Q,inv)/np.linalg.norm(np.matmul(Q,inv)) #updating and normalizing of Q
@@ -190,14 +211,17 @@ def receive_ranking(Q):
 spec_radius_dar, Q_dar = communicability(temporal_dar)
 nodes_Bcentrality_dar, nodes_Brank_dar = broadcast_ranking(Q_dar) #scores, node rankings
 nodes_Rcentrality_dar, nodes_Rrank_dar = receive_ranking(Q_dar) #cores, node rankings
-print("Top 3-ranked Broadcast centrality, and their score [DAR]:")
-for i in range(3):
+print("Top 10-ranked Broadcast centrality, and their score [DAR]:")
+for i in range(10):
     print(nodes_Brank_dar[i], nodes_Bcentrality_dar[nodes_Brank_dar[i]])
-
+print("Common nodes between infective and BC:")
+print(list(set(rankings_infections_fitn[0:10]).intersection(nodes_Brank_dar[0:10])))
 #FITN
 spec_radius_fitn, Q_fitn = communicability(temporal__fitn)
 nodes_Bcentrality_fitn, nodes_Brank_fitn = broadcast_ranking(Q_fitn)
 nodes_Rcentrality_fitn, nodes_Rrank_fitn = receive_ranking(Q_fitn)
-print("Top 3-ranked Receive centrality, and their score [FITN]:")
-for i in range(3):
+print("Top 10-ranked Receive centrality, and their score [FITN]:")
+for i in range(10):
     print(nodes_Brank_fitn[i], nodes_Bcentrality_fitn[nodes_Brank_fitn[i]])
+print("Common nodes between infective and BC:")
+print(list(set(rankings_infections_fitn[0:10]).intersection(nodes_Brank_fitn[0:10])))
