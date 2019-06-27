@@ -25,9 +25,9 @@ import matplotlib.pyplot as plt #Used for graphic belluries
 #Here you can choose number of nodes, evolution length, number of iterations, DAR type, beta
 N = 100 #number of nodes of the network
 T = 100 #number of steps of temporal evolution
-K = 50 #number of repetitions 
+K = 5 #number of repetitions 
 P = 1 #DAR(P)
-beta = 0.15 #infection probability
+beta = 0.015 #infection probability
 fig_count = 0 #several figures will be printed
 
 
@@ -65,14 +65,23 @@ def poisson_probability(t):
     #This function does.......
     lam = -np.log(1-beta) #applico la formula del Chen (pag 17), ma invece di 60 faccio direttamente 1
     return(lam*np.exp(-lam*t))
-quad(poisson_probability,0,np.inf)   
+I = quad(poisson_probability,0,np.inf) #questo è per verificare che integrato all'inf fa 1
 
-def infect_extraction(t):
+#THIS FUNCTION COMPUTES THE DURATION OF CONTACT (number of temporal steps) FOR A COUPLE OF NODES
+def contact_lasting(adiacency,t,i,j):
+    counter = 0
+    for instant in range(t):
+        if adiacency[t-instant,i,j] == 1:
+            counter +=1
+        else:
+            break
+    return counter
+
+def infect_extraction(adiacency,t,i,j): #sarebbe bastato il solo t ma voglio far funzionare tutto veloce
     # Potrei farla più garbata definendo status, così ritorna un solo valore
     #This functions does.....
-    I = quad(poisson_probability,0,t)
     x = np.random.uniform(0,1) #soglia di probabilità da superare
-    if I[0] > x:
+    if quad(poisson_probability,0,contact_lasting(adiacency,t,i,j))[0] > x:
         return True #se l'integrale è maggiore, allora dai l'ok
     else:
         return False
@@ -80,26 +89,24 @@ def infect_extraction(t):
 #Since the spread will be performed two times, on two different network, a function can be useful:
 #This function takes the neighboroughs of all infected nodes, and infects them with probability beta
 #It also updates the number of infections caused by that node
-def propagation(adiacency,state,t):
+def propagation(adiacency,state,t): #quello che gli darai in pasto è t-1, e lui ti calcola lo stato a t
     nextstate = np.zeros(N)
     for i in range(N):
-        if state[i]==1:
+        if state[t,i]==1:
             nextstate[i] = 1 #next state-vector is state be initially equal to the previous, so who is infected will stay infected
-    graph = nx.convert_matrix.from_numpy_matrix(adiacency) #make adiacency a nx-graph, so finding neighboroughs is straightforward
-    infected = [z for z in range(N) if state[z]==1]
+    infected = [z for z in range(N) if state[t,z]==1]
     for i in infected: #for each infected node...
-        neighb = list(nx.neighbors(graph, i)) #...take its neighboroughs and put them in a list.
+        neighb = [nodes for nodes in range(N) if adiacency[t,i,nodes] == 1] #...TAKE THE VICINI, VEDIAMO SE LO SONO...
         for n in neighb: # Then, for each neighb...
             if nextstate[n] == 0: #...if it is (still!) susceptible...
-                if infect_extraction(t) == True: #...and the extraction is successful...
+                if infect_extraction(adiacency,t,i,n) == True: #...and the extraction is successful...
                     nextstate[n] = 1 #...infect the node
                     #print("New infection! %i infected by %i" %(n,i))
     return(nextstate)
 
 #This function counts the number of infected nodes at a certain time:
+#Ma poi scusa, il numero infetti non è semplicemente sum(label_dar[t])?? Perché complicarsi la vita?
 def infected_counter(infected):
-    assert len(infected)==N, "Error: array has not length N"
-    assert sum(infected)<=N, "Error: there are more infections then the actual number of nodes"
     counter = 0
     for i in range(N):
         if infected[i]==1:
@@ -108,9 +115,10 @@ def infected_counter(infected):
 
 #Next function returns the time step at wich the disease has reached 60% of the network, if it exist:
 def score_60(scores):
+    #asserire che sum deve essere sempre <= N?
     time_60 = T-1 #initialized as the final temporal step
     for t in range(T):
-        if infected_counter(scores)>=0.6*N:
+        if sum(scores[t])>=0.6*N:
             time_60 = t
             break
     return time_60
@@ -121,23 +129,25 @@ def score_60(scores):
 #Rembember that, while for DAR there's only 1 initial infected, there will be more for FITN.
 
 # DAR #
+import time
 for i in range(N):
     initial_state = np.zeros(N) 
-    initial_state[0] = i #node i infected is the "index case" (in italian, "paziente zero")
+    initial_state[i] = 1 #node i is the "index case" ("paziente zero"), i.e. the first infected node
     #Now, everything is ready to perform propagation, K times
     for k in range(K):
+        start = time.time()
         label_dar[0] =initial_state
         for t in range(1,T): 
-            label_dar[t] =propagation(temporal_dar[t-1],label_dar[t-1],t-1)
-        score_dar[i,k] = score_60(label_dar[t]) #score updating
+            label_dar[t] =propagation(temporal_dar,label_dar,t-1)
+        score_dar[i,k] = score_60(label_dar) #score updating, dovresti mettere un "if == T-1, allora non ci è arrivato"
+        print(time.time()-start)
     avg_score_dar[i] = np.mean(score_dar[i])
 
-#Ranking computation:
-# It's used a combination of two numpy functions:
-#Argsort, which takes a vector and returns a vector of input vector indices, in increasing order. So, here, the first entry would be the worst-scoring node.
-#Flip, which reverses a vector. So, after this, the first entry is the best-scoring node.
-ranked_nodes_dar = np.flip(np.argsort(avg_score_dar))
 
+#Ranking computation:
+# It's used argsort, which takes a vector and returns a vector of the input vector indices, in increasing order. 
+# So, the first entry of the following output is the node who took less time to infect; the last entry is the worst node.
+ranked_nodes_dar = np.argsort(avg_score_dar)
 
 
 # FITN #
