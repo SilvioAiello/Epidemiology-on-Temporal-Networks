@@ -1,12 +1,18 @@
-#THIS MODULE MAKES A DISEASE SPREADING, OVER PREVIOUSLY GENERATED TEMPORAL NETWORK (DAR AND FITN), IN SI MODE.
+#THIS MODULE PREFORMS DISEASES SPREADING, OVER PREVIOUSLY GENERATED TEMPORAL NETWORKS (DAR AND FITN), IN SI MODE.
 #IF YOU DON'T KNOW WHAT ARE FITNESS/DAR, OR THE SI PROPAGATION, CHECK THE DOCUMENTATION AND THE "EVOLUTION" PYTHON MODULES IN THIS FOLDER.
-#THE NETWORK IS DESCRIBED THROUGH IT'S ADIACENCY MATRIX. ITS DESEASE STATE (SUSCEPTIBLE, INFECTED) IS A LABEL FOR EACH NODE.
-#SUSCEPTIBLE -> 0, INFECTED -> 1
-#EACH UPDATE OF THE DESEASE IS A STOCHASTIC PROCESS, SO SEVERAL PERFORMANCES ARE NEEDED, IN ORDER TO MAKE STATISTICS
+
+#THE MAIN PURPOSE IS TO EXTRACT AN INDEX OF CORRELATION BETWEEN NODES VIRULENCE AND CENTRALITY.
+#NODE VIRULENCE IS DETERMINED BY MAKING EACH NODE THE INDEX CASE (PAZIENTE 0), AND COMPUTING THE TIME NEEDED TO INFECT A CERTAIN % OF THE NETWORK.
+#EACH EPIDEMIC SPREAD IS A STOCHASTIC PROCESS, SO SEVERAL (K) SPREAD ITERATIONS ARE NEEDED, WITH THE SAME INITIAL CONDITION, OVER THE SAME NETWORK.
+#TEMPORAL NETWORKS ARE THEMSELVES STOCHASTIC, SO THE WHOLE SET OF ITERATIONS HAS TO BE REPEATED OVER SEVERAL TEMPNETS.
+#AFTER THIS, ONE CAN DETERMINE IF THERE'S AN ACTUAL CORRELATION BETWEEN VIRULENCE AND CENTRALITIES SCORES.
+
+#A TEMPORAL NETWORK OF N NODES IS DESCRIBED BY T ADIACENCY MATRICES (N x N), WHICH HAVE THE SCTRUCTURE OF NUMPY ARRAY. 
+#DESEASE STATE IS A DICTIONARY THAT MAPS EACH NODE TO 0 (SUSCEPTIBLE) OR 1 (INFECTED).
+
 #ONLY UNDIRECTED GRAPHS WITH NO AUTO-LOOPS ARE DEALT WITH, AT THE MOMENT
 
 import numpy as np #Used for its random functions and data structures
-import networkx as nx #Used to extract information from networks, and plot them
 import matplotlib.pyplot as plt #Used for graphic belluries
 
 #TODO: Spiegare
@@ -27,8 +33,8 @@ N = 100 #number of nodes of the network
 T = 100 #number of steps of temporal evolution
 K = 5 #number of repetitions 
 P = 1 #DAR(P)
-beta = 0.015 #infection probability
-fig_count = 0 #several figures will be printed
+beta = 0.1 #infection rate (probability of infecting a node within unit time)
+fig_count = 0 #several figures may be printed
 
 
 temporal_dar = np.loadtxt('Examples/DAR'+'%i_N%i_wholenetwork_T%i.txt' %(P,N,T))
@@ -42,15 +48,15 @@ temporal_fitn= temporal_fitn.reshape((T,N,N))
 # CONTAINERS #
 #The following (K,T,N) matrices will keep track of node-state evolution in time, so the entry kij means "state of node j, at time i and for the k-th iteration":
 #Quindi devi anticipare, da qualche parte sopra, che si itererà tutto K volte
-label_dar = np.zeros((T,N)) #infective state for DAR-network
-label_fitn = np.zeros((T,N))#infective state for FITN-network
-
+label_dar = dict()
+label_fitn= dict()
+    
 #This array saves the number of time steps needed to infect 60% of the network, for each of K iterations, for each node:
 score_dar = np.zeros((N,K))
 score_fitn = np.zeros((N,K))
 #The average result, for each node, is stored in a proper array
-avg_score_dar = np.zeros(N)
-avg_score_fitn = np.zeros(N)
+avg_score_dar = (T-1)*np.ones(N)
+avg_score_fitn = (T-1)*np.ones(N)
 #This one will rank the nodes according to their scores. So, he will be involved in the comparison with the centralities:
 ranked_nodes_dar = np.zeros(N)
 ranked_nodes_fitn = np.zeros(N)
@@ -60,6 +66,23 @@ ranked_nodes_fitn = np.zeros(N)
 #The idea of SI model is that one infected node, at t-1, can infect one of its neighboroughs with probability beta
 #The infection, appens as in Chen -> SPIEGARE
 
+def neighbourhood(adiacency,t,node):
+    #Gli dai l'adiacenza generale (dar, fitn...), gli dici a che istante lavorare e il nodo di cui vuoi i vicini
+    #Lui ti restituisce un set con il "vicinato", da cui il nome
+    neigh = {i for i in range(N) if adiacency[t,node,i]==1}
+    return neigh
+
+def onlyones(state,nodes_list,t):
+    #Gli dai l'elenco di tutti i label, una lista di nodi (ad esempio una di vicinato), e l'istante
+    #Lui ti restituisce, dalla lista nodi, solo quelli con label 1 a quell'istante, cioè infetti
+    selected = {node for node in nodes_list if state[t][node]==1}
+    return selected
+
+def onlyzeros(state,nodes_list,t):
+    #Stessa cosa ma solo coi suscettibili
+    selected = {node for node in nodes_list if state[t][node]==0}
+    return selected
+
 from scipy.integrate import quad
 def poisson_probability(t):
     #This function does.......
@@ -67,45 +90,56 @@ def poisson_probability(t):
     return(lam*np.exp(-lam*t))
 I = quad(poisson_probability,0,np.inf) #questo è per verificare che integrato all'inf fa 1
 
-#THIS FUNCTION COMPUTES THE DURATION OF CONTACT (number of temporal steps) FOR A COUPLE OF NODES
-def contact_lasting(adiacency,t,i,j):
+#Per evitare di fare sempre l'integrale, faccio un dizionario con i valori:
+probabilities = dict()
+for t in range(T):
+    probabilities[t] = quad(poisson_probability,0,t)[0]
+
+
+def contact_lasting(adiacency,state,t,i,j):
+    #SCRITTA COSI', I DEVE ESSERE PER FORZA IL NODO INFETTO
+    #This function computes the duration of a contact (in number of temporal steps) for a couple of nodes I-S
     counter = 0
-    for instant in range(t):
-        if adiacency[t-instant,i,j] == 1:
+    for instant in range(t+1):
+        if (adiacency[t-instant,i,j] == 1 and state[t-instant][i]==1):
             counter +=1
         else:
             break
     return counter
 
-def infect_extraction(adiacency,t,i,j): #sarebbe bastato il solo t ma voglio far funzionare tutto veloce
+def infect_extraction(probab): #sarebbe bastato il solo t ma voglio far funzionare tutto veloce
+    #Remember: the outcome of this function is stochastic
     # Potrei farla più garbata definendo status, così ritorna un solo valore
     #This functions does.....
     x = np.random.uniform(0,1) #soglia di probabilità da superare
-    if quad(poisson_probability,0,contact_lasting(adiacency,t,i,j))[0] > x:
-        return True #se l'integrale è maggiore, allora dai l'ok
+    if probab > x:
+        return (True) #se l'integrale è maggiore, allora dai l'ok
     else:
-        return False
+        return (False)
 
 #Since the spread will be performed two times, on two different network, a function can be useful:
 #This function takes the neighboroughs of all infected nodes, and infects them with probability beta
 #It also updates the number of infections caused by that node
-def propagation(adiacency,state,t): #quello che gli darai in pasto è t-1, e lui ti calcola lo stato a t
-    nextstate = np.zeros(N)
-    for i in range(N):
-        if state[t,i]==1:
-            nextstate[i] = 1 #next state-vector is state be initially equal to the previous, so who is infected will stay infected
-    infected = [z for z in range(N) if state[t,z]==1]
-    for i in infected: #for each infected node...
-        neighb = [nodes for nodes in range(N) if adiacency[t,i,nodes] == 1] #...TAKE THE VICINI, VEDIAMO SE LO SONO...
-        for n in neighb: # Then, for each neighb...
-            if nextstate[n] == 0: #...if it is (still!) susceptible...
-                if infect_extraction(adiacency,t,i,n) == True: #...and the extraction is successful...
-                    nextstate[n] = 1 #...infect the node
-                    #print("New infection! %i infected by %i" %(n,i))
+def propagation(adiacency,state,t):
+    nextstate = dict.fromkeys(range(N),0)
+    for i in range(N): #lui procede in ordine crescente di nodo. Ciò porta a questo fatto:
+        if state[t][i]==1:
+            nextstate[i] = 1 #next state-vector is initially equal to the previous, so who is infected stays infected...
+    #L'idea è: prendo i suscettibili, per ognuno prendo i vicini infetti (se non ne ha non deve procedere)
+    #Tramite essi calcolo la probabilità di infezione e decido se infettare
+    susc = onlyzeros(state,range(N),t) #un modo per migliorare ancora sarebbe crearla una tantum e rimuovere volta per volta
+    for s in susc:
+        infectneighbourhood = onlyones(state,neighbourhood(adiacency,t,s),t)
+        if len(infectneighbourhood)>0:
+            for i in infectneighbourhood:
+                p = 0
+                p += probabilities[contact_lasting(adiacency,state,t,i,s)]
+            p /= len(infectneighbourhood)
+            if infect_extraction(p):
+                nextstate[s] = 1
     return(nextstate)
 
 #This function counts the number of infected nodes at a certain time:
-#Ma poi scusa, il numero infetti non è semplicemente sum(label_dar[t])?? Perché complicarsi la vita?
 def infected_counter(infected):
     counter = 0
     for i in range(N):
@@ -113,34 +147,38 @@ def infected_counter(infected):
             counter+=1
     return counter
 
-#Next function returns the time step at wich the disease has reached 60% of the network, if it exist:
-def score_60(scores):
+#Next function returns the time step at wich the disease has reached a certain fraction of the network, if it is happened:
+def time_score(scores,fraction):
+    #Scores sarebbe il label dar totale, e lui deve trovare in quale label_dar[t] la soglia è stata superata
+    assert fraction > 0, "Error, only values between 0 and 1 are allowed"
+    assert fraction < 1, "Error, only values between 0 and 1 are allowed"
     #asserire che sum deve essere sempre <= N?
-    time_60 = T-1 #initialized as the final temporal step
+    time_spent = T-1 #initialized as the final temporal step
     for t in range(T):
-        if sum(scores[t])>=0.6*N:
-            time_60 = t
+        if infected_counter(scores[t])>=fraction*N:
+            time_spent = t
             break
-    return time_60
+    return time_spent
 
 
 ###                         PROPAGATIONS                         ###
 #Here the actual propagation occurs. First, the initial states are set for both networks, then propagation-function is called
 #Rembember that, while for DAR there's only 1 initial infected, there will be more for FITN.
 
-# DAR #
 import time
+# DAR #
+start = time.time()
 for i in range(N):
-    initial_state = np.zeros(N) 
-    initial_state[i] = 1 #node i is the "index case" ("paziente zero"), i.e. the first infected node
+    print("Processing node %i" %i)
+    initial_state = dict.fromkeys(range(N),0) #fromkeys vuole una tupla e un valore
+    initial_state[i] = 1
     #Now, everything is ready to perform propagation, K times
     for k in range(K):
-        start = time.time()
-        label_dar[0] =initial_state
-        for t in range(1,T): 
+        label_dar[0] = initial_state
+        for t in range(1,T):
             label_dar[t] =propagation(temporal_dar,label_dar,t-1)
-        score_dar[i,k] = score_60(label_dar) #score updating, dovresti mettere un "if == T-1, allora non ci è arrivato"
-        print(time.time()-start)
+        score_dar[i,k] = time_score(label_dar,0.6) #score updating, dovresti mettere un "if == T-1, allora non ci è arrivato"
+        #con lo score_dar potresti non salvare tutti i k e cavartela con un +=
     avg_score_dar[i] = np.mean(score_dar[i])
 
 
@@ -149,11 +187,13 @@ for i in range(N):
 # So, the first entry of the following output is the node who took less time to infect; the last entry is the worst node.
 ranked_nodes_dar = np.argsort(avg_score_dar)
 
+print(time.time()-start)
 
+plt.plot()
+plt.plot(range(T),[infected_counter(label_dar[t]) for t in range(T)]) #così, messo qui, te lo mostra solo per l'ultimo nodo del ciclo
 # FITN #
 #Working progress
-
-
+#%%
 ###                      CONTAINERS AND FUNCTIONS FOR CENTRALITIES      ###
 
 # COMMUNICABILITY #
@@ -210,7 +250,7 @@ for i in range(10):
     print(ranked_nodes_dar[i], avg_score_dar[ranked_nodes_dar[i]])
 print("Top 10-ranked Broadcast centrality, and their scores:")
 for i in range(10):
-    print(nodes_Brank_dar[i], nodes_Bcentrality_dar[nodes_Brank_dar[i]])
+    print(nodes_Brank_dar[-i], nodes_Bcentrality_dar[nodes_Brank_dar[-i]])
 print("Common nodes between infective and BC:")
 #Function intesection shows the common top-ranking nodes, but lists have to be converted in sets
 print(list(set(ranked_nodes_dar[0:9]).intersection(set(nodes_Brank_dar[0:9])))) 
