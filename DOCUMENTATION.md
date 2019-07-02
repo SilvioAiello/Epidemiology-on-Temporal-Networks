@@ -14,5 +14,6 @@ This repository, at this moment, has these files:
 2 directories: Examples, where some intermediate and low dimensions results will be put; Results, where the final results will go.
 2 python "Evolution" modules, each of which simulates the temporal evolution of the network (i.e. of links between nodes) alone.
 1 python "Propagation" module, which simulate the SI spreading of a desease
+1 test module
 2 md files: this, and the README.
 The gitignore file
