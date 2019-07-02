@@ -46,100 +46,104 @@ temporal_fitn= temporal_fitn.reshape((T,N,N))
 ###                      CONTAINERS AND FUNCTIONS FOR EPIDEMIC           ###
 
 # CONTAINERS #
-#The following (K,T,N) matrices will keep track of node-state evolution in time, so the entry kij means "state of node j, at time i and for the k-th iteration":
-#Quindi devi anticipare, da qualche parte sopra, che si itererà tutto K volte
+#Initialization of dictionaries that keep track of node states evolution. 
+#Each key, representing the instant, has as value a dictionary, that maps each node to the state at that instant.
 label_dar = dict()
 label_fitn= dict()
     
-#This array saves the number of time steps needed to infect 60% of the network, for each of K iterations, for each node:
-score_dar = np.zeros((N,K))
-score_fitn = np.zeros((N,K))
-#The average result, for each node, is stored in a proper array
-avg_score_dar = (T-1)*np.ones(N)
-avg_score_fitn = (T-1)*np.ones(N)
-#This one will rank the nodes according to their scores. So, he will be involved in the comparison with the centralities:
+#These dicts save the average (over K iterations) number of time steps needed to infect 60% of the network, for each node:
+score_dar = dict.fromkeys(range(N),0)
+score_fitn =dict.fromkeys(range(N),0)
+
+#These arrays rank the nodes according to their scores. So, they will be involved in the comparisons with centralities:
 ranked_nodes_dar = np.zeros(N)
 ranked_nodes_fitn = np.zeros(N)
 
 
 # EPIDEMIC FUNCTIONS BUILDING #
-#The idea of SI model is that one infected node, at t-1, can infect one of its neighboroughs with probability beta
-#The infection, appens as in Chen -> SPIEGARE
+#The idea of SI model is that each I node, at t-1, can make infect one of its S neighbours, at t-1, with a certain probability, whose rate is beta.
+#So, there will be usefuls some simple functions that build the neighbourhood of a node, or find S/I nodes from a list at a given time, or compute links' temporal duration.
 
 def neighbourhood(adiacency,t,node):
-    #Gli dai l'adiacenza generale (dar, fitn...), gli dici a che istante lavorare e il nodo di cui vuoi i vicini
-    #Lui ti restituisce un set con il "vicinato", da cui il nome
+    #This function takes and adiacency matrix (dar, tgrg...), a particoular time step and a given node
+    #And returns a SET with all nodes that have a link with that node at that time
     neigh = {i for i in range(N) if adiacency[t,node,i]==1}
     return neigh
 
 def onlyones(state,nodes_list,t):
-    #Gli dai l'elenco di tutti i label, una lista di nodi (ad esempio una di vicinato), e l'istante
-    #Lui ti restituisce, dalla lista nodi, solo quelli con label 1 a quell'istante, cioè infetti
+    #This function takes a list of nodes (not necessarily the whole set of nodes), whole nodes-state dict and a given time
+    #And return a SET with just infected nodes (i.e. those whose state is 1).
     selected = {node for node in nodes_list if state[t][node]==1}
     return selected
 
 def onlyzeros(state,nodes_list,t):
-    #Stessa cosa ma solo coi suscettibili
+    #Same as onlyones, but returns suceptible nodes.
     selected = {node for node in nodes_list if state[t][node]==0}
     return selected
 
-from scipy.integrate import quad
-def poisson_probability(t):
-    #This function does.......
-    lam = -np.log(1-beta) #applico la formula del Chen (pag 17), ma invece di 60 faccio direttamente 1
-    return(lam*np.exp(-lam*t))
-I = quad(poisson_probability,0,np.inf) #questo è per verificare che integrato all'inf fa 1
+def contact_lasting(adiacency,state,t,infected_node,susceptible_node):
+    #This function computes the duration of a contact (in number of temporal steps) for a couple of nodes I-S, as long as I is infected (otherwise, it couldn't propagate the epidemic)
+    #This is accomplished by checking backwards the existence of the link and the state of the I node, increasing the value of a counter variable until these conditions are satisfied
+    counter = 0
+    for instant in range(t+1):
+        if (adiacency[t-instant,infected_node,susceptible_node] == 1 and state[t-instant][infected_node]==1):
+            counter +=1
+        else:
+            break
+    return counter #this should be included in [0,t]
 
-#Per evitare di fare sempre l'integrale, faccio un dizionario con i valori:
+
+#Epidemic spread follows Chen approach: time of infection (in unit steps) follows a Poissonian distribution, normalized to return beta for 1 step, integrated within link duration.
+#(note: beta is the probability rate of contagion [1/s], but also the actual probability of contagion after 1 unit time: infact, P(1) = beta*1 u.t. = beta [dimensionless]).
+#Chen's algorithm make a contagion happen by performing an extraction from Unif(0,1): if this number is lower than the Poisson integral, contagion takes place at that time.
+
+from scipy.integrate import quad #this function performs integration
+def poisson_probability(t):
+    #This function reproduces the Poisson PDF, where the average is set in function of beta, who is a parameter of the disease
+    lam = -np.log(1-beta) #See Chen (who uses 60)
+    return(lam*np.exp(-lam*t))
+#I = quad(poisson_probability,0,np.inf) #verify the correct normalization
+#The same integrals will be performed many times, varying at most the total duration, whose maximum value can be T.
+#So, they are computed here once for all, and the results stored in a dict, that maps each duration to the integral
 probabilities = dict()
 for t in range(T):
     probabilities[t] = quad(poisson_probability,0,t)[0]
 
 
-def contact_lasting(adiacency,state,t,i,j):
-    #SCRITTA COSI', I DEVE ESSERE PER FORZA IL NODO INFETTO
-    #This function computes the duration of a contact (in number of temporal steps) for a couple of nodes I-S
-    counter = 0
-    for instant in range(t+1):
-        if (adiacency[t-instant,i,j] == 1 and state[t-instant][i]==1):
-            counter +=1
-        else:
-            break
-    return counter
-
-def infect_extraction(probab): #sarebbe bastato il solo t ma voglio far funzionare tutto veloce
-    #Remember: the outcome of this function is stochastic
-    # Potrei farla più garbata definendo status, così ritorna un solo valore
-    #This functions does.....
+def infect_extraction(probab): #Remember: the outcome of this function is stochastic
+    #This function extracts a random number from Uniform Distribution, and compares it to the given probability
+    #If the random number is lower, function return True, to signal that contagion can occur
     x = np.random.uniform(0,1) #soglia di probabilità da superare
     if probab > x:
-        return (True) #se l'integrale è maggiore, allora dai l'ok
+        return (True)
     else:
         return (False)
 
-#Since the spread will be performed two times, on two different network, a function can be useful:
-#This function takes the neighboroughs of all infected nodes, and infects them with probability beta
-#It also updates the number of infections caused by that node
-def propagation(adiacency,state,t):
+#This function performs the actual propagation. It requires the adiacency and the states at t, and return the states at t+1
+#It finds the S neighboroughs of all I nodes at a given time, and makes them infect at t+1, with probability beta
+#This function will be evoked for each time step but the first and the last one
+def propagation(adiacency,state,t): #Remember: the outcome of this function is stochastic
+    #First, it is inialized the state-dict at t+1, equal to the previous one, so who is infected stays infected
     nextstate = dict.fromkeys(range(N),0)
-    for i in range(N): #lui procede in ordine crescente di nodo. Ciò porta a questo fatto:
+    for i in range(N):
         if state[t][i]==1:
-            nextstate[i] = 1 #next state-vector is initially equal to the previous, so who is infected stays infected...
-    #L'idea è: prendo i suscettibili, per ognuno prendo i vicini infetti (se non ne ha non deve procedere)
-    #Tramite essi calcolo la probabilità di infezione e decido se infettare
+            nextstate[i] = 1
+
+    #Then, it finds susceptible nodes...
     susc = onlyzeros(state,range(N),t) #un modo per migliorare ancora sarebbe crearla una tantum e rimuovere volta per volta
+    #...and for each of them, it performs the extraction, evaluating the whole neighbourhood
     for s in susc:
-        infectneighbourhood = onlyones(state,neighbourhood(adiacency,t,s),t)
-        if len(infectneighbourhood)>0:
+        infectneighbourhood = onlyones(state,neighbourhood(adiacency,t,s),t) #takes the infected neigbs. of that node
+        if len(infectneighbourhood): #if the set is empty, there can't be infection
             for i in infectneighbourhood:
                 p = 0
-                p += probabilities[contact_lasting(adiacency,state,t,i,s)]
-            p /= len(infectneighbourhood)
-            if infect_extraction(p):
-                nextstate[s] = 1
+                p += probabilities[contact_lasting(adiacency,state,t,i,s)] #compute the total probability due to neighbourhood
+            p /= len(infectneighbourhood) #normalize
+            if infect_extraction(p): #evoke the actual extraction
+                nextstate[s] = 1 #if successful, change the state of the node, at next t
     return(nextstate)
 
-#This function counts the number of infected nodes at a certain time:
+#This function counts the number of infected nodes in a set:
 def infected_counter(infected):
     counter = 0
     for i in range(N):
@@ -147,7 +151,8 @@ def infected_counter(infected):
             counter+=1
     return counter
 
-#Next function returns the time step at wich the disease has reached a certain fraction of the network, if it is happened:
+#This function, provided of the whole states-evolution, returns the time step at wich the disease has reached a given fraction of the network, using infected_counter.
+#If that fraction has not been reached, it return the total time of propagation:
 def time_score(scores,fraction):
     #Scores sarebbe il label dar totale, e lui deve trovare in quale label_dar[t] la soglia è stata superata
     assert fraction > 0, "Error, only values between 0 and 1 are allowed"
@@ -158,29 +163,30 @@ def time_score(scores,fraction):
         if infected_counter(scores[t])>=fraction*N:
             time_spent = t
             break
-    return time_spent
+    return time_spent #ha senso restituire il total time? magari inf, magari errore, vediamo
 
 
 ###                         PROPAGATIONS                         ###
-#Here the actual propagation occurs. First, the initial states are set for both networks, then propagation-function is called
-#Rembember that, while for DAR there's only 1 initial infected, there will be more for FITN.
+#Here the propagation is performed. First, the initial states are set for both networks, then function is called
+#Initial state is: all nodes Susceptible but one. Each node at a time is the index case, and for each there are K iterations
 
 import time
-# DAR #
 start = time.time()
-for i in range(N):
+
+# DAR #
+for i in range(N): #do it for each node
     print("Processing node %i" %i)
     initial_state = dict.fromkeys(range(N),0) #fromkeys vuole una tupla e un valore
-    initial_state[i] = 1
+    initial_state[i] = 1 #make node the index case
     #Now, everything is ready to perform propagation, K times
-    for k in range(K):
-        label_dar[0] = initial_state
+    for k in range(K): #repeat K time for the same network (same intial condition, different outcome since propagation is stochastic)
+        label_dar[0] = initial_state #import initial state
         for t in range(1,T):
-            label_dar[t] =propagation(temporal_dar,label_dar,t-1)
-        score_dar[i,k] = time_score(label_dar,0.6) #score updating, dovresti mettere un "if == T-1, allora non ci è arrivato"
-        #con lo score_dar potresti non salvare tutti i k e cavartela con un +=
-    avg_score_dar[i] = np.mean(score_dar[i])
+            label_dar[t] =propagation(temporal_dar,label_dar,t-1) #perform progation for each time step (but not the first and the last)
+        score_dar[i] += time_score(label_dar,0.6) #score updating, dovresti mettere un "if == T-1, allora non ci è arrivato"
+    score_dar[i] /= K #occhio al fatto di T-1 se non è raggiunta la percentuale!!!
 
+#COSI NON PUBBLICA I RANK
 
 #Ranking computation:
 # It's used argsort, which takes a vector and returns a vector of the input vector indices, in increasing order. 
@@ -189,8 +195,11 @@ ranked_nodes_dar = np.argsort(avg_score_dar)
 
 print(time.time()-start)
 
-plt.plot()
 plt.plot(range(T),[infected_counter(label_dar[t]) for t in range(T)]) #così, messo qui, te lo mostra solo per l'ultimo nodo del ciclo
+plt.xlabel("Time step")
+plt.ylabel("Percentage of infected nodes")
+plt.title("Node 99, iteration %i" %k)
+plt.show()
 # FITN #
 #Working progress
 #%%
