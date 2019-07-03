@@ -31,7 +31,7 @@ import matplotlib.pyplot as plt #Used for graphic belluries
 #Here you can choose number of nodes, evolution length, number of iterations, DAR type, beta
 N = 100 #number of nodes of the network
 T = 100 #number of steps of temporal evolution
-K = 5 #number of repetitions 
+K = 50 #number of repetitions 
 P = 1 #DAR(P)
 beta = 0.1 #infection rate (probability of infecting a node within unit time)
 fig_count = 0 #several figures may be printed
@@ -55,9 +55,9 @@ label_fitn= dict()
 score_dar = dict.fromkeys(range(N),0)
 score_fitn =dict.fromkeys(range(N),0)
 
-#These arrays rank the nodes according to their scores. So, they will be involved in the comparisons with centralities:
-ranked_nodes_dar = np.zeros(N)
-ranked_nodes_fitn = np.zeros(N)
+#These lists rank the nodes according to their scores. So, they will be involved in the comparisons with centralities:
+sorted_nodes_dar = []
+sorted_nodes_fitn = []
 
 
 # EPIDEMIC FUNCTIONS BUILDING #
@@ -186,12 +186,8 @@ for i in range(N): #do it for each node
         score_dar[i] += time_score(label_dar,0.6) #score updating, dovresti mettere un "if == T-1, allora non ci è arrivato"
     score_dar[i] /= K #occhio al fatto di T-1 se non è raggiunta la percentuale!!!
 
-#COSI NON PUBBLICA I RANK
-
 #Ranking computation:
-# It's used argsort, which takes a vector and returns a vector of the input vector indices, in increasing order. 
-# So, the first entry of the following output is the node who took less time to infect; the last entry is the worst node.
-ranked_nodes_dar = np.argsort(avg_score_dar)
+sorted_nodes_dar = sorted(score_dar.keys(), key= score_dar.get) #list of nodes, sorted by their score
 
 print(time.time()-start)
 
@@ -230,13 +226,13 @@ def broadcast_ranking(Q):
     #Broadcast = sum over lines:
     lines_sum = np.sum(Q, axis = 1) #this is a vector which reports the BC for each node
     #Using argsort (flipping the result) to get the ranks vector: rank_i means the i-th best node
-    rank = np.flip(np.argsort(lines_sum)) #argsort returns the increasing order
+    rank = np.flip(np.argsort(lines_sum)) #argsort returns the list of nodes the increasing order (from the lowest centrality to the highset)
     return(lines_sum,rank)
 def receive_ranking(Q):
     #Receive = sum over columns:
     lines_sum = np.sum(Q, axis = 0) #this is a vector which reports the RC for each node
     #Using argsort (flipping the result) to get the ranks vector: rank_i means the i-th best node
-    rank = np.flip(np.argsort(lines_sum)) #argsort returns the increasing order
+    rank = np.flip(np.argsort(lines_sum)) #argsort returns the list of nodes the increasing order (from the lowest centrality to the highset)
     return(lines_sum,rank)
 
 ###                      CENTRALITIES MEASURES                      ###
@@ -256,13 +252,13 @@ nodes_Rcentrality_fitn, nodes_Rrank_fitn = receive_ranking(Q_fitn)
 print("###   DAR NETWORK   ###")
 print("Top 10- infective nodes, and their scores:")
 for i in range(10):
-    print(ranked_nodes_dar[i], avg_score_dar[ranked_nodes_dar[i]])
+    print(sorted_nodes_dar[i], score_dar[sorted_nodes_dar[i]])
 print("Top 10-ranked Broadcast centrality, and their scores:")
 for i in range(10):
-    print(nodes_Brank_dar[-i], nodes_Bcentrality_dar[nodes_Brank_dar[-i]])
+    print(nodes_Brank_dar[i], nodes_Bcentrality_dar[nodes_Brank_dar[i]])
 print("Common nodes between infective and BC:")
 #Function intesection shows the common top-ranking nodes, but lists have to be converted in sets
-print(list(set(ranked_nodes_dar[0:9]).intersection(set(nodes_Brank_dar[0:9])))) 
+print(list(set(sorted_nodes_dar[0:9]).intersection(set(nodes_Brank_dar[0:9])))) 
 
 print("")
 print("")
