@@ -33,7 +33,7 @@ N = 100 #number of nodes of the network
 T = 100 #number of steps of temporal evolution
 K = 50 #number of repetitions 
 P = 1 #DAR(P)
-beta = 0.1 #infection rate (probability of infecting a node within unit time)
+beta = 0.005 #infection rate (probability of infecting a node within unit time)
 fig_count = 0 #several figures may be printed
 
 
@@ -47,17 +47,17 @@ temporal_fitn= temporal_fitn.reshape((T,N,N))
 
 # CONTAINERS #
 #Initialization of dictionaries that keep track of node states evolution. 
-#Each key, representing the instant, has as value a dictionary, that maps each node to the state at that instant.
-label_dar = dict()
-label_fitn= dict()
+#This will be the syntax: label_[indexcase][repetition][instant]. If you set these 3 params, you get a dict of nodes state for that index, that repetition, at that time.
+label_dar = []
+label_fitn= []
     
-#These dicts save the average (over K iterations) number of time steps needed to infect 60% of the network, for each node:
-score_dar = dict.fromkeys(range(N),0)
-score_fitn =dict.fromkeys(range(N),0)
-
-#These lists rank the nodes according to their scores. So, they will be involved in the comparisons with centralities:
-sorted_nodes_dar = []
-sorted_nodes_fitn = []
+#These lists save the a number of time steps needed to infect 60% of the network, for each node, for each iteration (they will be a list of N lists with K items):
+score_dar = []
+score_fitn =[]
+#In order to perform a direct comparison with structural centralities, average virulence score is computed for each node,
+#And virulence ranking will be stored in a list of ordered nodes, from those with lowest to those with highest average time to infect.
+avg_dar = []
+avg_fitn = []
 
 
 # EPIDEMIC FUNCTIONS BUILDING #
@@ -82,11 +82,12 @@ def onlyzeros(state,nodes_list,t):
     return selected
 
 def contact_lasting(adiacency,state,t,infected_node,susceptible_node):
+    #UN MODO PER TESTARLA E' VEDERE CHE AD OGNI ISTANTE SUCCESSIVO E' DIVERSO DAL PRECEDENTE, PER LA STESSA COPPIA
     #This function computes the duration of a contact (in number of temporal steps) for a couple of nodes I-S, as long as I is infected (otherwise, it couldn't propagate the epidemic)
     #This is accomplished by checking backwards the existence of the link and the state of the I node, increasing the value of a counter variable until these conditions are satisfied
     counter = 0
     for instant in range(t+1):
-        if (adiacency[t-instant,infected_node,susceptible_node] == 1 and state[t-instant][infected_node]==1):
+        if (adiacency[t-instant,infected_node,susceptible_node] == 1 and state[t-instant][infected_node]==1 and state[t-instant][susceptible_node]==0):
             counter +=1
         else:
             break
@@ -128,19 +129,16 @@ def propagation(adiacency,state,t): #Remember: the outcome of this function is s
     for i in range(N):
         if state[t][i]==1:
             nextstate[i] = 1
-
     #Then, it finds susceptible nodes...
     susc = onlyzeros(state,range(N),t) #un modo per migliorare ancora sarebbe crearla una tantum e rimuovere volta per volta
     #...and for each of them, it performs the extraction, evaluating the whole neighbourhood
     for s in susc:
         infectneighbourhood = onlyones(state,neighbourhood(adiacency,t,s),t) #takes the infected neigbs. of that node
-        if len(infectneighbourhood): #if the set is empty, there can't be infection
-            for i in infectneighbourhood:
-                p = 0
-                p += probabilities[contact_lasting(adiacency,state,t,i,s)] #compute the total probability due to neighbourhood
-            p /= len(infectneighbourhood) #normalize
-            if infect_extraction(p): #evoke the actual extraction
-                nextstate[s] = 1 #if successful, change the state of the node, at next t
+        for i in infectneighbourhood: #then, for each infected neighbour, perform the extraction, according to link duration
+                if infect_extraction(probabilities[contact_lasting(adiacency,state,t,i,s)]):
+                    nextstate[s] = 1 #if successful, change the state of the node, at next t
+                if nextstate[s] == 1: 
+                    break #in order to avoid to scan all the nodes, if state is already changed, break from the loop
     return(nextstate)
 
 #This function counts the number of infected nodes in a set:
@@ -176,28 +174,52 @@ start = time.time()
 # DAR #
 for i in range(N): #do it for each node
     print("Processing node %i" %i)
-    initial_state = dict.fromkeys(range(N),0) #fromkeys vuole una tupla e un valore
-    initial_state[i] = 1 #make node the index case
+    score_dar.append([])
+    label_dar.append([]) #create the i-th entry of label dar, which has K lists of T dictionaries, and each of the K has the same dict for t0, i.e. "node i index case"
+    initial_state = dict.fromkeys(range(N),0) #fromkeys requires a tuple of keys and one value
+    initial_state[i] = 1 #make node i the index case
     #Now, everything is ready to perform propagation, K times
     for k in range(K): #repeat K time for the same network (same intial condition, different outcome since propagation is stochastic)
-        label_dar[0] = initial_state #import initial state
+        label=dict() #label è un dict di dict che viene sovrascritto ad ogni k-esima iterazione
+        label[0] = initial_state #import initial state
         for t in range(1,T):
-            label_dar[t] =propagation(temporal_dar,label_dar,t-1) #perform progation for each time step (but not the first and the last)
-        score_dar[i] += time_score(label_dar,0.6) #score updating, dovresti mettere un "if == T-1, allora non ci è arrivato"
-    score_dar[i] /= K #occhio al fatto di T-1 se non è raggiunta la percentuale!!!
+            label[t] = propagation(temporal_dar,label,t-1) #perform progation for each time step (but not the first and the last)
+        label_dar[i].append(label)
+        score_dar[i].append(time_score(label,0.6)) #score updating, dovresti mettere un "if == T-1, allora non ci è arrivato"
+    avg_dar.append(np.average(score_dar[i]))
 
 #Ranking computation:
-sorted_nodes_dar = sorted(score_dar.keys(), key= score_dar.get) #list of nodes, sorted by their score
+sorted_nodes_dar = np.argsort(avg_dar) #list of nodes, sorted by their score, from the best to the worst
 
 print(time.time()-start)
 
-plt.plot(range(T),[infected_counter(label_dar[t]) for t in range(T)]) #così, messo qui, te lo mostra solo per l'ultimo nodo del ciclo
-plt.xlabel("Time step")
-plt.ylabel("Percentage of infected nodes")
-plt.title("Node 99, iteration %i" %k)
-plt.show()
 # FITN #
 #Working progress
+
+#TEST
+def new_infected(state2,state1):
+    #This function takes two dictionaries, describing system state at two different time steps, and returns the new infecteds
+    #It is used for testing
+    new_infeced_nodes = []
+    for i in range(N):
+        if state2[i] != state1[i]:
+            new_infeced_nodes.append(i)
+    return new_infeced_nodes
+
+def intersection(list1,list2):
+    #Returns intersection of two lists. Is used in test to check that the new infected were neigbs of the infecteds
+    temp = set(list2)  #use set to improve performance
+    list3 = [value for value in list1 if value in temp] 
+    return list3
+
+#Actual test:
+for indexcase in range(N):
+    for rep in range(K):
+        for t in range(1,T):
+            for new in new_infected(label_dar[indexcase][rep][t],label_dar[indexcase][rep][t-1]):
+                #se il nuovo infetto non aveva nemmeno un vicino infetto c'è un errore
+                if len(intersection(neighbourhood(temporal_dar,t-1,new),onlyones(label_dar[indexcase][rep],range(N),t-1))) == 0: 
+                    print("Test failed for indexcase = %i, repetion %i, at t = %i" %(indexcase,rep,t))
 #%%
 ###                      CONTAINERS AND FUNCTIONS FOR CENTRALITIES      ###
 
@@ -252,55 +274,43 @@ nodes_Rcentrality_fitn, nodes_Rrank_fitn = receive_ranking(Q_fitn)
 print("###   DAR NETWORK   ###")
 print("Top 10- infective nodes, and their scores:")
 for i in range(10):
-    print(sorted_nodes_dar[i], score_dar[sorted_nodes_dar[i]])
+    print(sorted_nodes_dar[i], avg_dar[sorted_nodes_dar[i]])
 print("Top 10-ranked Broadcast centrality, and their scores:")
 for i in range(10):
     print(nodes_Brank_dar[i], nodes_Bcentrality_dar[nodes_Brank_dar[i]])
 print("Common nodes between infective and BC:")
 #Function intesection shows the common top-ranking nodes, but lists have to be converted in sets
 print(list(set(sorted_nodes_dar[0:9]).intersection(set(nodes_Brank_dar[0:9])))) 
-
 print("")
 print("")
 
 #For FITN it will be the same
 
+### PLOT
+plt.figure(fig_count)
+plt.plot(range(T),[infected_counter(label_dar[99][k][t]) for t in range(T)]) #così, messo qui, te lo mostra solo per l'ultimo nodo del ciclo
+plt.xlabel("Time step")
+plt.ylabel("Percentage of infected nodes")
+plt.title("Node 99, iteration %i, beta = %.3f" %(k,beta))
+plt.show()
+fig_count+=1
 
-### PLOTS
-##To get some "readable" graphics, one can tell nx to show in red infected nodes, and in blue the others
-##So, here is a functions that thakes the vector of state at time t and return a sequence of colours
-#def colorstate(state):
-#    colormap = []
-#    for node in range(N):
-#        if state[node] == 1:
-#            colormap.append('r')
-#        elif state[node]==0:
-#            colormap.append('b')
-#    return colormap
-##Plot DAR
-#for t in range(T):
-#    #What to plot:
-#    graph = nx.convert_matrix.from_numpy_matrix(temporal_dar[t])
-#    colors = colorstate(label_dar[t])
-#    #Plotting settings
-#    plt.figure(fig_count)
-#    fig_count+=1
-#    plt.title(r"DAR(%i) SI-Epidemiology,$\beta$ = %.2f, N=%i,T=%i" %(P,beta,N,T))
-#    nx.draw(graph, pos = nx.drawing.layout.circular_layout(graph),node_color = colors, with_labels = True)
-#    plt.show()
-#Plot FITN
-#for t in range(T):
-#    #What to plot:
-#    graph = nx.convert_matrix.from_numpy_matrix(temporal__fitn[t])
-#    colors = colorstate(label_fitn[t])
-#    #Plotting settings
-#    plt.figure(fig_count)
-#    fig_count+=1
-#    plt.title(r"FITN SI-Epidemiology,$\beta$ = %.2f, N=%i,T=%i" %(beta,N,T))
-#    nx.draw(graph, pos = nx.drawing.layout.circular_layout(graph),node_color = colors, with_labels = True)
-#    plt.show()
+x = np.zeros(N)
+y = np.zeros(N)
+for i in range(N):
+    x[i] = avg_dar[i]/max(avg_dar)
+    y[i] = nodes_Bcentrality_dar[sorted_nodes_dar[i]]/max(nodes_Bcentrality_dar)
 
+plt.figure(fig_count)
+plt.scatter(x,y)
+plt.xlabel("Virulenza")
+plt.ylabel("Centralità")
+plt.show()
+fig_count+=1
 ###SAVINGS
+
+#Since we're dealing with dict of dict, it's better to save the results using 
+
 #start_name = 'Examples/SI_EPIDEMIC_' #begin of the name of files that will be saved (txt,img...)
 #np.savetxt(start_name+'DAR1_N%i_T%i.txt' %(N,T), temporal__dar.reshape(T,N*N))
 #np.savetxt(start_name+'_LABELS_DAR1_N%i_T%i.txt' %(N,T), label_dar) #saving labels in a separate file
