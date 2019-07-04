@@ -7,4 +7,3 @@ Several laws of evolution exist; in this study we deal with **DAR(p)** and **TGR
 The law of network's evolution influences epidemic's diffusion. Understanding wheter, and how much, is one of the mainly coped with topics of this study, and can be achieved by trying to quantify, whether exists, the correlation between *temporal centraility measures* (DEFINE), and *epidemic performances* of nodes (DEFINE).
 
 The analysis will become step by step more complex, by violating symmetries such as network underictness, homogeneity of node-parameters; so, the scripts will be written from the beginning in a form as general as possible. 
-
