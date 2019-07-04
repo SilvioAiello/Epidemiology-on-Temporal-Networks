@@ -1,17 +1,13 @@
 EPIDEMIOLOGY ON TEMPORAL NETWORKS
 
-The purpose of this project is to simulate epidemics on temporal networks, using Python.
-Temporal networks are networks which explore different distributions of links in time, while nodes are held fixed.
-Two ways of network evolution will be simulated: Dar(p) and Fitness. Also, two ways of epidemic spreading will be studied: SI and LTM.
-The kind of evolution may have a deep impact in epidemic diffusion. To understand wheter, and how much, is one of the main purposes of this project.
-It may be intersting to perform measures of centrality on nodes, finding those to vaccinate to prevent the spreading.
-The simulation will be made more complex after acheiving the first results, for example introducing node-specific properties; so, the scripts will be written in a form as general as possible.
-
-TODO: DEFINE DAR AND FITNESS
-TODO: DEFINE SI AND LTM
-
-This repository, at this moment, has these files:
-2 directories: Examples, where some intermediate and low dimensions results will be put; Results, where the final results will go.
+This repository, at this moment, is structured as follows:
+Directory "Networks", strucutured as follows:
+	A folder for each kind of network, defined by its type (DAR,TGRG), parameters (eg. p, alphas and xis for DAR(P)), number of nodes and temporal duration. Its name resumes this parameters. Each folder contains:
+		A folder for each realization of that network, named "realizationX". Each folder contains:
+			1 file named "network.txt", that stores the whole set of adiacency matrices defining the realization;
+			A file, one for each value of beta (SI), named "betaX_labelTYPE_K%.txt containing the evolutions of states of node in time, for each index case, for each (of the total K) iterations.
+			A file, one for each LTM. This will be delt with in the future.
+Directory "Results", where the final results (images, maybe something else) will go.
 2 python "Evolution" modules, each of which simulates the temporal evolution of the network (i.e. of links between nodes) alone.
 1 python "Propagation" module, which simulate the SI spreading of a desease
 1 test module
