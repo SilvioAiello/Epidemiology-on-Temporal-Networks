@@ -305,18 +305,23 @@ fig_count+=1
 x = np.zeros(N)
 y = np.zeros(N)
 for i in range(N):
-    x[i] = avg_dar[i]/max(avg_dar)
-    y[i] = nodes_Bcentrality_dar[sorted_nodes_dar[i]]/max(nodes_Bcentrality_dar)
+    x[i] = (avg_dar[i]-np.average(avg_dar))/np.std(avg_dar)
+    y[i] = (nodes_Bcentrality_dar[sorted_nodes_dar[i]]-np.average(nodes_Bcentrality_dar))/np.std(nodes_Bcentrality_dar)
 
 plt.figure(fig_count)
-plt.scatter(x,y)
-plt.xlabel("Virulenza")
-plt.ylabel("Centralità")
+plt.errorbar(x,y,0,np.std(avg_dar)/np.sqrt(N),fmt='.')
+plt.xlabel("Virulenza media standardizzata")
+plt.ylabel("Centralità standardizzata")
+plt.title(r"BC DAR(1) ($\alpha_{ij} = 0.66$, $\xi_{ij} = 0.5$, nodi = %i)"%N + "\n" + r"vs Virulenza ($\beta = %.3f$) da %i iterazioni per index case, T=%i" %(beta,K,T))
+plt.savefig("dar1_N%i_T%i_beta%.3f_K%i.png" %(N,T,beta,K), dpi=1500)
 plt.show()
 fig_count+=1
-###SAVINGS
 
-#Since we're dealing with dict of dict, it's better to save the results using 
+### SAVINGS
+#Since we're dealing with dict of dict, it's better to save the results using pickle
+import pickle
+with open('file.txt', 'wb') as handle:
+  pickle.dump(label_dar, handle)
 
 #start_name = 'Examples/SI_EPIDEMIC_' #begin of the name of files that will be saved (txt,img...)
 #np.savetxt(start_name+'DAR1_N%i_T%i.txt' %(N,T), temporal__dar.reshape(T,N*N))
