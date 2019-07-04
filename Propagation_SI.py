@@ -220,6 +220,13 @@ for indexcase in range(N):
                 #se il nuovo infetto non aveva nemmeno un vicino infetto c'è un errore
                 if len(intersection(neighbourhood(temporal_dar,t-1,new),onlyones(label_dar[indexcase][rep],range(N),t-1))) == 0: 
                     print("Test failed for indexcase = %i, repetion %i, at t = %i" %(indexcase,rep,t))
+
+def get_degree_list(adiacency,t):
+    #To have the average degree of the whole network, you could ask np.average(get_degree_list(adiacency,t))
+    degree_list = []
+    for node in range(N):
+        degree_list.append(sum(adiacency[t,node]))
+    return degree_list
 #%%
 ###                      CONTAINERS AND FUNCTIONS FOR CENTRALITIES      ###
 
