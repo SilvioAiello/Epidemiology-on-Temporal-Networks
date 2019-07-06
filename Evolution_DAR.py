@@ -49,6 +49,12 @@ import pickle
 #Otherwise, the new state will be extacted by a "coin toss", with probability xi_ij of getting "1"
 #The evolution is performed just for the upper triangular adiancency, and than the matrix is simmetrized
 
+def assert_ndarray_shape(matrix,shape):
+    #shape = tuple
+    assert type(shape) == tuple
+    assert type(matrix) == np.ndarray, "Error: matrix must be a numpy array"
+    assert matrix.shape == shape, "Error: matrix doesn't fit the proper shape"
+
 def assert_probability(structure):
     assert (structure<= 1).all(),"Error: at least one element in a probability matrix is >1, so it's not a probability"
     assert (structure>0).all(),"Error: at least one element in probability matrix is <0, so it's not a probability"
@@ -76,17 +82,15 @@ def network_generation_dar(alpha,xi,N=100,T=100, P=1, directed = False):
     directed: Boolean (default = False)
         Determines symmetry of the network, at each time step
         
-    
     Returns
     -------
     temporal_network: np.array
         T*(N*N) array, expressing adiacencies for each time step 
         (so, it's entries are 0 or 1, and it can be or not symmetryc)
-    
     """
-    # Asserts #
-    assert len(alpha) == N, "Error: you provided an alpha matrix whose dimension is different from that of the network"
-    assert len(xi) == N, "Error: you provided an alpha matrix whose dimension is different from that of the network"    
+    # ASSERTS
+    assert_ndarray_shape(alpha,(N,N))
+    assert_ndarray_shape(xi,(N,N))    
     assert_probability(alpha)
     assert_probability(xi)
     
@@ -105,6 +109,7 @@ def network_generation_dar(alpha,xi,N=100,T=100, P=1, directed = False):
     #from the same cell of the T-P matrix, with probability alpha, or from a coin tossing (whose probability of getting 1 is xi).
     #The second comprehension just simmetrizes the matrix
     
+    #EVOLUTION
     #Initial adiacency, as tossing simple coin (0.5); if undirected, it's made symmetric
     initial_state = [[np.random.choice((0,1),p=(0.5,1-0.5)) if j>i else 0 for j in range(N)] for i in range(N)] #upper triangle first (j>i)
     if directed == False: #setting lower triangle as directed value
@@ -131,35 +136,38 @@ def network_generation_dar(alpha,xi,N=100,T=100, P=1, directed = False):
             #follow the same rule as upper, if directed
     return temporal_network
 
-def network_generation_tgrg(phi0,phi1,sigma,N=100,T=100):
+def network_generation_tgrg(phi0,phi1,sigma,N=100,T=100, directed = False):
     """
-    Generates a DAR(P) network in form of np.array
+    Generates a TGRG in form of np.array
     
     Parameters
     ----------
-    bla: int
-        bla bla
+    phi0: np.array 
+        Vector of length N expressing intercept for each of the N nodes
+    phi1: np.array 
+        Vector of length N expressing angoular coefficient for each of the N nodes
+    epsilon: np.array 
+        Vector of length N expressing standard deviation for the gaussian stochastic term for each of the N nodes
+    N: int (default = 100)
+        Natural number expressing network dimension
+    T: int (default = 100)
+        Natural number expressing duration of temporal evolution
+    directed: Boolean (default = False)
+        Determines symmetry of the network, at each time step
     
     Returns
     -------
-    bla: int
-        bla
-    
+    temporal_network: np.array
+        T*(N*N) tensor, expressing adiacencies for each time step 
+        (so, it's entries are 0 or 1, and it can be or not symmetryc)
+    theta: np.array
+        N*T matrix, expressing evolution of fitnesses for each node
     """
-    #phi0, phi1, sigma (DEV ST!) sono vettori N, per es
     #phi0 = 0.27*np.ones(N) #intercepts, typical of each node
     #phi1 = 0.18*np.ones(N) #slopes, typical of each node
     
-    theta = np.zeros((N,T)) #fitness matrix creation
-    #So, theta is inizialized and then the random walk is performed
-    theta[:,0] = np.random.normal(0,sigma,size=N)
-    for t in range(1,T): #costruzione dei random walks
-        for i in range(N):
-            theta[i,t] = phi0[i] + phi1[i]*theta[i,t-1] + np.random.normal(0,sigma)
-    
-    #Adiacency computation
-    #Now everything is set to let the adiacencies evolve.
-    
+    #TODO: SPIEGARE DA QUALCHE PARTE CHE PRIMA FACCIAMO EVOLVERE COMPLETAMENTE LE FITNESS E POI PERFORMIAMO L'EVOLUZIONE
+        #SE SERVE, AGGIUNGI QUESTO:
     #First, an initial state is created, i.e. the adiacency matrix for T=0.
     #In future development, this state will be the same for both evolutions.
     #Then, it's initialized a 3D tensor, N*N*T, i.e. a sequence of adiacency matrices evolving in time.
@@ -172,40 +180,73 @@ def network_generation_tgrg(phi0,phi1,sigma,N=100,T=100):
     #So, for each temporal step, the algorithm takes the nodes i and j, computes the probability and chooses whether rising a link or not.
     #The evolution is performed just for the upper triangular adiancencies, and than the matrix is simmetrized
     
-    temporal_network = np.zeros((T,N,N)) #Creation of Adiacency tensor
+    #ASSERTS
+    assert_ndarray_shape(phi0,N)
+    assert_ndarray_shape(phi1,N)
+    assert_ndarray_shape(sigma,N)
+    
+    assert_natural(N)
+    assert_natural(T)
+    assert N<1000, "Error: for computational ease, this functuion accepts only networks with dimension < 1000"
+    assert T<1000, "Note: for computational ease, this functuion accepts only networks with duration < 1000"
+    
+    assert type(directed) == bool, "Error: only bool type is allowed for variable directed"
+    
+    #FITNESSES EVOLUTION
+    theta = np.zeros((N,T)) #definition
+    theta[:,0] = np.random.normal(0,sigma,size=N) #random-normal initialization, 
+    for t in range(1,T): 
+        for i in range(N):
+            theta[i,t] = phi0[i] + phi1[i]*theta[i,t-1] + np.random.normal(0,sigma) #evolution for each node and each time
+    
+    #ADIACENCIES COMPUTATION
+    temporal_network = np.zeros((T,N,N)) #tensor definition
     for t in range(T):
         for i in range(N):
             for j in range(N):
-                if j>i: #working on the upper triangoular matrix
-                    prob = np.exp(theta[i,t]+theta[j,t])/(1+np.exp(theta[i,t]+theta[j,t])) #probability for these nodes at these time
-                    temporal_network[t,i,j] = np.random.choice((1,0),p=(prob,1-prob))
-                    if temporal_network[t,i,j] == 1: #symmetrization
-                        temporal_network[t,j,i] = 1
-    
+                #UPPER TRIANGLE
+                if j>i:
+                    prob = np.exp(theta[i,t]+theta[j,t])/(1+np.exp(theta[i,t]+theta[j,t])) #probability for these nodes at this time
+                    temporal_network[t,i,j] = np.random.choice((1,0),p=(prob,1-prob)) #status extraction
+                #LOWER TRIANGLE
+                if j<i:
+                    if directed == False: #symmetrization (just tune when a link exist)
+                        if temporal_network[t,i,j] == 1: 
+                            temporal_network[t,j,i] = 1
+                    else: #same process as upper triangle
+                        prob = np.exp(theta[i,t]+theta[j,t])/(1+np.exp(theta[i,t]+theta[j,t])) 
+                        temporal_network[t,i,j] = np.random.choice((1,0),p=(prob,1-prob)) 
     return temporal_network, theta
     
 
 # NETWORK ANALYSYS #
 def degree_node(network,node,out = True):
     """
-    Generates a DAR(P) network in form of np.array
+    Provides out- or in-going degree of a node at a certain time
     
     Parameters
     ----------
-    bla: int
-        bla bla
+    network: np.array
+        N*N adiacency (so, for a selected time)
+    node: int
+        index of the node of interest
+    out: bool
+        Expresses interest in out or in-going degree; if undirected graph, both give the same result
     
     Returns
     -------
-    bla: int
-        bla
+    degree: int
     
     """
+    #ASSERTS
     assert node <= len(network), "Error: node not present"
-    #you give an adiacency[t], and a node: this function computes node degree
+    
+    #TODO: SPIEGARE COSA FA, PUOI USARE:
     #if out = true, sums the line (link that start from node)
     #if out = false, sums the column (link that reach that node)
     #if graph is undirected, out = in
+    
+    #FUNCTION
     if out:
         return sum(network[node])
     else:
