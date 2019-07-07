@@ -1,0 +1,1 @@
+Qui potrei spiegare la logica di ogni funzione
