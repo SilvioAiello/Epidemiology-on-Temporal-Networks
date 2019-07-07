@@ -257,54 +257,6 @@ def get_degree_list(adiacency,t):
         degree_list.append(sum(adiacency[t,node]))
     return degree_list
 #%%
-###                      CONTAINERS AND FUNCTIONS FOR CENTRALITIES      ###
-
-# COMMUNICABILITY #
-#Building of Communicability matrix, just by applying definition and using some useful np functions:
-def communicability(temporal_): 
-    #As known, to compute communicability one as to choose a coefficient that multiplicates adiacencies
-    #At the moment, this function takes as default, as coefficient, a quarter of the inverse of max spectral radius
-    #Find max spectral radius:
-    spec = []
-    for t in range(T):
-        spec.append(np.real(max(np.linalg.eigvals(temporal_[t])))) #find max eigenvalue for each adiacency, taking only RE
-    maxradius = 1/max(spec) #maximum is the reciprocal of the maximum eigenvalue
-    #Communicability builing
-    Q = np.identity(N)/np.linalg.norm(np.identity(N))
-    for t in range(T):
-        inv = np.linalg.inv(np.identity(N)-0.25*maxradius*temporal_[t]) #inverse factor, which has to be multiplicated to the previous Q
-        Q = np.matmul(Q,inv)/np.linalg.norm(np.matmul(Q,inv)) #updating and normalizing of Q
-    return(maxradius,Q) #just for sake of completeness, also the max spectral radius is returned
-
-#Next two functions compute broadcast/receiving centralities and node rankings
-#For centralities, they use function np.sum, where one can choose to sum of lines (BC) or columns (RC)
-#For rankings, they use np.argsort, whose input is a list and output is a list of the indices of the input, sorted according to their decreasing values
-#So, the first element of the output list has the highest rank
-def broadcast_ranking(Q):
-    #Broadcast = sum over lines:
-    lines_sum = np.sum(Q, axis = 1) #this is a vector which reports the BC for each node
-    #Using argsort (flipping the result) to get the ranks vector: rank_i means the i-th best node
-    rank = np.flip(np.argsort(lines_sum)) #argsort returns the list of nodes the increasing order (from the lowest centrality to the highset)
-    return(lines_sum,rank)
-def receive_ranking(Q):
-    #Receive = sum over columns:
-    lines_sum = np.sum(Q, axis = 0) #this is a vector which reports the RC for each node
-    #Using argsort (flipping the result) to get the ranks vector: rank_i means the i-th best node
-    rank = np.flip(np.argsort(lines_sum)) #argsort returns the list of nodes the increasing order (from the lowest centrality to the highset)
-    return(lines_sum,rank)
-
-###                      CENTRALITIES MEASURES                      ###
-# DAR #
-spec_radius_dar, Q_dar = communicability(temporal_dar)
-nodes_Bcentrality_dar, nodes_Brank_dar = broadcast_ranking(Q_dar) #scores, node rankings
-nodes_Rcentrality_dar, nodes_Rrank_dar = receive_ranking(Q_dar) #cores, node rankings
-
-# FITN #
-spec_radius_fitn, Q_fitn = communicability(temporal_fitn)
-nodes_Bcentrality_fitn, nodes_Brank_fitn = broadcast_ranking(Q_fitn)
-nodes_Rcentrality_fitn, nodes_Rrank_fitn = receive_ranking(Q_fitn)
-
-
 
 ###                     RESULTS PRINT                               ###
 print("###   DAR NETWORK   ###")
