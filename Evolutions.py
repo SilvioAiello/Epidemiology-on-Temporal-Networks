@@ -1,5 +1,5 @@
 """ 
-The functions contained in this module allow:
+Functions contained in this module allow:
     1) to generate and update a network according to the dar(p) or trgr laws of evolution.
     (if you don't know what they are, check the documentation)
     2) to perform analysis of network's structure, such as degree evolution...
@@ -22,38 +22,40 @@ From this module you can extract the following functions:
     
     * degree_node, degree_mean_t, degree_sequence, that return degree of a node, 
     mean degree of all nodes at a time step, mean degree evolution over time
-    #TODO: CENTRALITA
+    
+    * communicability, broadcast_ranking, receive_ranking
+    build communicability matrix and extract from it broacdcast and receive centrality for each node
+    #TODO: ADD CENTRALITIES AND UPDATE THIS LIST
     
     * network save, that saves a generated network through pickle, in a path and
     with a name that follows syntax illustrated in documentation
     * plot save, if you want to save something in automatized way, 
     with automatically generated name
-
-#TODO: SE SAI QUALI SONO LE PROPRIETA CHE DEVE AVERE IL RISULTATO DI OGNI FUNZIONE, PUOI AGILMENTE GENERARE I TEST
-#TODO: BISOGNEREBBE VERIFICARE CHE LE ADIACENZE ABBIANO EFFETTIVAMENTE SOLO ZERI E UNI, E CAPIRE SE SI POSSONO AGEVOLARE GLI ASSERT
-#TODO: SE USO LIBRERIE ESTERNE, DEVO CHECKARE LA PRESENZA ECC?
-#TODO: AGGIORNARE L'ELENCO FUNZIONI QUI SOPRA
 """
 
 import numpy as np 
 import pickle
 
 def assert_ndarray_shape(matrix,shape):
+     #check if matrix is a np.array, and as the shape of a square (expressend by a proper tuple)
     assert type(shape) == tuple #shape = tuple
     assert type(matrix) == np.ndarray, "Error: matrix must be a numpy array"
     assert matrix.shape == shape, "Error: matrix doesn't fit the proper shape"
 
-def assert_probability(structure):
-    assert (structure<= 1).all(),"Error: at least one element in a probability matrix is >1, so it's not a probability"
-    assert (structure>0).all(),"Error: at least one element in probability matrix is <0, so it's not a probability"
+def assert_probability(matrix):
+    #check that all elements are probabilities
+    assert (matrix<= 1).all(),"Error: at least one element in a probability matrix is >1, so it's not a probability"
+    assert (matrix>=0).all(),"Error: at least one element in probability matrix is <0, so it's not a probability"
 
 def assert_natural(number):
-    assert type(number) == int, "Error: %f is not an integer, but it should be" %number
+    #check that a number is a positive integer
+    assert isinstance(number, int), "Error: %f is not an integer, but it should be" %number
     assert number>0, "Error: %i is not positive, but it should be" %number
 
-def assert_nulldiagonal(network):
-    assert sum(np.diag(network)) == 0, "Error: network has not-0 diagonal"
-
+def assert_nulldiagonal(matrix):
+    #check that a matrix has null diagonal
+    assert sum(np.diag(matrix)) == 0, "Error: network has not-0 diagonal"
+    
 #%%
 def network_generation_dar(alpha,xi,T=100, P=1, directed = False):
     """
@@ -81,15 +83,12 @@ def network_generation_dar(alpha,xi,T=100, P=1, directed = False):
         (so, it's entries are 0 or 1, and it can be or not symmetryc; null-diagonal only)
     """
     # ASSERTS
-    #forse ha più senso fargli estrarre direttamente le info su N da alpha e xi (e verificare che siano uuguali)
     assert_ndarray_shape(alpha,(len(alpha),len(alpha)))
     assert_ndarray_shape(xi,(len(xi),len(xi)))   
     assert len(alpha)== len(xi), "Error: matrices alpha and xi have different dimensions"
     assert_probability(alpha)
     assert_probability(xi)
-    #TODO:
-    #assert_nulldiagonal(alpha) #forse non c'è bisogno, se non vai mai a usarlo
-    #assert_nulldiagonal(xi)
+
     N = len(alpha) #if everything is ok, get info about number of nodes
     assert N<1000, "Error: for computational ease, this functuion accepts only networks with dimension < 1000"
     
@@ -228,7 +227,7 @@ def network_generation_tgrg(phi0,phi1,sigma,N=100,T=100, directed = False):
                         temporal_network[t,i,j] = np.random.choice((1,0),p=(prob,1-prob)) 
     return temporal_network, theta
     
-
+#%%
 # NETWORK ANALYSYS #
 def degree_node(network,node,out = True):
     """
@@ -319,11 +318,11 @@ def degree_mean_sequence(network,T, initial = 0, out = True):
     
     """
     #ASSERTS
-    assert_ndarray_shape(network,(len(network),len(network))) #ask it to be a square array of the first dimension of the network
-    assert_nulldiagonal(network)
-    
     assert_natural(T)
     assert T>initial, "Error: something wrong in initial-final time step"
+    
+    assert_ndarray_shape(network,(T,len(network),len(network))) #ask it to be a square array of the first dimension of the network
+    assert_nulldiagonal(network)
     
     #FUNCTION
     d_seq = []
@@ -337,6 +336,7 @@ def degree_mean_sequence(network,T, initial = 0, out = True):
         d_seq.append(np.average(degrees))
     return d_seq #it return a list
 
+#%%
 def communicability(temporal): 
     """
     Return Communicability matrix of a tempnetwork, as defined by Grindrod, and max spectral radius.
@@ -347,7 +347,6 @@ def communicability(temporal):
     ----------
     temporal: np.array
         T*N*N adiacencies (so, an adiacency for each time step; null diagonal)
-    
     
     Returns
     -------
@@ -361,8 +360,8 @@ def communicability(temporal):
         #At the moment, this function takes as default, as coefficient, a quarter of the inverse of max spectral radius
     
     #ASSERTS
-    #TODO: non so se servono, alla fine basta che ci metti una matrice prodotta prima (magari richiedi giusto questo)
-    #TODO: in teoria dovrebbe avere diagonale nulla pure la Communicaiblity
+    assert_ndarray_shape(temporal,(len(temporal),len(temporal[1]),len(temporal[1]))) #ask it to be a sequence of square array of the second dimension of the network
+    [assert_nulldiagonal(temporal[i]) for i in range(len(temporal))] #check null diagonal for each step
     
     #FUNCTION
     T = temporal.shape[0]
@@ -430,8 +429,6 @@ def receive_ranking(Q):
     return(lines_sum,rank)
 
 
-#TODO: ADD OTHER CENTRALITY MEASURES
-
 # NETWORK SAVE #
 def network_save(network, start,isDAR=True,P=1, k=1):
     """ Saves network using pickle (so it must be present) and giving it its proper name (with identification provided by user) and folder
@@ -476,10 +473,3 @@ def network_save(network, start,isDAR=True,P=1, k=1):
 def test_symmetry(temporal_network,T=100):
     for t in range(T):
         assert (temporal_network[t] == temporal_network[t].T).any, "Error: network at t = %i is not symmetric" %t
-
-
-#Save the network for further use
-#np.savetxt(start_name+'%i_N%i_wholenetwork_T%i.txt' %(P,N,T), temporal_network.reshape(T*N*N,1))
-#To import:
-#new_data = np.loadtxt('start_name+'%i__N%i_wholenetwork_T%i.txt' %(P,N,T))
-#new_data = new_data.reshape((T,N,N))
