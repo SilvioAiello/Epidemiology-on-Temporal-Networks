@@ -10,9 +10,11 @@ Each update is a stochastic process, so several performances should be performed
 
 It requires the following libraries (so, check if they are installed):
     * numpy, used for its data structures and anaylisis, and to get random functions 
-    * matplotlib.pyplot, used for graphics plot and belluries
     * pickle, used to store, in an efficient way, the complex information generated
-    * networkx, just used to plot small networks
+
+[If you want to plot, you should use these libraries:
+    * matplotlib.pyplot, used for graphics plot and belluries
+    * networkx, just used to plot small networks]
 
 From this module you can extract the following functions:
     * network_generation_dar, that generates a DAR(P) network in form of np.array
@@ -22,36 +24,22 @@ From this module you can extract the following functions:
     mean degree of all nodes at a time step, mean degree evolution over time
     #TODO: CENTRALITA
     
-    * make_name, that generate the path where storing nodes and results,
-    according to the syntax illustrated in documentation
-    * network save, that saves a generated network through pickle
+    * network save, that saves a generated network through pickle, in a path and
+    with a name that follows syntax illustrated in documentation
     * plot save, if you want to save something in automatized way, 
     with automatically generated name
 
-ONLY UNDERICTED ARE DELT WITH, AT THE MOMENT. DOVREI METTERE "SE UND, FAI COSI', ECC"
+#TODO: SE SAI QUALI SONO LE PROPRIETA CHE DEVE AVERE IL RISULTATO DI OGNI FUNZIONE, PUOI AGILMENTE GENERARE I TEST
+#TODO: BISOGNEREBBE VERIFICARE CHE LE ADIACENZE ABBIANO EFFETTIVAMENTE SOLO ZERI E UNI, E CAPIRE SE SI POSSONO AGEVOLARE GLI ASSERT
+#TODO: SE USO LIBRERIE ESTERNE, DEVO CHECKARE LA PRESENZA ECC?
+#TODO: AGGIORNARE L'ELENCO FUNZIONI QUI SOPRA
 """
 
 import numpy as np 
-import networkx as nx 
-import matplotlib.pyplot as plt 
 import pickle
 
-### EVOLUTIONS
-
-#First, an initial state is created, i.e. the adiacency matrix for T=0.
-#In future development, this state will be the same for both evolutions.
-#Then, it's initialized a 3D tensor, N*N*T, i.e. a sequence of adiacency matrices evolving in time.
-#Each of the T adiacences matrices (A) will be updated according to the values of the previous one.
-#Adiacences are kept simmetric with 0-diagonal.
-#This scheme will be the same for both evolutions, just the law of updating will be different.
-
-#In DAR, there's a probability alpha_ij of having A_ij(t) = A_ij(t-1)
-#Otherwise, the new state will be extacted by a "coin toss", with probability xi_ij of getting "1"
-#The evolution is performed just for the upper triangular adiancency, and than the matrix is simmetrized
-
 def assert_ndarray_shape(matrix,shape):
-    #shape = tuple
-    assert type(shape) == tuple
+    assert type(shape) == tuple #shape = tuple
     assert type(matrix) == np.ndarray, "Error: matrix must be a numpy array"
     assert matrix.shape == shape, "Error: matrix doesn't fit the proper shape"
 
@@ -60,17 +48,21 @@ def assert_probability(structure):
     assert (structure>0).all(),"Error: at least one element in probability matrix is <0, so it's not a probability"
 
 def assert_natural(number):
-    assert type(number) == int, "Error: you should provide an integer"
-    assert number>0, "Error: you should prove a positive number"
+    assert type(number) == int, "Error: %f is not an integer, but it should be" %number
+    assert number>0, "Error: %i is not positive, but it should be" %number
 
-def network_generation_dar(alpha,xi,N=100,T=100, P=1, directed = False):
+def assert_nulldiagonal(network):
+    assert sum(np.diag(network)) == 0, "Error: network has not-0 diagonal"
+
+#%%
+def network_generation_dar(alpha,xi,T=100, P=1, directed = False):
     """
     Generates a DAR(P) network in form of np.array
     
     Parameters
     ----------
     alpha: np.array 
-        N*N matrix expressing probability of "persistence" of previous state of each link
+        N*N matrix expressing probability of "persistence" of previous state of each link; null-diagonal only
     xi: np.array 
         N*N matrix expressing "tossing coin" probability for each link state
     N: int (default = 100)
@@ -85,26 +77,44 @@ def network_generation_dar(alpha,xi,N=100,T=100, P=1, directed = False):
     Returns
     -------
     temporal_network: np.array
-        T*(N*N) array, expressing adiacencies for each time step 
-        (so, it's entries are 0 or 1, and it can be or not symmetryc)
+        T*(N*N) array, expressing adiacencies for each time step
+        (so, it's entries are 0 or 1, and it can be or not symmetryc; null-diagonal only)
     """
     # ASSERTS
-    assert_ndarray_shape(alpha,(N,N))
-    assert_ndarray_shape(xi,(N,N))    
+    #forse ha più senso fargli estrarre direttamente le info su N da alpha e xi (e verificare che siano uuguali)
+    assert_ndarray_shape(alpha,(len(alpha),len(alpha)))
+    assert_ndarray_shape(xi,(len(xi),len(xi)))   
+    assert len(alpha)== len(xi), "Error: matrices alpha and xi have different dimensions"
     assert_probability(alpha)
     assert_probability(xi)
+    #TODO:
+    #assert_nulldiagonal(alpha) #forse non c'è bisogno, se non vai mai a usarlo
+    #assert_nulldiagonal(xi)
+    N = len(alpha) #if everything is ok, get info about number of nodes
+    assert N<1000, "Error: for computational ease, this functuion accepts only networks with dimension < 1000"
     
-    assert_natural(N)
     assert_natural(T)
     assert_natural(P)
-    assert N<1000, "Error: for computational ease, this functuion accepts only networks with dimension < 1000"
     assert T<1000, "Note: for computational ease, this functuion accepts only networks with duration < 1000"
     assert P < T, "Error: you're trying to generate a DAR(P) model where P is higher or equal to evolution's lasting"
     
     assert type(directed) == bool, "Error: only bool type is allowed for variable directed"
     
     #TODO: SPIEGA ALTROVE CHE L'IDEA E' DI LAVORARE SEMPRE E COMUNQUE PRIMA CON LA TRIANGOLARE SUPERIORE E POI, A SECONDA, AGGIORNARE L'INFERIORE
-        #SE SERVE, AGGIUNGI QUESTO, SENNO' ELIMINA:
+    #spiega anche che ricava da solo N ecc    
+    #SE SERVE, AGGIUNGI QUESTO, SENNO' ELIMINA:
+        
+    #First, an initial state is created, i.e. the adiacency matrix for T=0.
+    #In future development, this state will be the same for both evolutions.
+    #Then, it's initialized a 3D tensor, N*N*T, i.e. a sequence of adiacency matrices evolving in time.
+    #Each of the T adiacences matrices (A) will be updated according to the values of the previous one.
+    #Adiacences are kept simmetric with 0-diagonal.
+    #This scheme will be the same for both evolutions, just the law of updating will be different.
+    
+    #In DAR, there's a probability alpha_ij of having A_ij(t) = A_ij(t-1)
+    #Otherwise, the new state will be extacted by a "coin toss", with probability xi_ij of getting "1"
+    #The evolution is performed just for the upper triangular adiancency, and than the matrix is simmetrized
+    
     #First comprehension says: for each row i, taking only the upper triangle (j>i), choose the value 
     #from the same cell of the T-P matrix, with probability alpha, or from a coin tossing (whose probability of getting 1 is xi).
     #The second comprehension just simmetrizes the matrix
@@ -222,12 +232,12 @@ def network_generation_tgrg(phi0,phi1,sigma,N=100,T=100, directed = False):
 # NETWORK ANALYSYS #
 def degree_node(network,node,out = True):
     """
-    Provides out- or in-going degree of a node at a certain time
+    Returns out- or in-going degree of a node at a certain time
     
     Parameters
     ----------
     network: np.array
-        N*N adiacency (so, for a selected time)
+        N*N adiacency (so, for a selected time; null diagonal)
     node: int
         index of the node of interest
     out: bool
@@ -239,6 +249,9 @@ def degree_node(network,node,out = True):
     
     """
     #ASSERTS
+    assert_ndarray_shape(network,(len(network),len(network))) #ask it to be a square array of the first dimension of the network
+    assert_nulldiagonal(network)
+    assert_natural(node)
     assert node <= len(network), "Error: node not present"
     
     #TODO: SPIEGARE COSA FA, PUOI USARE:
@@ -254,90 +267,216 @@ def degree_node(network,node,out = True):
 
 def degree_mean_t(network,out = True):
     """
-    Generates a DAR(P) network in form of np.array
+    Returns out- or in-going mean degree of a network at a certain time.
     
     Parameters
     ----------
-    bla: int
-        bla bla
+    network: np.array
+        N*N adiacency (so, for a selected time; null diagonal)
+    out: bool
+        Expresses interest in out or in-going degree; if undirected graph, both give the same result
     
     Returns
     -------
-    bla: int
-        bla
+    degree: float
+        Mean degree at that time
     
     """
-    #this function is not "pure", since it relies on another function
-    #network must be a N*N np.array
-    #you give an adiacency for a certain t: it computes mean degree at that t, using degree_node
-    #depending in out value, it returns out degree or in degree. If undirected, it's the same
+    #ASSERTS
+    assert_ndarray_shape(network,(len(network),len(network))) #ask it to be a square array of the first dimension of the network
+    assert_nulldiagonal(network)
+    
+    #FUNCTION
     degrees = []
     for node in range(len(network)):
-        degrees.append(degree_node(network,node,out))
-    return(np.average(degrees)) #it returns a number
+        if out:
+            degrees.append(sum(network[node]))
+        else:
+            degrees.append(sum(network[:,node]))
+    return(np.average(degrees)) #it returns a float
 
-def degree_mean_sequence(network,T,out = True):
+def degree_mean_sequence(network,T, initial = 0, out = True):
     """
-    Generates a DAR(P) network in form of np.array
+    Returns out- or in-going mean degree of a whole sequence of networks
+    
+    It makes use of function np.average, so check if numpy is available first
     
     Parameters
     ----------
-    bla: int
-        bla bla
+    network: np.array
+        T*N*N adiacency (so, an adiacency for each time step; null diagonal)
+    T: int
+        Natural number expressing last instant to check
+    initial: int (default = 0)
+        Natural number expressing first instant to check
+    out: bool
+        Expresses interest in out or in-going degree; if undirected graph, both give the same result
     
     Returns
     -------
-    bla: int
-        bla
+    degree: float
+        Mean degree
     
     """
-    #here you give the whole set of adiacencies
+    #ASSERTS
+    assert_ndarray_shape(network,(len(network),len(network))) #ask it to be a square array of the first dimension of the network
+    assert_nulldiagonal(network)
+    
+    assert_natural(T)
+    assert T>initial, "Error: something wrong in initial-final time step"
+    
+    #FUNCTION
     d_seq = []
     for t in range(T):
-        d_seq.append(degree_mean_t(network[t],out))
+        degrees = []
+        for node in range(len(network)):
+            if out:
+                degrees.append(sum(network[node]))
+            else:
+                degrees.append(sum(network[:,node]))
+        d_seq.append(np.average(degrees))
     return d_seq #it return a list
+
+def communicability(temporal): 
+    """
+    Return Communicability matrix of a tempnetwork, as defined by Grindrod, and max spectral radius.
     
+    It uses several numpy functions
+    
+    Parameters
+    ----------
+    temporal: np.array
+        T*N*N adiacencies (so, an adiacency for each time step; null diagonal)
+    
+    
+    Returns
+    -------
+    maxradius: float
+        Reciprocal of maximum eigenvalue of the whole set of adiacencies
+    Q: np.array
+        N*N matrix (N being number of nodes), expressing "how well information can be passed from i to j"
+    """
+    #TODO: DOCUMENTA COME FUNZIONA (ANCHE ALTROVE DEVI FARLO, DICENDO CHE TROVA DA SOLO LE LUNGHEZZE E PERCHE')
+        #As known, to compute communicability one as to choose a coefficient that multiplicates adiacencies
+        #At the moment, this function takes as default, as coefficient, a quarter of the inverse of max spectral radius
+    
+    #ASSERTS
+    #TODO: non so se servono, alla fine basta che ci metti una matrice prodotta prima (magari richiedi giusto questo)
+    #TODO: in teoria dovrebbe avere diagonale nulla pure la Communicaiblity
+    
+    #FUNCTION
+    T = temporal.shape[0]
+    N = temporal.shape[1]
+    #Find max spectral radius:
+    spec = []
+    for t in range(T):
+        spec.append(np.real(max(np.linalg.eigvals(temporal[t])))) #find eigenval with max real part for each adiacency
+    maxradius = 1/max(spec) #reciprocal of the maximum eigenvalue
+    #Communicability builing:
+    Q = np.identity(N)/np.linalg.norm(np.identity(N)) #initialization (and normalization)
+    for t in range(T):
+        inv = np.linalg.inv(np.identity(N)-0.25*maxradius*temporal[t]) #inverse factor, which has to be multiplicated to the previous Q
+        Q = np.matmul(Q,inv)/np.linalg.norm(np.matmul(Q,inv)) #updating and normalizing of Q
+    return(maxradius,Q) 
+
+def broadcast_ranking(Q):
+    """
+    Provided with a Communicabiltiy, return a list of nodes sorted by Broadcast ranking, and the scores
+    
+    It uses several numpy functions
+    
+    Parameters
+    ----------
+    Q: np.array
+        N*N communicability (according to Grindrod definition and previously generated here)
+    
+    Returns
+    -------
+    lines_sum: np.array
+        N-list of floats representing Broacast Centrality scores of nodes
+    rank: np.array
+        N list of nodes, sorted by ranking (rank[0] is the most central node)
+    """
+    #TODO: Nello spiegone documentato puoi usare questo:
+    #Next two functions compute broadcast/receiving centralities and node rankings
+    #For centralities, they use function np.sum, where one can choose to sum of lines (BC) or columns (RC)
+    #For rankings, they use np.argsort, whose input is a list and output is a list of the indices of the input, sorted according to their decreasing values
+    #So, the first element of the output list has the highest rank
+    
+    lines_sum = np.sum(Q, axis = 1) #Broadcast -> sum over lines:
+    rank = np.flip(np.argsort(lines_sum)) #argsort -> increasing score; flip -> decreasing
+    return(lines_sum,rank)
+    
+def receive_ranking(Q):
+    """
+    Provided with a Communicabiltiy, return a list of nodes sorted by Receiving ranking, and the scores
+    
+    It uses several numpy functions
+    
+    Parameters
+    ----------
+    Q: np.array
+        N*N communicability (according to Grindrod definition and previously generated here)
+    
+    Returns
+    -------
+    lines_sum: np.array
+        N-list of floats representing Receiveing Centrality scores of nodes
+    rank: np.array
+        N list of nodes, sorted by ranking (rank[0] is the most central node)
+    """
+    lines_sum = np.sum(Q, axis = 0) #Broadcast -> sum over columns:
+    rank = np.flip(np.argsort(lines_sum)) #argsort -> increasing score; flip -> decreasing
+    return(lines_sum,rank)
+
+
+#TODO: ADD OTHER CENTRALITY MEASURES
 
 # NETWORK SAVE #
-
-def make_name(N,T,isDAR, start,P=1):
-    """ isDAR = True -> add "DAR(P); False -> add "TGRG"
-    start should be like a str like "alphaeqsxieqs"
+def network_save(network, start,isDAR=True,P=1, k=1):
+    """ Saves network using pickle (so it must be present) and giving it its proper name (with identification provided by user) and folder
+    
+    Parameters
+    ----------
+    network: np.array
+        T*N*N (the functions extracts by itself T and N)
+    start: str
+        Name you choose for the function
+    isDAR: bool (default = True)
+        User is required to specify wheter network is DAR or TGRG
+    P: int (default = 1)
+        Natural number expressing the order of DAR. If network is TGRG, its value doesn't affect the result
+    k: int (default = 1)
+        Natural number expressing what iteration of the same network this is
+    
+    Returns
+    -------
+    name: network.txt
+        A file txt with the network, in a folder that follows syntax presented in documentation (if path doesn't exist, it's created)
     """
+    #ASSERTS
+    assert_natural(P) #there's no need to perform other checks, since they have been already performed
+    assert_natural(k)
+    
+    #FUNCTION
+    T = network.shape[0]
+    N = network.shape[1]
+    
+    name = str()
     if isDAR:
-        return "Networks/N"+str(N)+"_T"+str(T)+"_DAR"+str(P)+"_"+start
-    if isDAR == False:
-        return "Networks/N"+str(N)+"_T"+str(T)+"_TGRG_"+start
-
-def network_save(network, N,T,isDAR, start,P=1,k=1):
-    #Il motivo per cui lo metto qua è che questa funzione genera l'intero percorso dove storo tutto
-    name = make_name(N,T,isDAR,start,P)+"/realization"+str(k)+"/network.txt"
+        name = "Networks/N"+str(N)+"_T"+str(T)+"_DAR"+str(P)+"_"+start+"/realization"+str(k)+"/network.txt"
+    else:
+        name = "Networks/N"+str(N)+"_T"+str(T)+"_TGRG_"+start+"/realization"+str(k)+"/network.txt"
+    
     with open(name, 'wb') as handle:
         return pickle.dump(network,handle)
-
-# PLOT FUNCTIONS #
-def networkplot(graph,figcount,savefig=False, figname = None, k = None, t = None):
-    """Requires an adiacency[t] and the figure count
-    If you want to save the image, you have to say savefig=True, and pass a 2-ple and the value of k and t.
-    Tuple figname contains the values needed by make_name: N,T,isDAR, start,P (P MUST BE SPECIFIED HERE)"""
-    figcount+=1
-    plt.figure(figcount)
-    plt.title("")
-    nxgraph = nx.from_numpy_matrix(graph) #convert np-matrix in a Network, readable by nx library:
-    nx.draw(nxgraph, pos = nx.drawing.layout.circular_layout(nxgraph), with_labels = True) #draw a circular plot and show the number of each node
-    if savefig and figname and k and t:
-        plt.savefig(make_name(figname)+"Results"+'_realization%i_t=%i.pdf' %(k,t))
-    return figcount+1, plt.show()
-
+        
 
 ### TESTS:
 def test_symmetry(temporal_network,T=100):
     for t in range(T):
         assert (temporal_network[t] == temporal_network[t].T).any, "Error: network at t = %i is not symmetric" %t
 
-def test_nulldiagonal(temporal_network,T=100):
-    for t in range(T):
-        assert sum(np.diag(temporal_network[t])) == 0, "Error: network at t = %i has not-0 diagonal" %t
 
 #Save the network for further use
 #np.savetxt(start_name+'%i_N%i_wholenetwork_T%i.txt' %(P,N,T), temporal_network.reshape(T*N*N,1))
