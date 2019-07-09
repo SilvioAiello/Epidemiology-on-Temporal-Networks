@@ -12,6 +12,7 @@ Several laws of evolution exist; in this study we deal with **DAR(P)** and **TGR
 * [Epidemic Diffusion](#epidemic-diffusion)
   * [SI](#si)
   * [LTM](#ltm)
+ * [Centrality measures](#cenrtality-measures)
 
 # Strucutal evolution
 State of links is described by an adiacency matrix A(t) for each time step t. If a link between nodes i and j exists, A_ij = 1; otherwise, A_ij = 0. If more links are allowed between the same nodes (this not being the case here), A_ij can have value 2,3,... .
@@ -25,12 +26,12 @@ If P>1, alpha_ij is just decomposed into a probability for each of the P previou
 For a DAR(1), there are N^2 parameters to set, N being the number of nodes.
 
 ## TGRG
-TGRG stands for Temporally Generalized Random Graphs. The existence of a link between two nodes depends on the sum of a quantity defined for each noded, named Fitness, theta(t). Fitness evolves in time accordind to this law:
+TGRG stands for Temporally Generalized Random Graphs. The existence of a link between two nodes depends on a nodes' property named Fitness, theta(t). Fitness evolves in time accordind to this law:
 
 > theta_i(t) = phi0_i + phi1_i*\theta_i(t-1) + epsilon_i(t)
 
-So, at each time, its value depends to the one at the previous time step, according a factor phi1, to constant term phi0 that is added time by time, e to a stochastic term, epsilon, which is extracted from a distribution with mean = 0 and average = sigma^2_i (tpical of each node). 
-Now, the existence of a link at a certain time is a stochastic extraction, whose probability relies on a kind sigmoid of the sum of the two nodes' fitnesses:
+So, at each time, its value depends to the one at the previous time step, according a factor phi1, to constant additive term phi0, and to a stochastic term, epsilon, which is extracted from a Normal(0, sigma) distribution (with sigma being typical of each node). 
+Now, the existence of a link at each temporal step is a stochastic extraction, whose probability relies on a kind sigmoid function of the sum of the two nodes' fitnesses:
 
 > P(A_ij(t) = 1) = exp(theta_i(t)+theta_j(t))/(1+exp(theta_i(t)+theta_j(t)))
 
@@ -53,3 +54,9 @@ In general, probability at time t is given by integrating from 0 to t.
 
 ## LTM
 This section will be deepened in further developments.
+
+# Centrality Measures
+(just basic scattered concepts)
+Degree: it can be in or out-going; if graph is undirected, they are the same
+
+Working progress (Communicability, AD, BD)
