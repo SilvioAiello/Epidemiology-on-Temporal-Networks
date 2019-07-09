@@ -1,7 +1,16 @@
 In this file it is explained how functions of each script work.
 
-# Evolutions module
-It's made use of function from numpy and pickle libraries.
+# Table of contents
+* [Evolution script](#evolution-script)
+  * [Network generation functions](#network_generation_dar-and-network_generation_tgrg)
+  * [Degree functions](#degree-functions)
+  * [Communicability and rankins](#communicability-and-rankings)
+  * [Network save](#network_save)
+* [Propagation SI](#propagation_si)
+* [Propagation LTM](#propagation_ltm)
+
+# Evolutions script
+It makes use of function from numpy and pickle libraries, so be sure to have them installed.
 
 ## network_generation_dar and network_generation_tgrg
 These functions generate a DAR(P) and a TGRG network, according to definion you can find in Explanation (MAGARI POI LINKA).
