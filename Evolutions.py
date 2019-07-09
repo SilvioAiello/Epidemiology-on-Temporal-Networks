@@ -1,5 +1,5 @@
 """ 
-Functions contained in this module allow:
+Functions contained in this script allow:
     1) to generate and update a network according to the dar(p) or trgr laws of evolution.
     (if you don't know what they are, check the documentation)
     2) to perform analysis of network's structure, such as degree evolution...
@@ -36,11 +36,15 @@ From this module you can extract the following functions:
 import numpy as np 
 import pickle
 
-def assert_ndarray_shape(matrix,shape):
-     #check if matrix is a np.array, and as the shape of a square (expressend by a proper tuple)
-    assert type(shape) == tuple #shape = tuple
-    assert type(matrix) == np.ndarray, "Error: matrix must be a numpy array"
-    assert matrix.shape == shape, "Error: matrix doesn't fit the proper shape"
+def assert_ndarray(matrix,dimensions):
+     #check if matrix is a np.array, has a certain dimension
+    assert isinstance(matrix,np.ndarray), "Error: matrix must be a numpy array"
+    assert len(matrix.shape) == dimensions, "Error: matrix is not 2-dimensional"
+
+def assert_square(matrix):
+    #check if matrix is a square by comparing each side length with the first side
+    for i in range(len(matrix.shape)):
+        assert matrix.shape[i] == matrix.shape[0], "Error: matrix is not a square"
 
 def assert_probability(matrix):
     #check that all elements are probabilities
@@ -57,7 +61,7 @@ def assert_nulldiagonal(matrix):
     assert sum(np.diag(matrix)) == 0, "Error: network has not-0 diagonal"
     
 #%%
-def network_generation_dar(alpha,xi,T=100, P=1, directed = False):
+def network_generation_dar(alpha,xi,P=1, T=100, directed = False):
     """
     Generates a DAR(P) network in form of np.array
     
@@ -82,11 +86,13 @@ def network_generation_dar(alpha,xi,T=100, P=1, directed = False):
         T*(N*N) array, expressing adiacencies for each time step
         (so, it's entries are 0 or 1, and it can be or not symmetryc; null-diagonal only)
     """
-    # ASSERTS
-    assert_ndarray_shape(alpha,(len(alpha),len(alpha)))
-    assert_ndarray_shape(xi,(len(xi),len(xi)))   
-    assert len(alpha)== len(xi), "Error: matrices alpha and xi have different dimensions"
+    # PRELIMINARY ASSERTS, TO UNSURE FUNCTION WORKS PROPERLY
+    assert_ndarray(alpha,2)
+    assert_square(alpha)
     assert_probability(alpha)
+    
+    assert_ndarray(xi,2)
+    assert_square(xi)
     assert_probability(xi)
 
     N = len(alpha) #if everything is ok, get info about number of nodes
@@ -98,25 +104,6 @@ def network_generation_dar(alpha,xi,T=100, P=1, directed = False):
     assert P < T, "Error: you're trying to generate a DAR(P) model where P is higher or equal to evolution's lasting"
     
     assert type(directed) == bool, "Error: only bool type is allowed for variable directed"
-    
-    #TODO: SPIEGA ALTROVE CHE L'IDEA E' DI LAVORARE SEMPRE E COMUNQUE PRIMA CON LA TRIANGOLARE SUPERIORE E POI, A SECONDA, AGGIORNARE L'INFERIORE
-    #spiega anche che ricava da solo N ecc    
-    #SE SERVE, AGGIUNGI QUESTO, SENNO' ELIMINA:
-        
-    #First, an initial state is created, i.e. the adiacency matrix for T=0.
-    #In future development, this state will be the same for both evolutions.
-    #Then, it's initialized a 3D tensor, N*N*T, i.e. a sequence of adiacency matrices evolving in time.
-    #Each of the T adiacences matrices (A) will be updated according to the values of the previous one.
-    #Adiacences are kept simmetric with 0-diagonal.
-    #This scheme will be the same for both evolutions, just the law of updating will be different.
-    
-    #In DAR, there's a probability alpha_ij of having A_ij(t) = A_ij(t-1)
-    #Otherwise, the new state will be extacted by a "coin toss", with probability xi_ij of getting "1"
-    #The evolution is performed just for the upper triangular adiancency, and than the matrix is simmetrized
-    
-    #First comprehension says: for each row i, taking only the upper triangle (j>i), choose the value 
-    #from the same cell of the T-P matrix, with probability alpha, or from a coin tossing (whose probability of getting 1 is xi).
-    #The second comprehension just simmetrizes the matrix
     
     #EVOLUTION
     #Initial adiacency, as tossing simple coin (0.5); if undirected, it's made symmetric
@@ -145,7 +132,7 @@ def network_generation_dar(alpha,xi,T=100, P=1, directed = False):
             #follow the same rule as upper, if directed
     return temporal_network
 
-def network_generation_tgrg(phi0,phi1,sigma,N=100,T=100, directed = False):
+def network_generation_tgrg(phi0,phi1,sigma,T=100, directed = False):
     """
     Generates a TGRG in form of np.array
     
@@ -189,42 +176,40 @@ def network_generation_tgrg(phi0,phi1,sigma,N=100,T=100, directed = False):
     #So, for each temporal step, the algorithm takes the nodes i and j, computes the probability and chooses whether rising a link or not.
     #The evolution is performed just for the upper triangular adiancencies, and than the matrix is simmetrized
     
-    #ASSERTS
-    assert_ndarray_shape(phi0,N)
-    assert_ndarray_shape(phi1,N)
-    assert_ndarray_shape(sigma,N)
+    # PRELIMINARY ASSERTS, TO UNSURE FUNCTION WORKS PROPERLY 
+    assert_ndarray(phi0,1)
+    assert_ndarray(phi1,1)
+    assert_ndarray(sigma,1)
     
-    assert_natural(N)
-    assert_natural(T)
+    N = len(phi0) #if everything is ok, get info about number of nodes
     assert N<1000, "Error: for computational ease, this functuion accepts only networks with dimension < 1000"
+    
+    assert_natural(T)
     assert T<1000, "Note: for computational ease, this functuion accepts only networks with duration < 1000"
     
     assert type(directed) == bool, "Error: only bool type is allowed for variable directed"
     
     #FITNESSES EVOLUTION
     theta = np.zeros((N,T)) #definition
-    theta[:,0] = np.random.normal(0,sigma,size=N) #random-normal initialization, 
-    for t in range(1,T): 
-        for i in range(N):
-            theta[i,t] = phi0[i] + phi1[i]*theta[i,t-1] + np.random.normal(0,sigma) #evolution for each node and each time
-    
+    theta[:,0] = np.random.normal(0,sigma,size=N) #random-normal initialization
+    for t in range(1,T):
+        theta[:,t] = phi0 + phi1*theta[:,t-1] + np.random.normal(0,sigma,size=N) #evolution for each node and each time
+
     #ADIACENCIES COMPUTATION
     temporal_network = np.zeros((T,N,N)) #tensor definition
     for t in range(T):
         for i in range(N):
             for j in range(N):
-                #UPPER TRIANGLE
-                if j>i:
-                    prob = np.exp(theta[i,t]+theta[j,t])/(1+np.exp(theta[i,t]+theta[j,t])) #probability for these nodes at this time
-                    temporal_network[t,i,j] = np.random.choice((1,0),p=(prob,1-prob)) #status extraction
-                #LOWER TRIANGLE
-                if j<i:
-                    if directed == False: #symmetrization (just tune when a link exist)
-                        if temporal_network[t,i,j] == 1: 
-                            temporal_network[t,j,i] = 1
-                    else: #same process as upper triangle
-                        prob = np.exp(theta[i,t]+theta[j,t])/(1+np.exp(theta[i,t]+theta[j,t])) 
-                        temporal_network[t,i,j] = np.random.choice((1,0),p=(prob,1-prob)) 
+                #TGRG FOR UPPER TRIANGLE
+                temporal_network[t] = [[np.random.choice((1,0), 
+                                p=(np.exp(theta[i,t]+theta[j,t])/(1+np.exp(theta[i,t]+theta[j,t])),1-np.exp(theta[i,t]+theta[j,t])/(1+np.exp(theta[i,t]+theta[j,t])))) if j>i else 0 for j in range(N)] for i in range(N)]
+                #LOWER TRIANGLE (j<i)
+                if directed == False:    
+                    temporal_network[t] = [[temporal_network[t,j,i] if j<i else temporal_network[t,i,j] for j in range(N)] for i in range(N)]
+                    #copy upper triangle, if undirected
+                else:
+                    [[np.random.choice((1,0), 
+                                p=(np.exp(theta[i,t]+theta[j,t])/(1+np.exp(theta[i,t]+theta[j,t])),1-np.exp(theta[i,t]+theta[j,t])/(1+np.exp(theta[i,t]+theta[j,t])))) if j<i else temporal_network[t,i,j] for j in range(N)] for i in range(N)]
     return temporal_network, theta
     
 #%%
@@ -248,8 +233,10 @@ def degree_node(network,node,out = True):
     
     """
     #ASSERTS
-    assert_ndarray_shape(network,(len(network),len(network))) #ask it to be a square array of the first dimension of the network
+    assert_ndarray(network,2)
+    assert_square(network)
     assert_nulldiagonal(network)
+    
     assert_natural(node)
     assert node <= len(network), "Error: node not present"
     
@@ -282,7 +269,8 @@ def degree_mean_t(network,out = True):
     
     """
     #ASSERTS
-    assert_ndarray_shape(network,(len(network),len(network))) #ask it to be a square array of the first dimension of the network
+    assert_ndarray(network,2) 
+    assert_square(network)
     assert_nulldiagonal(network)
     
     #FUNCTION
@@ -321,8 +309,9 @@ def degree_mean_sequence(network,T, initial = 0, out = True):
     assert_natural(T)
     assert T>initial, "Error: something wrong in initial-final time step"
     
-    assert_ndarray_shape(network,(T,len(network),len(network))) #ask it to be a square array of the first dimension of the network
-    assert_nulldiagonal(network)
+    assert_ndarray(network,3) #ask it to be a square array of the first dimension of the network
+    [assert_square(network[t]) for t in range(len(network))] #check square for each step
+    [assert_nulldiagonal(network[t]) for t in range(initial,T)] #check null diagonal for each step
     
     #FUNCTION
     d_seq = []
@@ -360,8 +349,9 @@ def communicability(temporal):
         #At the moment, this function takes as default, as coefficient, a quarter of the inverse of max spectral radius
     
     #ASSERTS
-    assert_ndarray_shape(temporal,(len(temporal),len(temporal[1]),len(temporal[1]))) #ask it to be a sequence of square array of the second dimension of the network
-    [assert_nulldiagonal(temporal[i]) for i in range(len(temporal))] #check null diagonal for each step
+    assert_ndarray(temporal,3) #ask it to be a square array of the first dimension of the network
+    [assert_square(temporal[t]) for t in range(len(temporal))] #check square for each step
+    [assert_nulldiagonal(temporal[t]) for t in range(len(temporal))] #check null diagonal for each step
     
     #FUNCTION
     T = temporal.shape[0]
@@ -408,7 +398,7 @@ def broadcast_ranking(Q):
     
 def receive_ranking(Q):
     """
-    Provided with a Communicabiltiy, return a list of nodes sorted by Receiving ranking, and the scores
+    Provided with a Communicabiltiy, returns a list of nodes sorted by Receiving ranking, and the scores
     
     It uses several numpy functions
     
@@ -467,9 +457,3 @@ def network_save(network, start,isDAR=True,P=1, k=1):
     
     with open(name, 'wb') as handle:
         return pickle.dump(network,handle)
-        
-
-### TESTS:
-def test_symmetry(temporal_network,T=100):
-    for t in range(T):
-        assert (temporal_network[t] == temporal_network[t].T).any, "Error: network at t = %i is not symmetric" %t
