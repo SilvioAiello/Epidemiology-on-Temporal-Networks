@@ -5,7 +5,8 @@ import networkx as nx
 
 import Evolutions
 
-# PLOT FUNCTIONS, MANEGGIARE CON CURA#
+#%% PLOT FUNCTIONS, MANEGGIARE CON CURA#
+
 def networkplot(graph,figcount,savefig=False, figname = None, k = None, t = None):
     """Requires an adiacency[t] and the figure count
     If you want to save the image, you have to say savefig=True, and pass a 2-ple and the value of k and t.
@@ -19,13 +20,20 @@ def networkplot(graph,figcount,savefig=False, figname = None, k = None, t = None
         plt.savefig(figname+"Results"+'_realization%i_t=%i.pdf' %(k,t))
     return figcount+1, plt.show()
 
-###              USER ACTION        ###
+#Save the network for further use
+#np.savetxt(start_name+'%i_N%i_wholenetwork_T%i.txt' %(P,N,T), temporal_network.reshape(T*N*N,1))
+#To import:
+#new_data = np.loadtxt('start_name+'%i__N%i_wholenetwork_T%i.txt' %(P,N,T))
+#new_data = new_data.reshape((T,N,N))
+
+
+#%%             USER ACTION        ###
 alpha = 0.6*np.ones((10,10)) #give the shape you want but respect the rule
 xi = 0.5*np.ones((10,10)) #give the shape you want but respect the rule
 temporal_dar = Evolutions.network_generation_dar(alpha,xi)
 
 
-###                      CENTRALITIES MEASURES                      ###
+#%%                      CENTRALITIES MEASURES                      ###
 # DAR #
 spec_radius_dar, Q_dar = Evolutions.communicability(temporal_dar)
 nodes_Bcentrality_dar, nodes_Brank_dar = Evolutions.broadcast_ranking(Q_dar) #scores, node rankings
