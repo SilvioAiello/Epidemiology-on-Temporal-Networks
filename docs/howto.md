@@ -1,7 +1,16 @@
 In this file it is explained how functions of each script work.
 
-# Evolutions module
-It's made use of function from numpy and pickle libraries.
+# Table of contents
+* [Evolution script](#evolution-script)
+  * [Network generation functions](#network_generation_dar-and-network_generation_tgrg)
+  * [Degree functions](#degree-functions)
+  * [Communicability and rankins](#communicability-and-rankings)
+  * [Network save](#network_save)
+* [Propagation SI](#propagation_si)
+* [Propagation LTM](#propagation_ltm)
+
+# Evolutions script
+It makes use of function from numpy and pickle libraries, so be sure to have them installed.
 
 ## network_generation_dar and network_generation_tgrg
 These functions generate a DAR(P) and a TGRG network, according to definion you can find in Explanation (MAGARI POI LINKA).
@@ -40,13 +49,12 @@ Note that each function doesn't rely on the other, so they are "pure".
 These functions allow to determine the Communicability matrix for a provided temporal network, perform Broadcast and Receive Centrality and rank nodes accordingly.
 The only assertions they perform are about shape (sequence of squadre matrices) and diagonal nullity.
 
-* communicability extracts the number of nodes and evolution duration by the shape of the temporal network, then computes for each adiacency the maximum spectral radius (each of which makes use of np.linalg.eigvals) and selects the maximum from these. A quarter of the highest one is the factor applied to each adiacency in Communicability updating; communicability is initialized as a normalized (np.linalg.norm) identity matrix, and multiplied, at each time step, by the inverse (np.linalg.inv) of the difference between identity (np.identity) and the the weighted adiacency; all matrices are normalized step by step, and matrices multiplications are performed by np.matmul;
+* communicability extracts the number of nodes and evolution duration by the shape of the temporal network, then computes for each adiacency the maximum spectral radius (each of which makes use of np.linalg.eigvals) and selects the maximum from these. A quarter of the highest one is the factor applied to each adiacency in Communicability updating (as in Chen paper), but in further developments it could be different, or it could be given the possibility to choose among different ones; communicability is initialized as a normalized (np.linalg.norm) identity matrix, and multiplied, at each time step, by the inverse (np.linalg.inv) of the difference between identity (np.identity) and the the weighted adiacency; all matrices are normalized step by step, and matrices multiplications are performed by np.matmul;
 * broadcast_ranking requires such a communicability matrix, and returns a list with nodes BCs by summing over lines; then it generates a list, lines_sum, containing nodes indeces ordered by their scores, the firsts being those with highest centralities, using np.argsort (that return indeces but from the worst to the best) and np.flip (that invertes lists); note that "lines_sum" doesn't follow such a order;
 * broadcast_ranking requires such a communicability matrix, and returns a list with nodes RCs by summing over columns; then it generates a list, lines_sum, containing nodes indeces ordered by their scores, the firsts being those with highest centralities, using np.argsort (that return indeces but from the worst to the best) and np.flip (that invertes lists); note that "lines_sum" doesn't follow such a order.
 
 ## network_save
 This function saves, in an automatized way, a temporal network, using pickle (so it binarizes) and following the foldering/naming rule expressed in Documentation (so, distinguishing networks according to their parameters and realizations), allowing user to add a particoular identification name to the file.
-
 
 # Propagation_SI
 Working progress
