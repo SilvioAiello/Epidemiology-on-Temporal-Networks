@@ -1,4 +1,4 @@
-In this file it is explained how functions of each module work.
+In this file it is explained how functions of each script work.
 
 # Evolutions module
 It's made use of function from numpy and pickle libraries.
