@@ -132,6 +132,7 @@ def network_generation_dar(alpha,xi,P=1, T=100, directed = False):
             #follow the same rule as upper, if directed
     return temporal_network
 
+#%%
 def network_generation_tgrg(phi0,phi1,sigma,T=100, directed = False):
     """
     Generates a TGRG in form of np.array
@@ -191,7 +192,7 @@ def network_generation_tgrg(phi0,phi1,sigma,T=100, directed = False):
     
     #FITNESSES EVOLUTION
     theta = np.zeros((N,T)) #definition
-    theta[:,0] = np.random.normal(0,sigma,size=N) #random-normal initialization
+    theta[:,0] = phi0
     for t in range(1,T):
         theta[:,t] = phi0 + phi1*theta[:,t-1] + np.random.normal(0,sigma,size=N) #evolution for each node and each time
 
