@@ -160,22 +160,8 @@ def network_generation_tgrg(phi0,phi1,sigma,T=100, directed = False):
     theta: np.array
         N*T matrix, expressing evolution of fitnesses for each node
     """
-    #phi0 = 0.27*np.ones(N) #intercepts, typical of each node
+    #phi0 = 0.27*np.ones(N) #intercepts, typical of each node (values from Mazzarisi-Lillo paper)
     #phi1 = 0.18*np.ones(N) #slopes, typical of each node
-    
-    #TODO: SPIEGARE DA QUALCHE PARTE CHE PRIMA FACCIAMO EVOLVERE COMPLETAMENTE LE FITNESS E POI PERFORMIAMO L'EVOLUZIONE
-        #SE SERVE, AGGIUNGI QUESTO:
-    #First, an initial state is created, i.e. the adiacency matrix for T=0.
-    #In future development, this state will be the same for both evolutions.
-    #Then, it's initialized a 3D tensor, N*N*T, i.e. a sequence of adiacency matrices evolving in time.
-    #Each of the T adiacences matrices (A) will be updated according to the values of the previous one.
-    #Adiacences are kept simmetric with 0-diagonal.
-    #This scheme will be the same for both evolutions, just the law of updating will be different.
-    
-    #In FITNESS Model, the probability of having a link between two nodes is a sort of logistic of the sum of their fitnesses.
-    #Being a probability, it obviously takes values from 0 to 1: exp(theta1+theta2)/(1+exp(theta1+theta2)).
-    #So, for each temporal step, the algorithm takes the nodes i and j, computes the probability and chooses whether rising a link or not.
-    #The evolution is performed just for the upper triangular adiancencies, and than the matrix is simmetrized
     
     # PRELIMINARY ASSERTS, TO UNSURE FUNCTION WORKS PROPERLY 
     assert_ndarray(phi0,1)
@@ -240,12 +226,7 @@ def degree_node(network,node,out = True):
     
     assert_natural(node)
     assert node <= len(network), "Error: node not present"
-    
-    #TODO: SPIEGARE COSA FA, PUOI USARE:
-    #if out = true, sums the line (link that start from node)
-    #if out = false, sums the column (link that reach that node)
-    #if graph is undirected, out = in
-    
+     
     #FUNCTION
     if out:
         return sum(network[node])
@@ -345,9 +326,7 @@ def communicability(temporal):
     Q: np.array
         N*N matrix (N being number of nodes), expressing "how well information can be passed from i to j"
     """
-    #TODO: DOCUMENTA COME FUNZIONA (ANCHE ALTROVE DEVI FARLO, DICENDO CHE TROVA DA SOLO LE LUNGHEZZE E PERCHE')
-        #As known, to compute communicability one as to choose a coefficient that multiplicates adiacencies
-        #At the moment, this function takes as default, as coefficient, a quarter of the inverse of max spectral radius
+    #At the moment, this function takes as default, as coefficient, a quarter of the inverse of max spectral radius
     
     #ASSERTS
     assert_ndarray(temporal,3) #ask it to be a square array of the first dimension of the network
@@ -387,12 +366,7 @@ def broadcast_ranking(Q):
     rank: np.array
         N list of nodes, sorted by ranking (rank[0] is the most central node)
     """
-    #TODO: Nello spiegone documentato puoi usare questo:
-    #Next two functions compute broadcast/receiving centralities and node rankings
-    #For centralities, they use function np.sum, where one can choose to sum of lines (BC) or columns (RC)
-    #For rankings, they use np.argsort, whose input is a list and output is a list of the indices of the input, sorted according to their decreasing values
-    #So, the first element of the output list has the highest rank
-    
+    #FUNCTION    
     lines_sum = np.sum(Q, axis = 1) #Broadcast -> sum over lines:
     rank = np.flip(np.argsort(lines_sum)) #argsort -> increasing score; flip -> decreasing
     return(lines_sum,rank)
@@ -415,6 +389,7 @@ def receive_ranking(Q):
     rank: np.array
         N list of nodes, sorted by ranking (rank[0] is the most central node)
     """
+    #FUNCTION
     lines_sum = np.sum(Q, axis = 0) #Broadcast -> sum over columns:
     rank = np.flip(np.argsort(lines_sum)) #argsort -> increasing score; flip -> decreasing
     return(lines_sum,rank)
