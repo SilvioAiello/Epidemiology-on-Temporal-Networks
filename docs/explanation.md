@@ -1,8 +1,13 @@
 # Introduction
-This text provide the user of some theoretical knowledge necessary to better understand the mathematical background of this project. If you already know what a temporal network is, what are DAR(P) and TGRG evolutions, what's SI and LTM epidemiology, you can skip reading; otherwise, it is scrictly suggested.
+This text provide the user of some theoretical knowledge necessary to better understand the mathematical background of the project. If you already know what a temporal network, DAR(P) and TGRG evolutions, SI and LTM epidemiology are, you can skip reading; otherwise, it is scrictly suggested to give a look.
 
-A network is "temporal" when the existence of a link between two nodes depends on time: distribution of links evolves, while the number of nodes is held fixed.
-Several laws of evolution exist; in this study we deal with **DAR(P)** and **TGRG**. Also, two ways of epidemic spreading will be analyzed: **SI** and **LTM**.
+A static network (or graph)  can be defined by a set of nodes and link between nodes, where nodes represent "entities", and links a certain interaction. A static network can be described by an adiacency matrix, whose entry "ij" states the number of links between node i and j (if it can be >=2, we talk about multi-graph), and may not be equal to entry "ji", stating that the system is sensible to which nodes starts the interaction (directed graph).
+A network is "temporal" when the existence of a link between two nodes depends on time: distribution of links evolves, while the number of nodes is held fixed, and we call a temporal network and _ordered_ sequence of static networks (described by an ordered sequence of adiacencies). 
+The arrow of time provides such a structure of an inherent asymmetry, even if the single graphs are undirected, that emerges in information trasmission between nodes. Epidemiology deals with information, or disease, transmission, and gets effective contribution my modelling systems as temporal networks.
+
+Several laws of evolution exist, each of wich may effect differently an epidemic spread; in this study we deal with **DAR(P)** and **TGRG** evolutions. Also, two ways of epidemic spreads will be analyzed: **SI** and **LTM**.
+
+As already mentioned in ReadMe, we want to to understand if there is a correlation between nodes' centrality and capability in broadcasting/receiving informations, and, if it is the case, to quantify it, or, at least, determine what centrality measures better catch it.
 
 # Table of contents
 * [Introduction](#introduction)
@@ -58,5 +63,7 @@ This section will be deepened in further developments.
 # Centrality Measures
 (just basic scattered concepts)
 Degree: it can be in or out-going; if graph is undirected, they are the same
+These measures are dicrect generalization of static ones (if T->0, they return the same results), which are mostly based on _walks_ (information does not necessarly flow across geodesics, and walk counting is more resilient to missing or spourious edges, cfr. Grindrod); so we rely on temporal graphs,with Grindrod noticing that 1) repeated times are allowed: t1 < t2 = t3 < t4, i.e. in the same instant there can be more than 1 progression, 2) times are not required to be consecutive (if t2 > t1+1, times between t1 and t2 are "ignored", just like you don't care of what's appening in that interval). A the moment, times are not repeated and are consecutive.
+Non commutativity of matrices product is how we account the arrow of time
 
 Working progress (Communicability, AD, BD)
