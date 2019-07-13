@@ -1,6 +1,6 @@
 """ 
 Functions contained in this script allow:
-    1) to generate and update a network according to the dar(p) or trgr laws of evolution.
+    1) to generate and update a temporal network according to the dar(p) or trgr laws of evolution.
     (if you don't know what they are, check the documentation)
     2) to perform analysis of network's structure, such as degree evolution...
     3)... and centrality measures (Communicability, AD, BD)
@@ -8,11 +8,11 @@ Functions contained in this script allow:
 A network is described through the temporal sequence of its adiacency matrices.
 Each update is a stochastic process, so several performances should be performed.
 
-It requires the following libraries (so, check if they are installed):
+Functions work in Pyhon3, and may require the following libraries (so, check if they are installed):
     * numpy, used for its data structures and anaylisis, and to get random functions 
     * pickle, used to store, in an efficient way, the complex information generated
 
-[If you want to plot, you should use these libraries:
+[If you want to get some plots, you should use these libraries:
     * matplotlib.pyplot, used for graphics plot and belluries
     * networkx, just used to plot small networks]
 
@@ -27,10 +27,8 @@ From this module you can extract the following functions:
     build communicability matrix and extract from it broacdcast and receive centrality for each node
     #TODO: ADD CENTRALITIES AND UPDATE THIS LIST
     
-    * network save, that saves a generated network through pickle, in a path and
-    with a name that follows syntax illustrated in documentation
-    * plot save, if you want to save something in automatized way, 
-    with automatically generated name
+    * network save, that saves a generated network through pickle, in a path and with a name that follows syntax illustrated in README
+    * plot save, if you want to save something in automatized way, with automatically generated name
 """
 
 import numpy as np 
@@ -396,7 +394,7 @@ def receive_ranking(Q):
 
 
 # NETWORK SAVE #
-def network_save(network, start,isDAR=True,P=1, k=1):
+def network_save(network, start,k=1,isDAR=True, P=1):
     """ Saves network using pickle (so it must be present) and giving it its proper name (with identification provided by user) and folder
     
     Parameters
@@ -420,7 +418,7 @@ def network_save(network, start,isDAR=True,P=1, k=1):
     #ASSERTS
     assert_natural(P) #there's no need to perform other checks, since they have been already performed
     assert_natural(k)
-    
+
     #FUNCTION
     T = network.shape[0]
     N = network.shape[1]
@@ -430,6 +428,6 @@ def network_save(network, start,isDAR=True,P=1, k=1):
         name = "Networks/N"+str(N)+"_T"+str(T)+"_DAR"+str(P)+"_"+start+"/realization"+str(k)+"/network.txt"
     else:
         name = "Networks/N"+str(N)+"_T"+str(T)+"_TGRG_"+start+"/realization"+str(k)+"/network.txt"
-    
+#TODO: CAPIRE SE SALVARLO IN PKL
     with open(name, 'wb') as handle:
         return pickle.dump(network,handle)
