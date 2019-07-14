@@ -14,10 +14,12 @@ As already mentioned in ReadMe, we want to to understand if there is a correlati
 * [Strucutal evolution](#strucutal-evolution)
   * [DAR(P)](#darp)
   * [TGRG](#tgrg)
+  * [Centrality measures](#centrality-measures)
 * [Epidemic Diffusion](#epidemic-diffusion)
   * [SI](#si)
   * [LTM](#ltm)
- * [Centrality measures](#cenrtality-measures)
+  * [Epidemic scores](#epidemic-scores)
+ 
 
 # Strucutal evolution
 State of links is described by an adiacency matrix A(t) for each time step t. If a link between nodes i and j exists, A_ij = 1; otherwise, A_ij = 0. If more links are allowed between the same nodes (this not being the case here), A_ij can have value 2,3,... .
@@ -43,6 +45,14 @@ Now, the existence of a link at each temporal step is a stochastic extraction, w
 So, the sum is high, there's almost certainty of having a link, and viceversa.
 For a TGRG, there are 3N parameters to set.
 
+## Centrality Measures
+(just basic scattered concepts)
+Degree: it can be in or out-going; if graph is undirected, they are the same
+These measures are dicrect generalization of static ones (if T->0, they return the same results), which are mostly based on _walks_ (information does not necessarly flow across geodesics, and walk counting is more resilient to missing or spourious edges, cfr. Grindrod); so we rely on temporal graphs,with Grindrod noticing that 1) repeated times are allowed: t1 < t2 = t3 < t4, i.e. in the same instant there can be more than 1 progression, 2) times are not required to be consecutive (if t2 > t1+1, times between t1 and t2 are "ignored", just like you don't care of what's appening in that interval). A the moment, times are not repeated and are consecutive.
+Non commutativity of matrices product is how we account the arrow of time
+
+Working progress (Communicability, AD, BD)
+
 # Epidemic Diffusion
 When dealing with epidemiology, for each node is defined a state: epidemic maps each time step to the state of each node at that time. For SI and LTM epidemiologies, there are two possible state: infected ("1"), and susceptible ("0", meaning that that node can be infected).
 Both diffusions are stochastic processes, so, in both case, one should perform more than one diffusion, in order to get some useful information.
@@ -53,17 +63,16 @@ This propagation is not specific for network theory, and it's effective in many 
 It's defined by just one parameter, beta, expressing the probability of infection per unit time, i.e. the probability that one infected node infects a susceptible after one time step (in a system with discrete time).
 According to [Chen et. at.](https://pdfs.semanticscholar.org/0cd5/46424d279a5a41f4cff3e863c1e0416b067f.pdf), this is an indipendent and memory-less Poisson process, where the mean (lambda\*) is set by setting beta: 
 
-> lambda\* | beta\*(1 time unit) = P(infection in 1 time unit) = integral(from 0 to time unit) lambda\* \* exp(-lambda\*t).
+    lambda\* | beta\*(1 time unit) = P(infection in 1 time unit) = integral(from 0 to time unit) lambda\* \* exp(-lambda\*t).
 
-In general, probability at time t is given by integrating from 0 to t.
+Probability of infection, for a contact lasting t, is given by integrating this function from 0 to t.
 
 ## LTM
 This section will be deepened in further developments.
 
-# Centrality Measures
-(just basic scattered concepts)
-Degree: it can be in or out-going; if graph is undirected, they are the same
-These measures are dicrect generalization of static ones (if T->0, they return the same results), which are mostly based on _walks_ (information does not necessarly flow across geodesics, and walk counting is more resilient to missing or spourious edges, cfr. Grindrod); so we rely on temporal graphs,with Grindrod noticing that 1) repeated times are allowed: t1 < t2 = t3 < t4, i.e. in the same instant there can be more than 1 progression, 2) times are not required to be consecutive (if t2 > t1+1, times between t1 and t2 are "ignored", just like you don't care of what's appening in that interval). A the moment, times are not repeated and are consecutive.
-Non commutativity of matrices product is how we account the arrow of time
+## Epidemic scores
+Node virulence is determined by:
+    * making a node an epidemic index case, and 
+    * computing minimum or avaverageg time (over a range of K iterations, with the same initial condition) the infection takes to reach to a certain percentage of the whole network.
+Choosing minimum or average may lead to different scores; at the moment, only average is considered.
 
-Working progress (Communicability, AD, BD)
