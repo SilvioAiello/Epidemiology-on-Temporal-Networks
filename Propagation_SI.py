@@ -212,27 +212,27 @@ def propagation(tempnet,index_case,probabilities): #Remember: the outcome of thi
     return(states_sequence)
 
 #%%
-def infected_counter(infected):
-    #This function counts the number of infected nodes in a set:
+def infected_counter(set_of_nodes):
+    """
+    Counts the number of infected nodes in a set
+    """
     counter = 0
-    for i in range(len(infected)):
-        if infected[i]==1:
+    for i in range(len(set_of_nodes)):
+        if set_of_nodes[i]==1:
             counter+=1
     return counter
-
-#This function, provided of the whole states-evolution, returns the time step at wich the disease has reached a given fraction of the network, using infected_counter.
-#If that fraction has not been reached, it return the total time of propagation:
 def time_score(scores,fraction):
     """
-    Returns the time each node spent to infect a fraction of network, for one whole iteration
+    Returns the time each node spent to infect a fraction of network, for one whole iteration.
     
     The output is the first time step when the fraction of infected nodes is bigger than the given fraction.
     If this never happens, function just returns the last time step of network evolution.
+    Output is computed using external function "infected_counter".
     
     Parameters
     ----------
     scores: dict of dicts
-        Sequence of T dictionaries of the states of all N nodes (T and N are extracted bt function iteself)
+        Sequence of T dictionaries of the states of all N nodes (T and N are extracted by function iteself)
     fraction: float
         Real number, from 0 to 1, representing network fraction
         
@@ -251,4 +251,5 @@ def time_score(scores,fraction):
         if infected_counter(scores[t])>=fraction*N:
             time_spent = t
             break
-    return time_spent #ha senso restituire il total time? magari inf, magari errore, vediamo
+    return time_spent 
+#TODO: ha senso restituire il total time? magari inf, magari errore, vediamo
