@@ -63,6 +63,11 @@ for index_case in range(N):
     label_dar.append([]) #create the i-th entry
     for iteration in range(K):
         label_dar[index_case].append(Propagation_SI.propagation(temporal_dar, index_case, probabilities))
+        #TEST#
+        assert label_dar[index_case][iteration][0][index_case] == 1, "L'index case non sembra esserlo"
+        assert sum(label_dar[index_case][iteration][0].values()) == 1, "Ci dovrebbe essere solo un infetto all'inizio"
+
+assert [[label_dar[index_case][iteration][0] == label_dar[index_case][iteration-1][0] for iteration in range(1,K)] for index_case in range(N)], "Error: some initial condition is not equal for all iterations" 
 
 #%%                      CENTRALITIES MEASURES                      ###
 # DAR #
@@ -82,7 +87,3 @@ for index_case in range(N):
     score_dar.append([]) #create the i-th entry
     for iteration in range(K):
         score_dar[index_case].append(Propagation_SI.time_score(label_dar[index_case][iteration],0.6))
-
-#TEST#
-assert label_dar[0][0][0][0] == 1, "L'index case non sembra esserlo"
-assert sum(label_dar[0][0][0]) == 1, "Ci dovrebbe essere solo un infetto all'inizio"
