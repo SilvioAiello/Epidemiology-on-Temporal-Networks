@@ -15,7 +15,9 @@ If you're interested in just one function or script, use table of content to dir
   * [Epidemic scores functions](#epidemic-scores)
 * [Propagation LTM](#propagation_ltm)
 * [Tests.py](#tests)
-  * [Assertions](#assertions)
+  * [Assertions](#assertion-functions)
+  * [Evolution tests](#evolution-functions-tests)
+  * [Measures tests](#measures-functions-tests)
 
 # Main script
 Può servirti usare sta roba:
@@ -23,6 +25,9 @@ K -> #to generate more tempnet is up to you; but iterating propagation for nodes
 label_dar = #list of N lists (one per index case), each of which is a list of K (one per iteration) sequences of T dictionaries
 #(forse anche sti commenti lunghi li puoi mettere direttamente in documentazione)
 #label dar 0: tutto riferito allo 0 nodo come index, label_dar[0,3]: 3 iterazione
+* Poisson Probability: reproduces the Poisson PDF (Probability Density Function), whose average depends on beta; probability of having infection at a certain time is just the integral in time of this function, from 0 to linking duration of I-S nodes. So, since we're dealing with discrete finite time, there's a finite number of integrals/probabilities that can be computed, T, since a contact may last from 0 to T. So, same integrals will be computed repeatedly, and it makes sense to compute them once for all, and put results in a dictionary, whose keys are the durations. This may save much computational time.
+time of infection (in unit steps) follows a Poissonian distribution, normalized to return beta for 1 step, integrated within link duration. (note: beta is the probability rate of contagion [1/s], but also the actual probability of contagion after 1 unit time: infact, P(1) = beta*1 u.t. = beta [dimensionless]).
+Most of these ideas are due to [Chen, Benzi paper](https://pdfs.semanticscholar.org/0cd5/46424d279a5a41f4cff3e863c1e0416b067f.pdf)
 
 # Evolutions script
 It allows to generate and analyze temporal networks, making use of functions from numpy and pickle libraries, so be sure to have them installed. As already mentioned, linking-state between two nodes is described by zeros (no link at that time) and ones (link at that time). 
@@ -85,42 +90,40 @@ It allows to generate and analyze epidemics on temporal networks, making use of 
 Each update is a stochastic process, so it's difficult to get twice the same results, and you should call these functions multiple time to get some statistically relevant results.
 
 ## Network load
+       This function is still undergoing tests
 
 ## Easing simulation
-bla
-* Poisson Probability: reproduces the Poisson PDF (Probability Density Function), whose average depends on beta; probability of having infection at a certain time is just the integral in time of this function, from 0 to linking duration of I-S nodes. So, since we're dealing with discrete finite time, there's a finite number of integrals/probabilities that can be computed, T, since a contact may last from 0 to T. So, same integrals will be computed repeatedly, and it makes sense to compute them once for all, and put results in a dictionary, whose keys are the durations. This may save much computational time.
-Most of these ideas are due to [Chen, Benzi paper](https://pdfs.semanticscholar.org/0cd5/46424d279a5a41f4cff3e863c1e0416b067f.pdf)
+These functions allow* propagation function* to perform well and in an efficient way. They solve simple tasks analyzing adjacencies and node epidemic states, which is very useful since the idea of SI model is that each I-node can infect its *Susceptible neighbours*, at a certain time, according to a probability that depends on rate beta and *contact lasting*.
+* **neighbourhood**: generates a set of neighbours of a node at a certain time, by checking the provided adiacency; set is create through a comprehension;
+* **onlyzeros**: extracts the subset of susceptible nodes at that time, from a general set, list, etc, by checking the provided states dict; set is create through a comprehension;
+* **contact_lasting**: computes the number of time steps an S and a I node were connected, starting from a provided time. This is accomplished by checking backwards, time by time, the existence of the link and the state of the I node, increasing the value of a counter variable as long these conditions are satisfied; so, the loop interrupts if it has gone so back that the link wasn't  yet present, or the I-node wasn't yet infected. Clearly, the higher the output is, the higher the probability of having an infection (the value is checked in the already mentioned probabilities dictionary).
 
-## propagation
-A parte spiegare tutto, sottolinea che questa funzione fa evolvere un'epidemia dal primo all'ultimo istante del temporal network che gli fornisci, ma per dare uno score ai nodi dovresti farne evolvere tante sullo stesso temporal network, cambiando volta per volta l'index case. E poi, per ragioni di tesi, ripetere tutto quanto anche su più network.
-Puoi usare sta roba:
-Nodes virulence is determined by:
-    * making each node, at a time, the index case, and 
-    * computing min or avg time infection takes to spread to a certain % of the whole network
-The idea of SI model is that each I node, at t-1, can make infect one of its S neighbours, at t-1, with a certain probability, whose rate is beta.
-So, there will be usefuls some simple functions that build the neighbourhood of a node, or find S/I nodes from a list at a given time, or compute links' temporal duration.
+## Propagation
+This function takes a temporal network, an index case and the probabilities dictionary, and performs an iteration of a whole epidemic propagation in SI mode, from the first to last snapshot of the tempnet; the result is a dictionary of dictionaries, describing nodes' states for each time step.
 
-le prime tre righe erano sopra contact lasting
-Epidemic spread follows Chen approach: time of infection (in unit steps) follows a Poissonian distribution, normalized to return beta for 1 step, integrated within link duration.
-(note: beta is the probability rate of contagion [1/s], but also the actual probability of contagion after 1 unit time: infact, P(1) = beta*1 u.t. = beta [dimensionless]).
-Chen's algorithm make a contagion happen by performing an extraction from Unif(0,1): if this number is lower than the Poisson integral, contagion takes place at that time.
-
-This function performs the actual propagation, from 0 to T, given an index case.
-It finds the S neighboroughs of all I nodes at a given time, and makes them infect at t+1, with probability beta
-This function will be evoked for each time step but the first and the last one
+First operations are, as usual, definitions: T and N are extracted from the tempnet, and then an internal function, *set_infected*, is created with the purpose of setting input node states equals to 1 from a given time to the end (once infected, always infected); it will be used on every new infected; then, output is initialized by setting every node susceptible at every time, with the expection of the index case who is always infected (set_infected since t=0). Finally, infected and susceptibles nodes sets are initialized: they will be updated every time a new infection occurs. 
+Now, following Chen approach, epidemic is updated time by time by processing each susceptible node (at the previous time step), finding its infective neighbourhood (at the previous time step), and performing the "infection extraction" for each of them: if infection occurs, infective state is set "1" at present time step, sets are updated and the program jumps directly to next susceptible. Infection extraction compares the integral of Poisson distribution with a random uniform (from 0 to 1) extraction, performed by *np.random.uniform* function. This is iterated until the end of network evolution.
 
 ## Epidemic Scores
+They are computed making use of two functions:
+* **infected_counter**: takes the states dictionary at a certain time, and counts of many nodes are infected;
+* **time_score**: uses infected_counter for each time step of the propagation, and saves the first step when the fraction of infected nodes was higher than a given value. If this never happens, it returns the total duration of the propagation.
 
 # Propagation_LTM
-Further developments
+This section will be deepened in further developments.
 
 # Tests.py
 This script contains a suite of tests veryfing that every function in other scripts works properly, and some assertion functions, useful to these latter functions to check the inputs they are provided of. Most complex tests obviously deal with temporal networks and epidemics.
-* Assertions section is quite self-explaining: these function impose inputs to be an np.array of a certain dimension, or to have a square shape, or to be probability matrices (so accepting only values from 0 to 1), or to be a natural number (integer and >=0), or to be a matrix with 0-diagonal. Most of these functions are imported by Evolutions and Propagations scripts.
-* Tests section contains both structural tests (checking the output temporal network having the right mathematical properties) and tests of the actual evolution (since it's a stochastic process, one cannot make assertions about the exact outcome values, aside from some limit-cases; these ones are found and tested).
 
-## Evolutions test functions
-* structural_suite: since some structural tests will be repetead multiple times in both evolutions, they are put in this function, which collects some of the previous asserts and, in the end, checks that the output temporal network has the right parameters (number of nodes and duration) and mathematical properties, like being a succession of adiacencies, square metrices with null diagonal and, if case, symmetric (Explanation.md if you need to better understand these lines). This function is recalled in any DAR and TGRG test.
-* Evolution/dynamic tests: as said, these tests check, besides the structural suite, some limit-case inputs, the only ones one can be sure of the outputs; since multiple combinations are possible, multiple tests of the same kind are performed, changing time by time some parameters like number of nodes and duration, just for sake of completenes.
+## Assertion functions
+This section is quite self-explaining: its function impose inputs to be an np.array of a certain dimension, or to have a square shape, or to be probability matrices (so accepting only values from 0 to 1), or to be a natural number (integer and >=0), or to be a matrix with 0-diagonal. Most of these functions are imported by Evolutions and Propagations scripts.
+
+## Evolution functions tests
+This section contains both structural tests (checking the output temporal network having the right mathematical properties) and tests of the actual evolution (since it's a stochastic process, one cannot make assertions about the exact outcome values, aside from some limit-cases; these ones are found and tested).
+* **structural_suite**: since some structural tests will be repetead multiple times in both evolutions, they are collected in this function, which performs some of the previous asserts and, in the end, checks that the output temporal network has the right parameters (number of nodes and duration) and mathematical properties, like being a succession of adiacencies, which in turn are square matrices with null diagonal and, if case, symmetrical (Explanation.md if you need to better understand these lines). This function is recalled in any DAR and TGRG test. If it is verified, it doesn't mean that networks are produced correctly, but just that their structure is how it was supposed to. So, this is just a preliminary test.
+* **Evolution/dynamic tests**: as said, these tests check, besides the structural suite, some limit-case inputs, the only ones one can be sure of the outputs; since multiple combinations are possible, multiple tests of the same kind are performed, changing time by time some parameters like number of nodes and duration, just for sake of completenes.
   * DAR(1): we can be sure that, if matrix alpha = all zeros, all following states are determined by performing a random extraction (ruled by xi), while if alpha = all ones: all following states are equals to the first (total persistence); moreover, if matrix xi = all zeros, there's no way of getting state "1" for any link, if an extraction occurs, and vice versa for xi = all ones. So, these limit cases are tested: **alpha and xi = all zeros**, expecting a sequence of ONLY ZEROS adiacencies; **alpha = all zeros, xi = all ones** expecting a sequence of ONLY ONES (but null diagonal, of couse) adiacencies; **alpha = all ones, caringless of xi** expecting a sequence of adiacencies equal to the initial one.
   * TGRG: if "sigma" vector is set to 0, one removes randomness in fitnesses evolution (but not in link generation in following times); anyway, giving to each entry of phi0 and phi1 (or just phi0) very high (in module) values, one can jump into certainty domain. So, these limits will be checked, taking for guaranted that sigmas are 0: **very high values (100) for all phi0, and just 0 phi1**, expecting a sequence of ONLY ONES (but null diagonal) adiacencies; **very low values (-100) for all phi0, and just 0 phi1**, expecting a sequence of ONLY ZEROS adiacencies.
+
+## Measures functions tests
+NEXT STEP
