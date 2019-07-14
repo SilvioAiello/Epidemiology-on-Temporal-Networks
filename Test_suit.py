@@ -21,7 +21,6 @@ import numpy as np
 
 import Evolutions
 import Propagation_SI
-
 #%% ASSERTIONS
 # Matrices
 def assert_adiacency(network):
@@ -158,3 +157,5 @@ def test_TGRGgeneration2():
 
 #TODO : i test per la Katz possono essere fatti ritornando al caso statico
 #TODO: test poisson probability using #I = quad(poisson_probability,0,np.inf) #verify the correct normalization
+#TODO: UN MODO PER TESTARE contact_lasting E' VEDERE CHE AD OGNI ISTANTE SUCCESSIVO E' DIVERSO DAL PRECEDENTE, PER LA STESSA COPPIA
+        #sicuramente il suo output non può essere maggiore del t di input

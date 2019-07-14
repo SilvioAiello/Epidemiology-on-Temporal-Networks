@@ -46,8 +46,11 @@ beta = 0.005 #infection rate
 alpha = 0.6*np.ones((N,N)) #you can change values, but keep it (N,N)
 xi = 0.5*np.ones((N,N)) #you can change value, but keep it (N,N)
     #tgrg inputs
-    
-    #Probabilities dict: (same for DAR and TGRG)
+phi0 = 0.5*np.ones(N)
+phi1 = 0.5*np.ones(N)
+epsilon=0.5*np.ones(N)
+
+    #Probabilities dict, according to beta (same for DAR and TGRG)
 def poisson_probability(t): #function definition
     """
     This function reproduces the Poisson PDF, whose average depends on beta.

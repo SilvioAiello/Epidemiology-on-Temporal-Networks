@@ -28,8 +28,8 @@ For further theoretical understandings, check file "explanation.md"
 
 import numpy as np 
 import pickle
-import Test_suit
 
+import Test_suit
 #%%
 def network_generation_dar(alpha,xi,P=1, T=100, directed = False):
     """

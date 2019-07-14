@@ -9,7 +9,10 @@ Functions work in Pyhon3, and may require the following libraries (so, check if 
 [If you want to get some plots, you may use matplotlib.pyplot, for plots belluries]
 
 From this module you can extract the following functions:
-#TODO: UPDATE
+    * network_load
+    * neighbourhood, onlyzeros, contact_lasting
+    * propagation
+    * infected_counter, time_score
 
 For further understandings on how this script operates, check file "howto.md"
 For further theoretical understandings, check file "explanation.md"
@@ -17,6 +20,7 @@ For further theoretical understandings, check file "explanation.md"
 import numpy as np #Used for its random functions and data structures
 import pickle
 
+import Test_suit
 #%%
 def network_load(N,T,start,k=1,isDAR=True,P=1):
     """ Loads a previously generated temporal network using pickle (so it must be installed), if it's present
@@ -53,7 +57,7 @@ def network_load(N,T,start,k=1,isDAR=True,P=1):
 #temporal_dar = network_load(100,100,'alphaeqs_xieqs',k=1,isDAR=True,P=1)
 #temporal_fitn= load_network(100,100,isDAR=True,alleq,k=1)
 
-#%%
+#%% EASING FUNCTIONS
 def neighbourhood(adiacency,node):
     """Extracts the neighbourhood reachable by a node a given time. 
     
@@ -93,22 +97,37 @@ def onlyzeros(nodes_set,states_dict):
     selected = {node for node in nodes_set if states_dict[node]==0} #0 means susceptible
     return selected
 
-def contact_lasting(adiacency,state,t,infected_node,susceptible_node):
-    #UN MODO PER TESTARLA E' VEDERE CHE AD OGNI ISTANTE SUCCESSIVO E' DIVERSO DAL PRECEDENTE, PER LA STESSA COPPIA
-    #This function computes the duration of a contact (in number of temporal steps) for a couple of nodes I-S, as long as I is infected (otherwise, it couldn't propagate the epidemic)
-    #This is accomplished by checking backwards the existence of the link and the state of the I node, increasing the value of a counter variable until these conditions are satisfied
-    if state[t][infected_node] != 1:
-        print("Error: infected node %i is not infected at the latest instant %i" %(infected_node,t))
-        raise AssertionError
+def contact_lasting(adjacencies,state,t,infected_node,susceptible_node):
+    """
+    Computes the number of consectuive temporal steps a couple of nodes I-S are linked, as long as they keep these states.
+    
+    Parameters
+    ----------
+    adjacencies: NTT-np.array
+        Whole temporal network
+    state: TN-dict
+        Whole sequence of nodes' states
+    t: int
+        starting time step (from which going backwards in time)
+    infected_node, susceptible_node: int
+    
+    Returns
+    -------
+    counter: int
+        SI contact duration; if 0, nodes are not linked, if t, they have been linked since network is born
+    """
+    #Assertions
+    assert state[t][infected_node] == 1, "Error: infected node is not infected at the latest instant"
     assert state[t][susceptible_node] == 0, "Error: susceptible node is not susceptible at the latest instant"
-    assert adiacency[t,infected_node,susceptible_node] == 1, "Error: nodes couple is not linked at latest instant"
+    assert adjacencies[t,infected_node,susceptible_node] == 1, "Error: nodes couple is not linked at latest instant"
+    #Function
     counter = 0
     for instant in range(t+1):
-        if (adiacency[t-instant,infected_node,susceptible_node] == 1 and state[t-instant][infected_node] != state[t-instant][susceptible_node]):
+        if (adjacencies[t-instant,infected_node,susceptible_node] == 1 and state[t-instant][infected_node] != state[t-instant][susceptible_node]):
             counter +=1
         else:
             break
-    return counter #this should be included in [0,t]
+    return counter
 #%%
 def propagation(tempnet,index_case,probabilities): #Remember: the outcome of this function is stochastic
     '''
@@ -137,7 +156,7 @@ def propagation(tempnet,index_case,probabilities): #Remember: the outcome of thi
     def set_infected(node,t): #once one is infected,it stays infeced
         for instant in range(t,T):
             states_sequence[instant][node] = 1
-        return     
+        return
     
     #Output initialization:
     states_sequence = dict()
@@ -149,8 +168,7 @@ def propagation(tempnet,index_case,probabilities): #Remember: the outcome of thi
     susceptibles = onlyzeros(range(N),states_sequence[0]) #"targets"
     infecteds = {index_case} #they will be decisive to change target state
     
-    for t in range(1,T): #TEMPI RICHIESTI IN: NEIGHBOUR, CONTACT LASTING, SET INFECT, E VEDI CHI E' -1 E CHI NO
-        print("DETERMINO STATO ALL'ISTANTE " +str(t))
+    for t in range(1,T):
         for s in susceptibles.copy(): #copy avoids rising an error when the iteration set changes
             infectneighbourhood = neighbourhood(tempnet[t-1],s).intersection(infecteds)
             for i in infectneighbourhood.copy(): 
@@ -164,10 +182,10 @@ def propagation(tempnet,index_case,probabilities): #Remember: the outcome of thi
             break  # only executed if the inner loop DID break
     return(states_sequence)
 
-#%%
+#%% EPIDEMIC SCORE COMPUTING FUNCTIONS
 def infected_counter(set_of_nodes):
     """
-    Counts the number of infected nodes in a set
+    Counts the number of infected nodes in a states-set at a certain time
     """
     counter = 0
     for i in range(len(set_of_nodes)):
