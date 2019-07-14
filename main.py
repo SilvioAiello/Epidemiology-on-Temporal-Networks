@@ -1,4 +1,20 @@
+"""
+This script manages all the others, allowing user to actually create and save networks and epidemics, and to perform analysis.
+
+Functions work in Pyhon3, and may require the following libraries (so, check if they are installed):
+    * numpy, used for its data structures and anaylisis, and to get random functions 
+    * pickle, used to store, in an efficient way, the complex information generated
+    * function "quad" from scipy.integrate
+[If you want to get some plots, you may use matplotlib.pyplot, for plots belluries, and networkx, to plot small networks]
+
+#TODO: Stucture?
+
+For further understandings on how this script operates, check file "howto.md"
+For further theoretical understandings, check file "explanation.md"
+"""
+
 import numpy as np
+from scipy.integrate import quad #used in dictionary of probabilities
 
 import matplotlib.pyplot as plt
 import networkx as nx
@@ -20,67 +36,59 @@ def networkplot(graph,figcount,savefig=False, figname = None, k = None, t = None
         plt.savefig(figname+"Results"+'_realization%i_t=%i.pdf' %(k,t))
     return figcount+1, plt.show()
 
-#Save the network for further use
-#np.savetxt(start_name+'%i_N%i_wholenetwork_T%i.txt' %(P,N,T), temporal_network.reshape(T*N*N,1))
-#To import:
-#new_data = np.loadtxt('start_name+'%i__N%i_wholenetwork_T%i.txt' %(P,N,T))
-#new_data = new_data.reshape((T,N,N))
-
-
 #%%             USER ACTION        ###
-#Tempnet generation
+# PARAMETERS SETTING #
 N=10 #nodes
 T=100 #duration
-alpha = 0.6*np.ones((N,N)) #give the shape you want but respect the rule
-xi = 0.5*np.ones((N,N)) #give the shape you want but respect the rule
-temporal_dar = Evolutions.network_generation_dar(alpha,xi,T=T,directed=False)
-#andrebbe usata la funzione di salvataggio
-
-#TODO: troppe parole ci sono
-K = 5 #to generate more tempnet is up to you; but iterating propagation for nodes is "compulsory": scores MUST be averages
-beta = 0.005 #infection rate (probability of infecting a node within unit time)
-
-#CREANDO DIZIONARIO#
-from scipy.integrate import quad #this function performs integration
-def poisson_probability(t):
-    #This function reproduces the Poisson PDF, where the average is set in function of beta, who is a parameter of the disease
-    lam = -np.log(1-beta) #See Chen (who uses 60)
+K = 5 #infection iterations
+beta = 0.005 #infection rate
+    #dar inputs
+alpha = 0.6*np.ones((N,N)) #you can change values, but keep it (N,N)
+xi = 0.5*np.ones((N,N)) #you can change value, but keep it (N,N)
+    #tgrg inputs
+    
+    #Probabilities dict: (same for DAR and TGRG)
+def poisson_probability(t): #function definition
+    """
+    This function reproduces the Poisson PDF, whose average depends on beta.
+    Its integral is the probability of having and infection for a I-S contact lasting t.
+    
+    Parameter: t (int), representing time duration of a contact.
+    Returns: a float, representing PDF for that t.
+    """
+    lam = -np.log(1-beta) # Chen, Benzi use 60
     return(lam*np.exp(-lam*t))
-#I = quad(poisson_probability,0,np.inf) #verify the correct normalization
-#The same integrals will be performed many times, varying at most the total duration, whose maximum value can be T.
-#So, they are computed here once for all, and the results stored in a dict, that maps each duration to the integral
-probabilities = dict()
+probabilities = dict() #dict building
 for t in range(T):
     probabilities[t] = quad(poisson_probability,0,t)[0]
-# FINE DINIZIONARIO
 
-#You also must generate, before, a dict of probabilities, which is totally defined once beta (and T) is set
-label_dar = [] #list of N lists (one per index case), each of which is a list of K (one per iteration) sequences of T dictionaries
-#(forse anche sti commenti lunghi li puoi mettere direttamente in documentazione)
-#label dar 0: tutto riferito allo 0 nodo come index, label_dar[0,3]: 3 iterazione
+# TEMPNETS GENERATION AND SAVE
+temporal_dar = Evolutions.network_generation_dar(alpha,xi,T=T,directed=False) #tempnet generation
+#andrebbe usata la funzione di salvataggio
+
+# SI PROPAGATION
+label_dar = [] 
+#TODO: AGGIUNGERE TGRG OVUNQUE
 for index_case in range(N):
-    print("Processing node %i" %index_case)
     label_dar.append([]) #create the i-th entry
     for iteration in range(K):
         label_dar[index_case].append(Propagation_SI.propagation(temporal_dar, index_case, probabilities))
         #TEST#
         assert label_dar[index_case][iteration][0][index_case] == 1, "L'index case non sembra esserlo"
         assert sum(label_dar[index_case][iteration][0].values()) == 1, "Ci dovrebbe essere solo un infetto all'inizio"
-
 assert [[label_dar[index_case][iteration][0] == label_dar[index_case][iteration-1][0] for iteration in range(1,K)] for index_case in range(N)], "Error: some initial condition is not equal for all iterations" 
-
 #%%                      CENTRALITIES MEASURES                      ###
 # DAR #
 spec_radius_dar, Q_dar = Evolutions.communicability(temporal_dar)
 nodes_Bcentrality_dar, nodes_Brank_dar = Evolutions.broadcast_ranking(Q_dar) #scores, node rankings
 nodes_Rcentrality_dar, nodes_Rrank_dar = Evolutions.receive_ranking(Q_dar) #cores, node rankings
 
-## FITN #
-#spec_radius_fitn, Q_fitn = Evolution_DAR.communicability(temporal_fitn)
-#nodes_Bcentrality_fitn, nodes_Brank_fitn = Evolutions.broadcast_ranking(Q_fitn)
-#nodes_Rcentrality_fitn, nodes_Rrank_fitn = Evolutions.receive_ranking(Q_fitn)
+## TGRG #
+#spec_radius_tgrg, Q_tgrg = Evolution_DAR.communicability(temporal_tgrg)
+#nodes_Bcentrality_tgrg, nodes_Brank_tgrg = Evolutions.broadcast_ranking(Q_tgrg)
+#nodes_Rcentrality_tgrg, nodes_Rrank_tgrg = Evolutions.receive_ranking(Q_tgrg)
 
-#%%                     VIRULENCE MISURES                            ###
+#%%                     VIRULENCE MEASURES                            ###
 #DAR #
 score_dar = [] #list of N lists (one per index case), each of which is a list of K (one per iteration) floats (score of that iteration)
 for index_case in range(N):
