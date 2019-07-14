@@ -7,7 +7,13 @@ Functions work in Pyhon3, and may require the following libraries (so, check if 
     * numpy, used for its data structures and anaylisis, and to get random functions   
 
 From this module you can extract the following functions:
-#TODO: UPDATE
+ASSERTIONS: adiacency, ndarray, nulldiagonal, probability, square, symmetry; natural.
+STRUCTURAL:
+    Structural suite
+    Tests for DAR generation
+    Tests for TGRG generation
+    #TODO: TESTS FOR MEASURES
+#TODO: AS TEACHER SAID, EXPLAIN HOW TO GET THE SAME RESULTS I GOT
 
 For further understandings on how this script operates, check file "howto.md"      
 """
@@ -15,8 +21,53 @@ import numpy as np
 
 import Evolutions
 import Propagation_SI
-#%% FUNCTIONS DEFINITIONS
-def check_symmetry(temporal_network):
+
+#%% ASSERTIONS
+# Matrices
+def assert_adiacency(network):
+    """
+    Verifies that the provided network only has 0 or 1 values, so it's an adiacency with max 1 link per couple of nodes.
+    
+    np.extract returns an array containing input values with a provided property.
+    If searching for non-(0,1) values returns an empty list, matrix is correctly and adiacency of desidered type.
+    
+    Parameters: np.array, of any dimension
+    """
+    #extact returns an array containing all values with a provided property
+    assert len(np.extract(np.extract(network!=0, network) !=1, network)) ==0, "Error: there is at least one non-0 or non-1 value in adiacency"
+
+def assert_ndarray(network,dimensions):
+    """
+    Check if a data structure is a np.array, with proper dimension expressed by an integer
+    
+    Parameters: np.array and an integer for dimension
+    """
+    assert isinstance(network,np.ndarray), "Error: matrix must be a numpy array"
+    assert len(network.shape) == dimensions, "Error: matrix has not the proper dimension"
+
+def assert_nulldiagonal(matrix):
+    """
+    Check that matrix has null diagonal
+    """
+    assert sum(np.diag(matrix)) == 0, "Error: network has not-0 diagonal"
+
+def assert_probability(network):
+    """
+    Verify input matrix is a probability matrix: it's value must be whitin 0 and 1
+    """
+    #check that all elements are probabilities
+    assert (network<= 1).all(),"Error: at least one element in a probability matrix is >1, so it's not a probability"
+    assert (network>=0).all(),"Error: at least one element in probability matrix is <0, so it's not a probability"
+
+def assert_square(network):
+    """
+    Checks if a data structure is square-like, i.e. each of its sides has the same length (as the first one)
+    """
+    #check if matrix is a square by comparing each side length with the first side
+    for i in range(len(network.shape)):
+        assert network.shape[i] == network.shape[0], "Error: matrix is not a square"
+
+def assert_symmetry(temporal_network):
     """
     Verifies if a matrix is simmetric, by appling definition using python built-in T module
     
@@ -24,31 +75,18 @@ def check_symmetry(temporal_network):
     """
     assert (temporal_network == temporal_network.T).all(), "Error: network is not symmetric"
 
-def check_adiacency(network):
+# Parameters
+def assert_natural(number):
     """
-    Verifies that the provided network only has 0 or 1 values
-    
-    This is accomplished by using numpy function "extract", which returns an array containing all values with a provided property.
-    This function is applied twice: once to get an array of non-0 values, and once for non-1 values.
-    If this array has 0 length, matrice is correctly and adiacency.
+    Check that input is a positive integer
     """
-    #network MUST be np.array
-    #each value of network must be 0 or 1
-    assert len(np.extract(np.extract(network!=0, network) !=1, network)) ==0, "Error: there is at least one non-0 or 1 value in adiacency"
+    assert isinstance(number, int), "Error: %f is not an integer, but it should be" %number
+    assert number>0, "Error: %i is not positive, but it should be" %number
 
+#%% STRUCTURAL PROPERTIES
 def structural_suite(network,nodes_number,duration,symmetry = True):
     """
     Checks some ubiquitary properties of temporal networks in this work.
-    
-    If they are verified, it doesn't mean that networks is produced correctly, but just that it's structure is how it was supposed to.
-    So, this just a preliminary test.
-    
-    These are checked properties:
-        * 3dimensionality
-        * proper duration and number of nodes
-        * adiacencies actually have only 0 or 1 networks (this is not the case of having multiple links between 2 same nodes at the same time)
-        * squareness and null-diagonal for adiacencies (using 2 assertion functions defined in "Evolutions" module)
-        * symmetry (if required)
     
     Parameters:
     -----------
@@ -58,19 +96,20 @@ def structural_suite(network,nodes_number,duration,symmetry = True):
         supposed number of nodes
     duration: int
         supposed duration (i.e. number of adiacencies)
+    symmetry: bool
     """
-    Evolutions.assert_ndarray(network,3) #3d np.array
+    assert_ndarray(network,3) #3d np.array
     assert len(network) == duration, "Error: output network has not the right duration"
     assert len(network[0]) == nodes_number, "Error: number of nodes doesn't match with one of adiecency length"
-    check_adiacency(network) #only 0 or 1 values for adiacencies
-    [Evolutions.assert_square(network[t]) for t in range(duration)]  #each adiacency is a square of proper size
-    [Evolutions.assert_nulldiagonal(network[t]) for t in range(duration)] #each adiacency has null-diagonal
+    assert_adiacency(network) #only 0 or 1 values for adiacencies
+    [assert_square(network[t]) for t in range(duration)]  #each adiacency is a square of proper size
+    [assert_nulldiagonal(network[t]) for t in range(duration)] #each adiacency has null-diagonal
     if symmetry:
-        [check_symmetry(network[t]) for t in range(duration)]
+        [assert_symmetry(network[t]) for t in range(duration)]
 
 #%% DAR TESTS
 def test_DARgeneration1():
-    #3 nodes, duration 10, a,xi->zeros
+    #3 nodes, duration 10, a,xi->zeros; check "docs/howto.md" for further clarifications
     a_input = np.zeros((3,3))
     xi_input = np.zeros((3,3))
     tested1 = Evolutions.network_generation_dar(a_input,xi_input, T = 10,directed = False)
@@ -79,7 +118,7 @@ def test_DARgeneration1():
         assert (tested1[t] == np.zeros((3,3))).all()
 
 def test_DARgeneration2():  
-    #16 nodes, duration 20, a->zeros and xi->ones
+    #16 nodes, duration 20, a->zeros and xi->ones; check "docs/howto.md" for further clarifications
     a_input = np.zeros((16,16))
     xi_input = np.ones((16,16))
     tested2 = Evolutions.network_generation_dar(a_input,xi_input, T = 20,directed = False)
@@ -88,7 +127,7 @@ def test_DARgeneration2():
         assert (tested2[t] == (np.ones((16,16))-np.identity(16))).all()
 
 def test_DARgeneration3():    
-    #30 nodes, duration 5, a zeros and xi ones
+    #30 nodes, duration 5, a zeros and xi ones; check "docs/howto.md" for further clarifications
     a_input = np.ones((30,30))
     xi_input = np.zeros((30,30))
     tested3 = Evolutions.network_generation_dar(a_input,xi_input, T = 5,directed = False)
@@ -98,7 +137,7 @@ def test_DARgeneration3():
 
 #%% TGRG TESTS
 def test_TGRGgeneration1():
-    #20 nodes, duration 10, low phi0
+    #20 nodes, duration 10, low phi0; check "docs/howto.md" for further clarifications
     input_0 = 100*np.ones(20)
     input_1 = np.zeros(20)
     input_e = np.zeros(20)
@@ -108,7 +147,7 @@ def test_TGRGgeneration1():
         assert (tested1[t] == (np.ones(20)-np.identity(20))).all()
         
 def test_TGRGgeneration2():
-    #10 nodes, duration 15, low phi0
+    #10 nodes, duration 15, low phi0; check "docs/howto.md" for further clarifications
     input_0 = -100*np.ones(10)
     input_1 = np.zeros(10)
     input_e = np.zeros(10)
