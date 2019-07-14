@@ -1,20 +1,12 @@
 """ 
 Functions contained in this script allow:
     1) to generate and update a temporal network according to the dar(p) or trgr laws of evolution.
-    (if you don't know what they are, check the documentation)
-    2) to perform analysis of network's structure, such as degree evolution...
-    3)... and centrality measures (Communicability, AD, BD)
-
-A network is described through the temporal sequence of its adiacency matrices.
-Each update is a stochastic process, so several performances should be performed.
+    2) to perform analysis of network's structure, such as degree evolution and centrality measures (BC/RC, AD, BD)
 
 Functions work in Pyhon3, and may require the following libraries (so, check if they are installed):
     * numpy, used for its data structures and anaylisis, and to get random functions 
     * pickle, used to store, in an efficient way, the complex information generated
-
-[If you want to get some plots, you should use these libraries:
-    * matplotlib.pyplot, used for graphics plot and belluries
-    * networkx, just used to plot small networks]
+[If you want to get some plots, you may use matplotlib.pyplot, for plots belluries, and networkx, to plot small networks]
 
 From this module you can extract the following functions:
     * network_generation_dar, that generates a DAR(P) network in form of np.array
@@ -29,6 +21,9 @@ From this module you can extract the following functions:
     
     * network save, that saves a generated network through pickle, in a path and with a name that follows syntax illustrated in README
     * plot save, if you want to save something in automatized way, with automatically generated name
+
+For further understandings on how this script operates, check file "howto.md"
+For further theoretical understandings, check file "explanation.md"
 """
 
 import numpy as np 
@@ -186,15 +181,15 @@ def network_generation_tgrg(phi0,phi1,sigma,T=100, directed = False):
         for i in range(N):
             for j in range(N):
                 #TGRG FOR UPPER TRIANGLE
-                temporal_network[t] = [[np.random.choice((1,0), 
-                                p=(np.exp(theta[i,t]+theta[j,t])/(1+np.exp(theta[i,t]+theta[j,t])),1-np.exp(theta[i,t]+theta[j,t])/(1+np.exp(theta[i,t]+theta[j,t])))) if j>i else 0 for j in range(N)] for i in range(N)]
+                temporal_network[t] = [[np.random.choice((1,0), p=(np.exp(theta[i,t]+theta[j,t])/(1+np.exp(theta[i,t]+theta[j,t])),
+                                1-np.exp(theta[i,t]+theta[j,t])/(1+np.exp(theta[i,t]+theta[j,t])))) if j>i else 0 for j in range(N)] for i in range(N)]
                 #LOWER TRIANGLE (j<i)
                 if directed == False:    
                     temporal_network[t] = [[temporal_network[t,j,i] if j<i else temporal_network[t,i,j] for j in range(N)] for i in range(N)]
                     #copy upper triangle, if undirected
                 else:
-                    [[np.random.choice((1,0), 
-                                p=(np.exp(theta[i,t]+theta[j,t])/(1+np.exp(theta[i,t]+theta[j,t])),1-np.exp(theta[i,t]+theta[j,t])/(1+np.exp(theta[i,t]+theta[j,t])))) if j<i else temporal_network[t,i,j] for j in range(N)] for i in range(N)]
+                    temporal_network[t] = [[np.random.choice((1,0), p=(np.exp(theta[i,t]+theta[j,t])/(1+np.exp(theta[i,t]+theta[j,t])),
+                                    1-np.exp(theta[i,t]+theta[j,t])/(1+np.exp(theta[i,t]+theta[j,t])))) if j<i else temporal_network[t,i,j] for j in range(N)] for i in range(N)]
     return temporal_network, theta
     
 #%%
@@ -395,7 +390,7 @@ def receive_ranking(Q):
 
 # NETWORK SAVE #
 def network_save(network, start,k=1,isDAR=True, P=1):
-    """ Saves network using pickle (so it must be present) and giving it its proper name (with identification provided by user) and folder
+    """ Saves network using pickle (so it must be installed) and giving it its proper name (with an identification provided by user) and folder
     
     Parameters
     ----------
