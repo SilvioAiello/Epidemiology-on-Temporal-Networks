@@ -221,16 +221,22 @@ def propagation(tempnet,index_case,probabilities): #Remember: the outcome of thi
     
     #First, it is inialized the state-dict at t+1, equal to the previous one, so who is infected stays infected
     for t in range(1,T): #TEMPI RICHIESTI IN: NEIGHBOUR, CONTACT LASTING, SET INFECT, E VEDI CHI E' -1 E CHI NO
-        print("Determino lo stato all'istante " +str(t)+" in cui gli infetti sono " + str(infecteds))
+        print("DETERMINO STATO ALL'ISTANTE " +str(t))
         for s in susceptibles.copy(): #copy avoids rising an error when the iteration set changes
+            print("Sto processando nodo "+str(s)+"...")
             infectneighbourhood = neighbourhood(tempnet[t-1],s).intersection(infecteds) #takes the infected neigbs. of that node
             for i in infectneighbourhood.copy(): #then, for each infected neighbour, perform the extraction, according to link duration
-                    if probabilities[contact_lasting(tempnet,states_sequence,t-1,i,s)]>np.random.uniform(0,1):
+                print("...i cui vicini infetti sono: " + str(infecteds))  
+                if probabilities[contact_lasting(tempnet,states_sequence,t-1,i,s)]>np.random.uniform(0,1):
                         print("Nuova infezione! " + str(i)+ " Ha infettato " + str(s))
                         set_infected(s,t) #if successful, change the state of the node, at next t
                         susceptibles.remove(s)
                         infecteds.add(s)
+                        print("Adesso gli infetti sono "+str(infecteds)+"e i susc"+str(susceptibles))
                         break
+            else:
+                continue # only executed if the inner loop did NOT break
+            break  # only executed if the inner loop DID break
     return(states_sequence) #in questo momento non servono nè onlyones nè infect extraction
 
 def infected_counter(infected):
