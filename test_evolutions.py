@@ -1,50 +1,20 @@
 """
-In this scripts are performed some tests to verify that functions in "Evolutions.py" script runs correctly.
+Functions in this script provide:
+    1) tests to verify that functions in "Evolutions.py" and "Propagation_SI.py" run correctly.
+    2) assertions functions to use at the beginning of those functions, to be sure their inputs are correct.
 
-Some tests will be repetead multiple times in both evolutions, so they are put in a function named "structural_suite".
-This function checks that the output temporal network has the right structural parameters (check its documentation for further explanations).
+Functions work in Pyhon3, and may require the following libraries (so, check if they are installed):
+    * numpy, used for its data structures and anaylisis, and to get random functions   
 
-Then, some tests of actual evolution are performed. 
-Since evolution is a stochastic process, one cannot make assertions about the exact outcome values, aside from some limit-cases.
-These limit cases are found and tested.
+From this module you can extract the following functions:
+#TODO: UPDATE
 
-More informations can be given about DAR and TGRG tests:
-
-test_DARgenerations
--------------------
-    Sequence of test to verify all works properly in DAR(1), through "structural_suite" and some dynamic evolution tests.
-    Input parameters like number of nodes and duration will be changed test by test, just for sake of completeness.
-    
-    Dynamic tests
-    -------------
-    Limit cases:
-        * alpha = all zeros: all following states are determined by performing a random extraction (ruled by xi)
-        * alpha = all ones: all following states are equals to the first (total persistence)
-        * xi = all zeros: no way of getting state "1" for any link
-        * xi = all ones: no way of getting state "0" for any link
-    
-    So, this limits will be checked:
-        * if alpha and xi are all zeros, after the initial state, one gets ONLY ZEROS.
-        * if alpha is all zeros, and xi all ones, after the initial state, one gets ONLY ONES (but null diagonal, of couse).
-        * if alpha is all ones, caringless of xi, each state is equal to the initial
-
-test_TGRGgenerations
---------------------
-    Sequence of test to verify all works properly in TGRG, through "structural_suite" and some dynamic evolution tests.
-    Input parameters like number of nodes and duration will be changed test by test, just for sake of completeness.
-    
-    Dynamic tests
-    -------------
-    Limit cases: if "sigma" parameters are set 0, one removes randomness in fitnesses evolution (but not in link generation).
-    Anyway, giving to each entry of phi0 and phi1 (or just phi0) very high (in module) values, one can jump into certainty domain.
-    
-    So, these limits will be checked, taking for guaranted that sigmas are 0:
-        * very high values (100) for all fitnesses -> all links are 1 (except diagonal)
-        * very low values (-100) for all fitnesses -> all links are 0          
+For further understandings on how this script operates, check file "howto.md"      
 """
 import numpy as np
-import Evolutions
 
+import Evolutions
+import Propagation_SI
 #%% FUNCTIONS DEFINITIONS
 def check_symmetry(temporal_network):
     """
