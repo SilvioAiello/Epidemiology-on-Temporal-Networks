@@ -14,8 +14,8 @@ To use the scripts of this project, you can just open file "main.py", modify the
 # Table of Contents
 * [Project purposes](#project-purposes)
 * [References](#references)
-* [docs/Explanation (theoretical concepts)](https://github.com/SilvioAiello/Epidemiology-on-Temporal-Networks/blob/modules-integration/docs/explanation.md)
-* [docs/How to (how code works)](https://github.com/SilvioAiello/Epidemiology-on-Temporal-Networks/blob/modules-integration/docs/howto.md)
+* [docs/Explanation (theoretical concepts)](/docs/explanation.md)
+* [docs/How to (how code works)](/docs/howto.md)
 
 # Project purposes
 Epidemic's diffusion should relate to laws of evolution: understanding wheter, and how much, may be achieved by trying to quantify, wheter exists, correlation between *temporal centraility measures*, and *epidemic performances* of nodes. If a node is "central", we expect him to be epidemiologically virulent.
