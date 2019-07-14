@@ -17,53 +17,6 @@ For further theoretical understandings, check file "explanation.md"
 import numpy as np #Used for its random functions and data structures
 import pickle
 
-#%% CESTINARE LA MAGGIOR PARTE DI STA ROBA 
-# TABLE OF CONTENTS: after initial arrangements, two sections develop and perform SI propagations, and two sections develop and perform centrality measures.
-# Final section makes comparisons and prints result. Note that centrality measures are indipendent of the desease, and may be performed before its propagation.
-# 1) Set of parameters and network import
-# 2) Containers and functions for epidemic
-# 3) Epidemic propagation
-# 4) Containers and functions for centrality measures
-# 5) Centrality measures
-# 6) Comparisons and results print
-
-#TODO: determinare il destino di questo vecchio modo di caricare
-#temporal_dar = np.loadtxt('Networks\N100_T100_DAR1_alphaeqs_xieqs\realization1'+'%i_N%i_wholenetwork_T%i.txt' %(P,N,T))
-#temporal_dar = temporal_dar.reshape((T,N,N)) #salvatolo come unica colonna, confermo che vuole tempo righe colonne
-#temporal_fitn= np.loadtxt('Examples/FITN'+'_N%i_wholenetwork_T%i.txt' %(N,T))
-#temporal_fitn= temporal_fitn.reshape((T,N,N))
-
-#OBSOLETE:
-def infect_extraction(probab): #Remember: the outcome of this function is stochastic
-    #This function extracts a random number from Uniform Distribution, and compares it to the given probability
-    #If the random number is lower, function return True, to signal that contagion can occur
-    x = np.random.uniform(0,1) #soglia di probabilità da superare
-    if probab > x:
-        return (True)
-    else:
-        return (False)
-
-def onlyones(nodes_set,states_dict):
-    """Extracts the infected ones from a list of nodes.
-    
-    Parameters
-    ----------
-    nodes_set: tuple/list/set
-        Ensemble of nodes (not necessairly all network's nodes)
-    states_dict: dict
-        Dictionary mapping state of required nodes to a 0 or 1 value.
-        It can have more keys than nodes_set: the extra ones won't be scanned
-    
-    Returns
-    -------
-    selected: set
-        Set of infected nodes
-    """
-    selected = {node for node in nodes_set if states_dict[node]==1} #1 means infected
-    return selected
-#FINE OBSOLETE
-
-
 #%%
 def network_load(N,T,start,k=1,isDAR=True,P=1):
     """ Loads a previously generated temporal network using pickle (so it must be installed), if it's present
