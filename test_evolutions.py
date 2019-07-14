@@ -147,4 +147,5 @@ def test_TGRGgeneration2():
     for t in range(15):
         assert (tested2[t] == np.zeros(10)).all()
 
-#i test per la Katz possono essere fatti ritornando al caso statico
+#TODO : i test per la Katz possono essere fatti ritornando al caso statico
+#TODO: test poisson probability using #I = quad(poisson_probability,0,np.inf) #verify the correct normalization
