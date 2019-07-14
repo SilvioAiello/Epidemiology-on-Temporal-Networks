@@ -63,7 +63,7 @@ This propagation is not specific for network theory, and it's effective in many 
 It's defined by just one parameter, beta, expressing the probability of infection per unit time, i.e. the probability that one infected node infects a susceptible after one time step (in a system with discrete time).
 According to [Chen et. at.](https://pdfs.semanticscholar.org/0cd5/46424d279a5a41f4cff3e863c1e0416b067f.pdf), this is an indipendent and memory-less Poisson process, where the mean (lambda\*) is set by setting beta: 
 
-    lambda_star | beta*(1 time unit) = P(infection in 1 time unit) = integral(from 0 to time unit) lambda_star*exp(-lambda\*t).
+    lambda_star : beta*(1 time unit) = P(infection in 1 time unit) = integral(from 0 to time unit) lambda_star*exp(-lambda\*t).
 
 Probability of infection, for a contact lasting t, is given by integrating this function from 0 to t.
 SISTEMA UN PO' STA ROBA
