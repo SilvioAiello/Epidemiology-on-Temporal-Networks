@@ -1,4 +1,5 @@
-In this file it is explained how functions of each script work, what parameters require and why, and what outputs they produce.
+# Introduction
+This file explains how functions of each script work, what parameters require and why, and what outputs they produce.
 If you're interested in just one function or script, use table of content to directly find it.
 
 # Table of contents (scripts and their functions)
@@ -22,7 +23,7 @@ If you're interested in just one function or script, use table of content to dir
 # Main
         What destiny for network plot?
 This script manages all the others, allowing user to actually create and save networks and epidemics, and to perform analysis.
-Modifing it, you can set the input parameters you prefer, and perform simulations according to them:
+Modifing it, you can set the input parameters you prefer, and perform simulations accordingly:
 * N, T are the number of nodes and duration of temporal network
 * K is the number of epidemic simulations:
 * beta is the infection rate, that defines epidemic virulence; 
