@@ -22,9 +22,13 @@ As already mentioned in ReadMe, we want to to understand if there is a correlati
  
 
 # Strucutal evolution
-State of links is described by an adiacency matrix A(t) for each time step t. If a link between nodes i and j exists, A_ij = 1; otherwise, A_ij = 0. If more links are allowed between the same nodes (this not being the case here), A_ij can have value 2,3,... .
-If we don't care about which from the two nodes "starts" the link, the graph is said to be _undirected_, and A_ij = A_ji, so the adiacency is symmetrical; otherwise, it is _directed_.
-If auto-loops, i.e. link with self, are not contemplated, A_ii = 0 for each i.
+State of links is described by an adiacency matrix A(t) for each time step t. If a link between nodes i and j exists at time ![equation](https://latex.codecogs.com/gif.latex?t_{k}), then ![equation](https://latex.codecogs.com/png.latex?A_{ij}(t_{k})&space;=&space;1); otherwise, ![equation](https://latex.codecogs.com/png.latex?A_{ij}(t_{k})&space;=&space;0). 
+
+If more links are allowed between the same nodes (this not being the case here), ![equation](https://latex.codecogs.com/png.latex?A_{ij}(t_{k})) can have value 2,3,... .
+
+If we don't care about which from the two nodes "starts" the link, the graph is said to be _undirected_, and ![equation](https://latex.codecogs.com/png.latex?A_{ij}&space;=&space;A_{ji}), so the adiacency is symmetrical; otherwise, it is _directed_.
+If auto-loops, i.e. link with self, are not contemplated, ![equation](https://latex.codecogs.com/png.latex?A_{ii}(t)&space;=&space;0)  ![equation](https://latex.codecogs.com/png.latex?A_{ii}(t)&space;=&space;0) ![equation](https://latex.codecogs.com/png.latex?\forall&space;t,i).
+
 Both evolutions under examination have a stochastic nature, so, to infer some properties of the networks, one should consider more realization of the graph, i.e. more evolutions with the same defining-parameters.
 
 ## DAR(P)
