@@ -32,19 +32,19 @@ If auto-loops, i.e. link with self, are not contemplated, ![equation](https://la
 Both evolutions under examination have a stochastic nature, so, to infer some properties of the networks, one should consider more realization of the graph, i.e. more evolutions with the same defining-parameters.
 
 ## DAR(P)
-DAR(P) stands for Discrete Auto Regressive of order P. It means that the state of a link (on or off), at time t, depends on the states at the P previous time steps. Let's say P=1: at time t, the link between nodes i and j has probability alpha_ij of persisting, i.e. of being the same as at t-1, and probability 1-alpha_ij of being extracted by a "tossing coin", with probability xi_ij of getting "on" (so, the probability of having k links at a certain time is a binomial). 
+DAR(P) stands for Discrete Auto Regressive of order P. It means that the state of a link (on or off), at time t, depends on the states at the P previous time steps. Let's say P=1: at time t, the link between nodes i and j has probability ![equation](https://latex.codecogs.com/png.latex?\alpha_{ij}) of **persisting**, i.e. of being the same as at t-1, and probability ![equation](https://latex.codecogs.com/png.latex?1-\alpha_{ij}) of being extracted by a "**tossing coin**", with probability ![equation](https://latex.codecogs.com/png.latex?\xi_{ij}) of getting "on" (so, the probability of having k links between i and j, after N tries, is a binomial of ![equation](https://latex.codecogs.com/png.latex?\xi)). 
 If P>1, alpha_ij is just decomposed into a probability for each of the P previous states.
 For a DAR(1), there are N^2 parameters to set, N being the number of nodes.
 
 ## TGRG
 TGRG stands for Temporally Generalized Random Graphs. The existence of a link between two nodes depends on a nodes' property named Fitness, theta(t). Fitness evolves in time accordind to this law:
 
-> theta_i(t) = phi0_i + phi1_i*\theta_i(t-1) + epsilon_i(t)
+![equation](https://latex.codecogs.com/png.latex?\theta_i(t)&space;=&space;\phi_{0,i}&space;&plus;&space;\phi_{1,i}\theta_i(t-1)&space;&plus;&space;\epsilon_i(t))
 
 So, at each time, its value depends to the one at the previous time step, according a factor phi1, to constant additive term phi0, and to a stochastic term, epsilon, which is extracted from a Normal(0, sigma) distribution (with sigma being typical of each node). 
-Now, the existence of a link at each temporal step is a stochastic extraction, whose probability relies on a kind sigmoid function of the sum of the two nodes' fitnesses:
+Now, the existence of a link at each temporal step ![equation](https://latex.codecogs.com/png.latex?t_k) is a stochastic extraction, whose probability relies on a kind sigmoid function of the sum of the two nodes' fitnesses:
 
-> P(A_ij(t) = 1) = exp(theta_i(t)+theta_j(t))/(1+exp(theta_i(t)+theta_j(t)))
+![equation](https://latex.codecogs.com/png.latex?P(A_{ij}(t_k)&space;=&space;1)&space;=&space;\frac{\exp(\theta_i(t_k)&plus;\theta_j(t_k))}{1&plus;\exp(\theta_i(t_k)&plus;\theta_j(t_k))})
 
 So, the sum is high, there's almost certainty of having a link, and viceversa.
 For a TGRG, there are 3N parameters to set.
@@ -63,11 +63,11 @@ Both diffusions are stochastic processes, so, in both case, one should perform m
 Temporal varying structure of networks leads to different results than for static networks 
 
 ## SI
-This propagation is not specific for network theory, and it's effective in many system of various nature.
+This propagation is not specific for network theory, and it's effective in many systems of various nature.
 It's defined by just one parameter, beta, expressing the probability of infection per unit time, i.e. the probability that one infected node infects a susceptible after one time step (in a system with discrete time).
-According to [Chen et. at.](https://pdfs.semanticscholar.org/0cd5/46424d279a5a41f4cff3e863c1e0416b067f.pdf), this is an indipendent and memory-less Poisson process, where the mean (lambda\*) is set by setting beta: 
+According to [Chen et. at.](https://pdfs.semanticscholar.org/0cd5/46424d279a5a41f4cff3e863c1e0416b067f.pdf), this is an indipendent and memory-less Poisson process, whose mean (lambda\*) is set by setting beta and correlating it to the probability per unit time T (1 second, 1 minute, 1 day...):
 
-    lambda_star : beta*(1 time unit) = P(infection in 1 time unit) = integral(from 0 to time unit) lambda_star*exp(-lambda\*t).
+![equation](https://latex.codecogs.com/png.latex?\lambda^*&space;:) P(infection in T) = ![equation](https://latex.codecogs.com/png.latex?\int_0^T&space;\lambda^*\exp(-\lambda^*t))
 
 Probability of infection, for a contact lasting t, is given by integrating this function from 0 to t.
 SISTEMA UN PO' STA ROBA
