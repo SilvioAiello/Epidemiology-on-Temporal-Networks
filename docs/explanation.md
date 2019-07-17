@@ -26,8 +26,8 @@ State of links is described by an adiacency matrix A(t) for each time step t. If
 
 If more links are allowed between the same nodes (this not being the case here), ![equation](https://latex.codecogs.com/png.latex?A_{ij}(t_{k})) can have value 2,3,... .
 
-If we don't care about which from the two nodes "starts" the link, the graph is said to be _undirected_, and ![equation](https://latex.codecogs.com/png.latex?A_{ij}&space;=&space;A_{ji}), so the adiacency is symmetrical; otherwise, it is _directed_.
-If auto-loops, i.e. link with self, are not contemplated, ![equation](https://latex.codecogs.com/png.latex?A_{ii}(t)&space;=&space;0)  ![equation](https://latex.codecogs.com/png.latex?A_{ii}(t)&space;=&space;0) ![equation](https://latex.codecogs.com/png.latex?\forall&space;t,i).
+If we don't care about which from the two nodes "starts" the link, the graph is said to be _undirected_, and ![equation](https://latex.codecogs.com/png.latex?A_{ij}(t)&space;=&space;A_{ji}(t)), so the adiacency is symmetrical; otherwise, it is _directed_.
+If auto-loops, i.e. link with self, are not contemplated, ![equation](https://latex.codecogs.com/png.latex?A_{ii}(t)&space;=&space;0) ![equation](https://latex.codecogs.com/png.latex?\forall&space;t,i).
 
 Both evolutions under examination have a stochastic nature, so, to infer some properties of the networks, one should consider more realization of the graph, i.e. more evolutions with the same defining-parameters.
 
