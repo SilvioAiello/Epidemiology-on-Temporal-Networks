@@ -73,6 +73,7 @@ Probability of infection, for a contact lasting t, is given by integrating this 
 SISTEMA UN PO' STA ROBA
 time of infection (in unit steps) follows a Poissonian distribution, normalized to return beta for 1 step, integrated within link duration. (note: beta is the probability rate of contagion [1/s], but also the actual probability of contagion after 1 unit time: infact, P(1) = beta*1 u.t. = beta [dimensionless]).
 Most of these ideas are due to [Chen, Benzi paper](https://pdfs.semanticscholar.org/0cd5/46424d279a5a41f4cff3e863c1e0416b067f.pdf)
+**Poisson_Probability** function, that should not be modified, reproduces the Poisson PDF (Probability Density Function), whose average depends on beta, and whose definite integral is the probability of having an infection at a certain time. Since we're dealing with discrete finite time, there's a finite number (T) of integrals/probabilities that can be computed, since a contact may last only from 0 to T. So, since same integrals will be computed repeatedly, it makes sense to compute them once for all, transferring results in a dictionary, whose keys are the durations and name is just **probabilities**. This may save much computational time. (Also check [Explanation](/explanation.md)).
 
 ## LTM
 This section will be deepened in further developments.
