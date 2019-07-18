@@ -172,8 +172,29 @@ Each update is a stochastic process, so it's difficult to get twice the same res
 ### easing simulation
 These functions allow* propagation function* to perform well and in an efficient way. They solve simple tasks analyzing adjacencies and node epidemic states, which is very useful since the idea of SI model is that each I-node can infect its *Susceptible neighbours*, at a certain time, according to a probability that depends on rate beta and *contact lasting*.
 * **neighbourhood**: generates a set of neighbours of a node at a certain time, by checking the provided adjacency; set is create through a comprehension;
+
+       def neighbourhood(adiacency,node):
+           neigh = {i for i in range(len(adiacency)) if adiacency[node,i]==1}
+           return neigh
+
 * **onlyzeros**: extracts the subset of susceptible nodes at that time, from a general set, list, etc, by checking the provided states dict; set is create through a comprehension;
+
+      def onlyzeros(nodes_set,states_dict):
+          selected = {node for node in nodes_set if states_dict[node]==0} #0 means susceptible
+          return selected
+
 * **contact_lasting**: computes the number of time steps an S and a I node were connected, starting from a provided time. This is accomplished by checking backwards, time by time, the existence of the link and the state of the I node, increasing the value of a counter variable as long these conditions are satisfied; so, the loop interrupts if it has gone so back that the link wasn't  yet present, or the I-node wasn't yet infected. Clearly, the higher the output is, the higher the probability of having an infection (the value is checked in the already mentioned probabilities dictionary).
+
+      def contact_lasting(adjacencies,state,t,infected_node,susceptible_node):
+          #Function
+          counter = 0
+          for instant in range(t+1):
+              if (adjacencies[t-instant,infected_node,susceptible_node] == 1 and state[t-instant][infected_node] != state[t-instant][susceptible_node]):
+                  counter +=1
+              else:
+                  break
+          return counter
+
 
 ### propagation
 This function takes a temporal network, an index case and the probabilities dictionary, and performs an iteration of a whole epidemic propagation in SI mode, from the first to last snapshot of the tempnet; the result is a dictionary of dictionaries, describing nodes' states for each time step.
@@ -181,10 +202,43 @@ This function takes a temporal network, an index case and the probabilities dict
 First operations are, as usual, definitions: T and N are extracted from the tempnet, and then an internal function, *set_infected*, is created with the purpose of setting input node states equals to 1 from a given time to the end (once infected, always infected); it will be used on every new infected; then, output is initialized by setting every node susceptible at every time, with the expection of the index case who is always infected (set_infected since t=0). Finally, infected and susceptibles nodes sets are initialized: they will be updated every time a new infection occurs. 
 Now, following Chen approach, epidemic is updated time by time by processing each susceptible node (at the previous time step), finding its infective neighbourhood (at the previous time step), and performing the "infection extraction" for each of them: if infection occurs, infective state is set "1" at present time step, sets are updated and the program jumps directly to next susceptible. Infection extraction compares the integral of Poisson distribution with a random uniform (from 0 to 1) extraction, performed by *np.random.uniform* function. This is iterated until the end of network evolution.
 
+    def propagation(tempnet,index_case,probabilities):
+    
+    
+    for t in range(1,T):
+        for s in susceptibles.copy(): #copy avoids rising an error when the iteration set changes
+            infectneighbourhood = neighbourhood(tempnet[t-1],s).intersection(infecteds)
+            for i in infectneighbourhood.copy(): 
+                if probabilities[contact_lasting(tempnet,states_sequence,t-1,i,s)]>np.random.uniform(0,1): #rand extraction
+                        set_infected(s,t) #if successful, change the state of the node, at next t
+                        susceptibles.remove(s)
+                        infecteds.add(s)
+                        break
+            else:
+                continue # only executed if the inner loop did NOT break
+            break  # only executed if the inner loop DID break
+    return(states_sequence)
+
+
 ### epidemic scores
 They are computed making use of two functions:
 * **infected_counter**: takes the states dictionary at a certain time, and counts of many nodes are infected;
+
+      def infected_counter(set_of_nodes):
+          counter = 0
+          for i in range(len(set_of_nodes)):
+              if set_of_nodes[i]==1:
+                  counter+=1
+          return counter
+
 * **time_score**: uses infected_counter for each time step of the propagation, and saves the first step when the fraction of infected nodes was higher than a given value. If this never happens, it returns the total duration of the propagation.
+
+      def time_score(scores,fraction):
+          for t in range(T):
+              if infected_counter(scores[t])>=fraction*N:
+                  time_spent = t
+                  break
+          return time_spent 
 
 # Propagation_LTM
 This section will be deepened in further developments.
