@@ -4,39 +4,47 @@ If you're interested in just one function or script, use Table of Content to dir
 
 # Table of contents (scripts and their functions)
 * [Main.py](#main)
+  * Poisson probability
 * [Evolutions.py](#evolutions)
   * [Network generation functions](#network_generation_dar-and-network_generation_tgrg)
   * [Degree functions](#degree-functions)
   * [Communicability and rankings](#communicability-and-rankings)
-  * [Network save](#network_save)
 * [Propagation SI.py](#propagation_si)
-  * [Network load](#network_load)
   * [Easing simulation functions](#easing-simulation)
   * [Propagation](#propagation)
   * [Epidemic scores functions](#epidemic-scores)
 * [Propagation LTM](#propagation_ltm)
+* [Saves.py](#saves)
+ * Network save/load
+ * Analysis save/load
 * [Tests.py](#test_suite)
   * [Assertions](#assertion-functions)
   * [Evolution tests](#evolution-functions-tests)
   * [Measures tests](#measures-functions-tests)
 
 # Main
-        What destiny for network plot?
-This script manages all the others, allowing user to create and save custom networks and epidemics, and to analyze them. Here's a list of the changeable parameters:
+        From this script, user can import and use functions from all the others, providing its own parameters.
+Here's a list of the changeable parameters:
 * **N, T**: nodes and duration of temporal network;
-* **K**: number of epidemic simulations; (generating several tempnet is up to you, but iterating propagation for nodes is "compulsory", since scores MUST be averages)
-* **beta**: infection rate, that defines epidemic virulence; 
-* **alpha** and **xi** are defined, for DAR networks, in explanation, as well as, **phi0,phi1,epsilon** for TGRG.
-* **Poisson_Probability** function, that should not be modified, reproduces the Poisson PDF (Probability Density Function), whose integral, defined over a temporal interval, is the probability of having an infection, for a SI couple, within that time; as stated in [Explanation](/explanation.md), since several integrals are often re-computed, they are computed once for all, by *quad* function, and results are stored in **probabilities** dictionary .
-* Epidemic states are stored in **label_dar/label_fitn** data structures, which share this hierarchy: label_\[index_case]\[iteration]\[time_step]\[node]; so, a label_ is a list of N dictionaries (one for each node-set as index case), containing a list of the results K iterations (one for each same epidemic simulation), which in turn are dictionary of dictionaries, describing evolution of nodes states (as you will see in *propagation function*)
-* **Centrality** and **virulence** scores are saved in namesake lists.
-* Everything is saved by...
+* **isDAR**, **isDIRECTED**: tempnet evolution's law and symmetry;
+* **net_REAL**,**K**: number of tempnet realizations and epidemic simulations; generating several tempnet is up to you, but iterating propagation for nodes is "compulsory", since scores MUST be averages; so net_REAL can be 1, K must be > 1 (some assertions make sure of this);
+* **net_name**: identificative name you give to network (make sure to variate: networks with same N,T,type,iteration and identification may be overwritten;
+* **it_chosen**: what temporal realization you want to be infected;
+* **P**,**alpha** and **xi** are defined, for DAR networks, in explanation, as well as, **phi0,phi1,epsilon** for TGRG;
+* **beta**: infection rate, that defines epidemic virulence.
 
-              Quale destino per i salvataggi?
-              Fai esempi con i tuoi risultati
+**Poisson_Probability** is the only function in this script; it should not be modified and reproduces the Poisson PDF (Probability Density Function), whose integral, defined over a temporal interval, is the probability of having an infection, for a SI couple, within that time; as stated in [Explanation](/explanation.md), since several integrals are often re-computed, they are computed once for all, by *quad* function, and results are stored in **probabilities** dictionary.
+
+These containers stores data:
+* **temp** is a temporary structure that stores, step by step, each temporal network realization, while **temporal_network** loads the selected one (where performing propagation);
+* Epidemic states evolution goes in **label**, whose syntax is: label\[index_case]\[iteration]\[time_step]\[node]; so, it is a list of N dictionaries (one for each node-set as index case), containing a list of the results K iterations (one for each same epidemic simulation), which in turn are dictionary of dictionaries, describing evolution of nodes states (as you will see in *propagation function*);
+* **spec_radius** and **Q** are the inverse of maximum spectral radius of all adjacencies and Communicability matrix;
+* **B/R Centrality** and **virulence** scores are computed in namesake lists.
 
 # Evolutions
-This script generate and analyze temporal networks, making use of functions from numpy and pickle libraries (so be sure to have them installed).
+    Functions in this script work in Pyhon3, may require numpy (v1.16) and allow to:
+    1) generate and update a temporal network, according to the dar(p) or trgr laws of evolution.
+    2) perform structural analysis, such as degree evolution and centrality measures (BC/RC, AD, BD)
 
 ### network_generation_dar and network_generation_tgrg
 These functions generate DAR(P)s and TGRGs, according to definion you can find in [Explanation](/explanation.md). Each update is a stochastic process, so it's difficult to get twice the same results, and you should call these functions multiple times to infer some statistically relevant properties of the system.
@@ -159,18 +167,13 @@ The only assertions they perform are about shape (sequence of squadre matrices) 
       rank = np.flip(np.argsort(lines_sum)) #argsort -> increasing score; flip -> decreasing
       return(lines_sum,rank)
 
-### network_save
-This function saves, in an automatized way, a temporal network, using pickle (so it binarizes) and following the foldering/naming rule expressed in Documentation (so, distinguishing networks according to their parameters and realizations), allowing user to add a particoular identification name to the file.
-
 # Propagation_SI
-It allows to generate and analyze epidemics on temporal networks, making use of functions from numpy and pickle libraries, so be sure to have them installed. As already mentioned, epidemic state for a node is described by zeros (susceptible) and ones (infected). 
-Each update is a stochastic process, so it's difficult to get twice the same results, and you should call these functions multiple time to get some statistically relevant results.
-
-### network_load
-       This function is still undergoing tests
+    Functions in this script work in Pyhon3, may require numpy (v1.16) and allow to:
+    1) spread an epidemic, in SI mode, over a temporal network
+    2) measure virulence of each node
 
 ### easing simulation
-These functions allow* propagation function* to perform well and in an efficient way. They solve simple tasks analyzing adjacencies and node epidemic states, which is very useful since the idea of SI model is that each I-node can infect its *Susceptible neighbours*, at a certain time, according to a probability that depends on rate beta and *contact lasting*.
+These functions allow [propagation](#propagation) to perform well and in an efficient way, solving simple tasks as analyzing adjacencies and node epidemic states.
 * **neighbourhood**: generates a set of neighbours of a node at a certain time, by checking the provided adjacency; set is create through a comprehension;
 
        def neighbourhood(adiacency,node):
@@ -197,7 +200,7 @@ These functions allow* propagation function* to perform well and in an efficient
 
 
 ### propagation
-This function takes a temporal network, an index case and the probabilities dictionary, and performs an iteration of a whole epidemic propagation in SI mode, from the first to last snapshot of the tempnet; the result is a dictionary of dictionaries, describing nodes' states for each time step.
+This function requires a temporal network, an index case and the probabilities dictionary, and performs an iteration of a whole epidemic propagation in SI mode, from the first to last snapshot of the tempnet; the result is a dictionary of dictionaries, describing nodes' states for each time step.
 
 First operations are, as usual, definitions: T and N are extracted from the tempnet, and then an internal function, *set_infected*, is created with the purpose of setting input node states equals to 1 from a given time to the end (once infected, always infected); it will be used on every new infected; then, output is initialized by setting every node susceptible at every time, with the expection of the index case who is always infected (set_infected since t=0). Finally, infected and susceptibles nodes sets are initialized: they will be updated every time a new infection occurs. 
 Now, following Chen approach, epidemic is updated time by time by processing each susceptible node (at the previous time step), finding its infective neighbourhood (at the previous time step), and performing the "infection extraction" for each of them: if infection occurs, infective state is set "1" at present time step, sets are updated and the program jumps directly to next susceptible. Infection extraction compares the integral of Poisson distribution with a random uniform (from 0 to 1) extraction, performed by *np.random.uniform* function. This is iterated until the end of network evolution.
@@ -243,7 +246,16 @@ They are computed making use of two functions:
 # Propagation_LTM
 This section will be deepened in further developments.
 
+# Saves
+     Functions in this script work in Pyhon3, require os, pickle, and allow to save results and produce plots.
+Results are saved, or load (you may need to load a previously generated network) by these functions:
+ * **network_save**: serializes data structures in binary protocol, using **pickle** (if you don't know what does it mean, check [here](https://docs.python.org/3/library/pickle.html)), following the foldering/naming rule expressed in Readme (so, distinguishing networks according to their parameters and realizations), allowing user to add a particoular identification name to the file, and using **os** libary to generate folders. Os and pickle belong to Python standard library.
+ * **network_load**: loads pickle files, checking them by parameters and identification name.
+ 
+              What destiny for network plot?
+      
 # Test_suite
+TODO: AGGIORNARE QUI COPIANDO L'INCIPIT COME NEGLI ALTRI
 This script contains a suite of tests veryfing that every function in other scripts works properly, and some assertion functions, useful to these latter functions to check the inputs they are provided of. Most complex tests obviously deal with temporal networks and epidemics.
 
 ### assertion functions
