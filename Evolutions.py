@@ -1,65 +1,19 @@
 """ 
-Functions contained in this script allow:
-    1) to generate and update a network according to the dar(p) or trgr laws of evolution.
-    (if you don't know what they are, check the documentation)
-    2) to perform analysis of network's structure, such as degree evolution...
-    3)... and centrality measures (Communicability, AD, BD)
-
-A network is described through the temporal sequence of its adiacency matrices.
-Each update is a stochastic process, so several performances should be performed.
-
-It requires the following libraries (so, check if they are installed):
-    * numpy, used for its data structures and anaylisis, and to get random functions 
-    * pickle, used to store, in an efficient way, the complex information generated
-
-[If you want to plot, you should use these libraries:
-    * matplotlib.pyplot, used for graphics plot and belluries
-    * networkx, just used to plot small networks]
+Functions in this script work in Pyhon3, may require numpy (v1.16) and allow to:
+    1) generate and update a temporal network, according to the dar(p) or trgr laws of evolution.
+    2) perform structural analysis, such as degree evolution and centrality measures (BC/RC, AD, BD)
 
 From this module you can extract the following functions:
-    * network_generation_dar, that generates a DAR(P) network in form of np.array
-    * network_generation_dar, that generates a TGRG network in form of np.array
-    
-    * degree_node, degree_mean_t, degree_sequence, that return degree of a node, 
-    mean degree of all nodes at a time step, mean degree evolution over time
-    
+    * network_generation_dar, network_generation_tgrg
+    * degree_node, degree_mean_t, degree_sequencee
     * communicability, broadcast_ranking, receive_ranking
-    build communicability matrix and extract from it broacdcast and receive centrality for each node
     #TODO: ADD CENTRALITIES AND UPDATE THIS LIST
-    
-    * network save, that saves a generated network through pickle, in a path and
-    with a name that follows syntax illustrated in documentation
-    * plot save, if you want to save something in automatized way, 
-    with automatically generated name
+
+For further understandings on how this script operates, check file "howto.md".
+For further theoretical understandings, check file "explanation.md".
 """
-
-import numpy as np 
-import pickle
-
-def assert_ndarray(matrix,dimensions):
-     #check if matrix is a np.array, has a certain dimension
-    assert isinstance(matrix,np.ndarray), "Error: matrix must be a numpy array"
-    assert len(matrix.shape) == dimensions, "Error: matrix is not 2-dimensional"
-
-def assert_square(matrix):
-    #check if matrix is a square by comparing each side length with the first side
-    for i in range(len(matrix.shape)):
-        assert matrix.shape[i] == matrix.shape[0], "Error: matrix is not a square"
-
-def assert_probability(matrix):
-    #check that all elements are probabilities
-    assert (matrix<= 1).all(),"Error: at least one element in a probability matrix is >1, so it's not a probability"
-    assert (matrix>=0).all(),"Error: at least one element in probability matrix is <0, so it's not a probability"
-
-def assert_natural(number):
-    #check that a number is a positive integer
-    assert isinstance(number, int), "Error: %f is not an integer, but it should be" %number
-    assert number>0, "Error: %i is not positive, but it should be" %number
-
-def assert_nulldiagonal(matrix):
-    #check that a matrix has null diagonal
-    assert sum(np.diag(matrix)) == 0, "Error: network has not-0 diagonal"
-    
+import numpy as np
+import Test_suit
 #%%
 def network_generation_dar(alpha,xi,P=1, T=100, directed = False):
     """
@@ -87,19 +41,19 @@ def network_generation_dar(alpha,xi,P=1, T=100, directed = False):
         (so, it's entries are 0 or 1, and it can be or not symmetryc; null-diagonal only)
     """
     # PRELIMINARY ASSERTS, TO UNSURE FUNCTION WORKS PROPERLY
-    assert_ndarray(alpha,2)
-    assert_square(alpha)
-    assert_probability(alpha)
+    Test_suit.assert_ndarray(alpha,2)
+    Test_suit.assert_square(alpha)
+    Test_suit.assert_probability(alpha)
     
-    assert_ndarray(xi,2)
-    assert_square(xi)
-    assert_probability(xi)
+    Test_suit.assert_ndarray(xi,2)
+    Test_suit.assert_square(xi)
+    Test_suit.assert_probability(xi)
 
     N = len(alpha) #if everything is ok, get info about number of nodes
     assert N<1000, "Error: for computational ease, this functuion accepts only networks with dimension < 1000"
     
-    assert_natural(T)
-    assert_natural(P)
+    Test_suit.assert_natural(T)
+    Test_suit.assert_natural(P)
     assert T<1000, "Note: for computational ease, this functuion accepts only networks with duration < 1000"
     assert P < T, "Error: you're trying to generate a DAR(P) model where P is higher or equal to evolution's lasting"
     
@@ -164,14 +118,14 @@ def network_generation_tgrg(phi0,phi1,sigma,T=100, directed = False):
     #phi1 = 0.18*np.ones(N) #slopes, typical of each node
     
     # PRELIMINARY ASSERTS, TO UNSURE FUNCTION WORKS PROPERLY 
-    assert_ndarray(phi0,1)
-    assert_ndarray(phi1,1)
-    assert_ndarray(sigma,1)
+    Test_suit.assert_ndarray(phi0,1)
+    Test_suit.assert_ndarray(phi1,1)
+    Test_suit.assert_ndarray(sigma,1)
     
     N = len(phi0) #if everything is ok, get info about number of nodes
     assert N<1000, "Error: for computational ease, this functuion accepts only networks with dimension < 1000"
     
-    assert_natural(T)
+    Test_suit.assert_natural(T)
     assert T<1000, "Note: for computational ease, this functuion accepts only networks with duration < 1000"
     
     assert type(directed) == bool, "Error: only bool type is allowed for variable directed"
@@ -188,19 +142,18 @@ def network_generation_tgrg(phi0,phi1,sigma,T=100, directed = False):
         for i in range(N):
             for j in range(N):
                 #TGRG FOR UPPER TRIANGLE
-                temporal_network[t] = [[np.random.choice((1,0), 
-                                p=(np.exp(theta[i,t]+theta[j,t])/(1+np.exp(theta[i,t]+theta[j,t])),1-np.exp(theta[i,t]+theta[j,t])/(1+np.exp(theta[i,t]+theta[j,t])))) if j>i else 0 for j in range(N)] for i in range(N)]
+                temporal_network[t] = [[np.random.choice((1,0), p=(np.exp(theta[i,t]+theta[j,t])/(1+np.exp(theta[i,t]+theta[j,t])),
+                                1-np.exp(theta[i,t]+theta[j,t])/(1+np.exp(theta[i,t]+theta[j,t])))) if j>i else 0 for j in range(N)] for i in range(N)]
                 #LOWER TRIANGLE (j<i)
                 if directed == False:    
                     temporal_network[t] = [[temporal_network[t,j,i] if j<i else temporal_network[t,i,j] for j in range(N)] for i in range(N)]
                     #copy upper triangle, if undirected
                 else:
-                    [[np.random.choice((1,0), 
-                                p=(np.exp(theta[i,t]+theta[j,t])/(1+np.exp(theta[i,t]+theta[j,t])),1-np.exp(theta[i,t]+theta[j,t])/(1+np.exp(theta[i,t]+theta[j,t])))) if j<i else temporal_network[t,i,j] for j in range(N)] for i in range(N)]
+                    temporal_network[t] = [[np.random.choice((1,0), p=(np.exp(theta[i,t]+theta[j,t])/(1+np.exp(theta[i,t]+theta[j,t])),
+                                    1-np.exp(theta[i,t]+theta[j,t])/(1+np.exp(theta[i,t]+theta[j,t])))) if j<i else temporal_network[t,i,j] for j in range(N)] for i in range(N)]
     return temporal_network, theta
     
-#%%
-# NETWORK ANALYSYS #
+#%% NETWORK ANALYSYS
 def degree_node(network,node,out = True):
     """
     Returns out- or in-going degree of a node at a certain time
@@ -220,11 +173,11 @@ def degree_node(network,node,out = True):
     
     """
     #ASSERTS
-    assert_ndarray(network,2)
-    assert_square(network)
-    assert_nulldiagonal(network)
+    Test_suit.assert_ndarray(network,2)
+    Test_suit.assert_square(network)
+    Test_suit.assert_nulldiagonal(network)
     
-    assert_natural(node)
+    Test_suit.assert_natural(node)
     assert node <= len(network), "Error: node not present"
      
     #FUNCTION
@@ -251,9 +204,9 @@ def degree_mean_t(network,out = True):
     
     """
     #ASSERTS
-    assert_ndarray(network,2) 
-    assert_square(network)
-    assert_nulldiagonal(network)
+    Test_suit.assert_ndarray(network,2) 
+    Test_suit.assert_square(network)
+    Test_suit.assert_nulldiagonal(network)
     
     #FUNCTION
     degrees = []
@@ -288,12 +241,12 @@ def degree_mean_sequence(network,T, initial = 0, out = True):
     
     """
     #ASSERTS
-    assert_natural(T)
+    Test_suit.assert_natural(T)
     assert T>initial, "Error: something wrong in initial-final time step"
     
-    assert_ndarray(network,3) #ask it to be a square array of the first dimension of the network
-    [assert_square(network[t]) for t in range(len(network))] #check square for each step
-    [assert_nulldiagonal(network[t]) for t in range(initial,T)] #check null diagonal for each step
+    Test_suit.assert_ndarray(network,3) #ask it to be a square array of the first dimension of the network
+    [Test_suit.assert_square(network[t]) for t in range(len(network))] #check square for each step
+    [Test_suit.assert_nulldiagonal(network[t]) for t in range(initial,T)] #check null diagonal for each step
     
     #FUNCTION
     d_seq = []
@@ -307,7 +260,7 @@ def degree_mean_sequence(network,T, initial = 0, out = True):
         d_seq.append(np.average(degrees))
     return d_seq #it return a list
 
-#%%
+#%% CENTRALITY
 def communicability(temporal): 
     """
     Return Communicability matrix of a tempnetwork, as defined by Grindrod, and max spectral radius.
@@ -329,9 +282,9 @@ def communicability(temporal):
     #At the moment, this function takes as default, as coefficient, a quarter of the inverse of max spectral radius
     
     #ASSERTS
-    assert_ndarray(temporal,3) #ask it to be a square array of the first dimension of the network
-    [assert_square(temporal[t]) for t in range(len(temporal))] #check square for each step
-    [assert_nulldiagonal(temporal[t]) for t in range(len(temporal))] #check null diagonal for each step
+    Test_suit.assert_ndarray(temporal,3) #ask it to be a square array of the first dimension of the network
+    [Test_suit.assert_square(temporal[t]) for t in range(len(temporal))] #check square for each step
+    [Test_suit.assert_nulldiagonal(temporal[t]) for t in range(len(temporal))] #check null diagonal for each step
     
     #FUNCTION
     T = temporal.shape[0]
@@ -368,7 +321,7 @@ def broadcast_ranking(Q):
     """
     #FUNCTION    
     lines_sum = np.sum(Q, axis = 1) #Broadcast -> sum over lines:
-    rank = np.flip(np.argsort(lines_sum)) #argsort -> increasing score; flip -> decreasing
+    rank = np.flip(np.argsort(lines_sum)) #argsort -> nodes ordered by increasing score; flip -> decreasing
     return(lines_sum,rank)
     
 def receive_ranking(Q):
@@ -393,43 +346,3 @@ def receive_ranking(Q):
     lines_sum = np.sum(Q, axis = 0) #Broadcast -> sum over columns:
     rank = np.flip(np.argsort(lines_sum)) #argsort -> increasing score; flip -> decreasing
     return(lines_sum,rank)
-
-
-# NETWORK SAVE #
-def network_save(network, start,isDAR=True,P=1, k=1):
-    """ Saves network using pickle (so it must be present) and giving it its proper name (with identification provided by user) and folder
-    
-    Parameters
-    ----------
-    network: np.array
-        T*N*N (the functions extracts by itself T and N)
-    start: str
-        Name you choose for the function
-    isDAR: bool (default = True)
-        User is required to specify wheter network is DAR or TGRG
-    P: int (default = 1)
-        Natural number expressing the order of DAR. If network is TGRG, its value doesn't affect the result
-    k: int (default = 1)
-        Natural number expressing what iteration of the same network this is
-    
-    Returns
-    -------
-    name: network.txt
-        A file txt with the network, in a folder that follows syntax presented in documentation (if path doesn't exist, it's created)
-    """
-    #ASSERTS
-    assert_natural(P) #there's no need to perform other checks, since they have been already performed
-    assert_natural(k)
-    
-    #FUNCTION
-    T = network.shape[0]
-    N = network.shape[1]
-    
-    name = str()
-    if isDAR:
-        name = "Networks/N"+str(N)+"_T"+str(T)+"_DAR"+str(P)+"_"+start+"/realization"+str(k)+"/network.txt"
-    else:
-        name = "Networks/N"+str(N)+"_T"+str(T)+"_TGRG_"+start+"/realization"+str(k)+"/network.txt"
-    
-    with open(name, 'wb') as handle:
-        return pickle.dump(network,handle)
