@@ -49,7 +49,7 @@ assert it_chosen >=1, "it_chosen should be >=1"
 assert it_chosen <=NET_REAL, "Realization not found"
 
     #TEMPNETS GENERATION
-for k in range(NET_REAL): 
+for k in range(1,NET_REAL+1):  #so first realization has index 1
     if isDAR: #use the proper functiond wheter user selected dar or tgrg
         temp = Evolutions.network_generation_dar(alpha,xi,P=P,T=T,directed=isDIRECTED) 
     else:
