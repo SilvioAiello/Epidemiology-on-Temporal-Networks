@@ -1,62 +1,18 @@
 """
-Functions contained in this script allow:
-    1) to spread an epidemic in SI mode over a temporal network
-    2) to measure virulence of each node
-    
-Functions work in Pyhon3, and may require the following libraries (so, check if they are installed):
-    * numpy, used for its data structures and anaylisis, and to get random functions 
-    * pickle, used to store, in an efficient way, the complex information generated
-[If you want to get some plots, you may use matplotlib.pyplot, for plots belluries]
+Functions in this script work in Pyhon3, may require numpy (v1.16) and allow to:
+    1) spread an epidemic, in SI mode, over a temporal network
+    2) measure virulence of each node
 
 From this module you can extract the following functions:
-    * network_load
     * neighbourhood, onlyzeros, contact_lasting
     * propagation
     * infected_counter, time_score
 
-For further understandings on how this script operates, check file "howto.md"
-For further theoretical understandings, check file "explanation.md"
+For further understandings on how this script operates, check file "howto.md".
+For further theoretical understandings, check file "explanation.md".
 """
 import numpy as np #Used for its random functions and data structures
-import pickle
-
 import Test_suit
-#%%
-def network_load(N,T,start,k=1,isDAR=True,P=1):
-    """ Loads a previously generated temporal network using pickle (so it must be installed), if it's present
-    
-    Parameters
-    ----------
-    N: int
-        number of nodes
-    T: int
-        temporal duration
-    start: string
-        identificative name of the network
-    k: int (default = 1)
-        iteration of network realization
-    isDAR: bool (default = True)
-        defines whether to search a DAR(P) or TGRG
-    P: int (default = 1)
-        defines DAR order
-    
-    Returns
-    -------
-    pickle.load(f): np.array
-        If path and file exist, the TNN-tempnet is returned
-    """
-    name = str()
-    if isDAR:
-        name = "Networks/N"+str(N)+"_T"+str(T)+"_DAR"+str(P)+"_"+start+"/realization"+str(k)+"/network.txt"
-    else:
-        name = "Networks/N"+str(N)+"_T"+str(T)+"_TGRG_"+start+"/realization"+str(k)+"/network.txt" 
-    with open(name, 'rb') as f:
-        return pickle.load(f)
-#TODO: VERIFICA CHE QUESTI DUE SONO OK (PER ORA SONO COMMENTATI PERCHE' DEVO VERIFICARE ALTRE COSE)
-        #(secondo me non va perche' anche se è salvato con quel titolo, c'è qualcosa di strano)
-#temporal_dar = network_load(100,100,'alphaeqs_xieqs',k=1,isDAR=True,P=1)
-#temporal_fitn= load_network(100,100,isDAR=True,alleq,k=1)
-
 #%% EASING FUNCTIONS
 def neighbourhood(adiacency,node):
     """Extracts the neighbourhood reachable by a node a given time. 
