@@ -15,8 +15,8 @@ If you're interested in just one function or script, use Table of Content to dir
   * [Epidemic scores functions](#epidemic-scores)
 * [Propagation LTM](#propagation_ltm)
 * [Saves.py](#saves)
- * Network save/load
- * Analysis save/load
+  * Network save/load
+  * Analysis save/load
 * [Tests.py](#test_suite)
   * [Assertions](#assertion-functions)
   * [Evolution tests](#evolution-functions-tests)
