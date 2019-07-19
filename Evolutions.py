@@ -13,7 +13,7 @@ For further understandings on how this script operates, check file "howto.md".
 For further theoretical understandings, check file "explanation.md".
 """
 import numpy as np
-import Test_suit
+import Test_suite
 #%%
 def network_generation_dar(alpha,xi,P=1, T=100, directed = False):
     """
@@ -41,19 +41,19 @@ def network_generation_dar(alpha,xi,P=1, T=100, directed = False):
         (so, it's entries are 0 or 1, and it can be or not symmetryc; null-diagonal only)
     """
     # PRELIMINARY ASSERTS, TO UNSURE FUNCTION WORKS PROPERLY
-    Test_suit.assert_ndarray(alpha,2)
-    Test_suit.assert_square(alpha)
-    Test_suit.assert_probability(alpha)
+    Test_suite.assert_ndarray(alpha,2)
+    Test_suite.assert_square(alpha)
+    Test_suite.assert_probability(alpha)
     
-    Test_suit.assert_ndarray(xi,2)
-    Test_suit.assert_square(xi)
-    Test_suit.assert_probability(xi)
+    Test_suite.assert_ndarray(xi,2)
+    Test_suite.assert_square(xi)
+    Test_suite.assert_probability(xi)
 
     N = len(alpha) #if everything is ok, get info about number of nodes
     assert N<1000, "Error: for computational ease, this functuion accepts only networks with dimension < 1000"
     
-    Test_suit.assert_natural(T)
-    Test_suit.assert_natural(P)
+    Test_suite.assert_natural(T)
+    Test_suite.assert_natural(P)
     assert T<1000, "Note: for computational ease, this functuion accepts only networks with duration < 1000"
     assert P < T, "Error: you're trying to generate a DAR(P) model where P is higher or equal to evolution's lasting"
     
@@ -118,14 +118,14 @@ def network_generation_tgrg(phi0,phi1,sigma,T=100, directed = False):
     #phi1 = 0.18*np.ones(N) #slopes, typical of each node
     
     # PRELIMINARY ASSERTS, TO UNSURE FUNCTION WORKS PROPERLY 
-    Test_suit.assert_ndarray(phi0,1)
-    Test_suit.assert_ndarray(phi1,1)
-    Test_suit.assert_ndarray(sigma,1)
+    Test_suite.assert_ndarray(phi0,1)
+    Test_suite.assert_ndarray(phi1,1)
+    Test_suite.assert_ndarray(sigma,1)
     
     N = len(phi0) #if everything is ok, get info about number of nodes
     assert N<1000, "Error: for computational ease, this functuion accepts only networks with dimension < 1000"
     
-    Test_suit.assert_natural(T)
+    Test_suite.assert_natural(T)
     assert T<1000, "Note: for computational ease, this functuion accepts only networks with duration < 1000"
     
     assert type(directed) == bool, "Error: only bool type is allowed for variable directed"
@@ -173,11 +173,11 @@ def degree_node(network,node,out = True):
     
     """
     #ASSERTS
-    Test_suit.assert_ndarray(network,2)
-    Test_suit.assert_square(network)
-    Test_suit.assert_nulldiagonal(network)
+    Test_suite.assert_ndarray(network,2)
+    Test_suite.assert_square(network)
+    Test_suite.assert_nulldiagonal(network)
     
-    Test_suit.assert_natural(node)
+    Test_suite.assert_natural(node)
     assert node <= len(network), "Error: node not present"
      
     #FUNCTION
@@ -204,9 +204,9 @@ def degree_mean_t(network,out = True):
     
     """
     #ASSERTS
-    Test_suit.assert_ndarray(network,2) 
-    Test_suit.assert_square(network)
-    Test_suit.assert_nulldiagonal(network)
+    Test_suite.assert_ndarray(network,2) 
+    Test_suite.assert_square(network)
+    Test_suite.assert_nulldiagonal(network)
     
     #FUNCTION
     degrees = []
@@ -241,12 +241,12 @@ def degree_mean_sequence(network,T, initial = 0, out = True):
     
     """
     #ASSERTS
-    Test_suit.assert_natural(T)
+    Test_suite.assert_natural(T)
     assert T>initial, "Error: something wrong in initial-final time step"
     
-    Test_suit.assert_ndarray(network,3) #ask it to be a square array of the first dimension of the network
-    [Test_suit.assert_square(network[t]) for t in range(len(network))] #check square for each step
-    [Test_suit.assert_nulldiagonal(network[t]) for t in range(initial,T)] #check null diagonal for each step
+    Test_suite.assert_ndarray(network,3) #ask it to be a square array of the first dimension of the network
+    [Test_suite.assert_square(network[t]) for t in range(len(network))] #check square for each step
+    [Test_suite.assert_nulldiagonal(network[t]) for t in range(initial,T)] #check null diagonal for each step
     
     #FUNCTION
     d_seq = []
@@ -282,9 +282,9 @@ def communicability(temporal):
     #At the moment, this function takes as default, as coefficient, a quarter of the inverse of max spectral radius
     
     #ASSERTS
-    Test_suit.assert_ndarray(temporal,3) #ask it to be a square array of the first dimension of the network
-    [Test_suit.assert_square(temporal[t]) for t in range(len(temporal))] #check square for each step
-    [Test_suit.assert_nulldiagonal(temporal[t]) for t in range(len(temporal))] #check null diagonal for each step
+    Test_suite.assert_ndarray(temporal,3) #ask it to be a square array of the first dimension of the network
+    [Test_suite.assert_square(temporal[t]) for t in range(len(temporal))] #check square for each step
+    [Test_suite.assert_nulldiagonal(temporal[t]) for t in range(len(temporal))] #check null diagonal for each step
     
     #FUNCTION
     T = temporal.shape[0]
