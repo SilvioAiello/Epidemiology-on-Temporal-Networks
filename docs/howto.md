@@ -35,11 +35,13 @@ Here's a list of the changeable parameters:
 
 **Poisson_Probability** is the only function in this script; it should not be modified and reproduces the Poisson PDF (Probability Density Function), whose integral, defined over a temporal interval, is the probability of having an infection, for a SI couple, within that time; as stated in [Explanation](/explanation.md), since several integrals are often re-computed, they are computed once for all, by *quad* function, and results are stored in **probabilities** dictionary.
 
-These containers stores data:
+These containers store data:
 * **temp** is a temporary structure that stores, step by step, each temporal network realization, while **temporal_network** loads the selected one (where performing propagation);
 * Epidemic states evolution goes in **label**, whose syntax is: label\[index_case]\[iteration]\[time_step]\[node]; so, it is a list of N dictionaries (one for each node-set as index case), containing a list of the results K iterations (one for each same epidemic simulation), which in turn are dictionary of dictionaries, describing evolution of nodes states (as you will see in *propagation function*);
 * **spec_radius** and **Q** are the inverse of maximum spectral radius of all adjacencies and Communicability matrix;
 * **B/R Centrality** and **virulence** scores are computed in namesake lists.
+
+Script ends with printing of structural and virulence results: hopefully, as many nodes as possible lead both rankings.
 
 # Evolutions
     Functions in this script work in Pyhon3, may require numpy (v1.16) and allow to:
