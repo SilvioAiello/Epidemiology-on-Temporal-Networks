@@ -1,34 +1,18 @@
 """ 
-Functions contained in this script allow:
-    1) to generate and update a temporal network according to the dar(p) or trgr laws of evolution.
-    2) to perform analysis of network's structure, such as degree evolution and centrality measures (BC/RC, AD, BD)
-
-Functions work in Pyhon3, and may require the following libraries (so, check if they are installed):
-    * numpy, used for its data structures and anaylisis, and to get random functions 
-    * pickle, used to store, in an efficient way, the complex information generated
-[If you want to get some plots, you may use matplotlib.pyplot, for plots belluries, and networkx, to plot small networks]
+Functions in this script work in Pyhon3, may require numpy (v1.16) and allow to:
+    1) generate and update a temporal network, according to the dar(p) or trgr laws of evolution.
+    2) perform structural analysis, such as degree evolution and centrality measures (BC/RC, AD, BD)
 
 From this module you can extract the following functions:
-    * network_generation_dar, that generates a DAR(P) network in form of np.array
-    * network_generation_dar, that generates a TGRG network in form of np.array
-    
-    * degree_node, degree_mean_t, degree_sequence, that return degree of a node, 
-    mean degree of all nodes at a time step, mean degree evolution over time
-    
+    * network_generation_dar, network_generation_tgrg
+    * degree_node, degree_mean_t, degree_sequencee
     * communicability, broadcast_ranking, receive_ranking
-    build communicability matrix and extract from it broacdcast and receive centrality for each node
     #TODO: ADD CENTRALITIES AND UPDATE THIS LIST
-    
-    * network save, that saves a generated network through pickle, in a path and with a name that follows syntax illustrated in README
-    * plot save, if you want to save something in automatized way, with automatically generated name
 
-For further understandings on how this script operates, check file "howto.md"
-For further theoretical understandings, check file "explanation.md"
+For further understandings on how this script operates, check file "howto.md".
+For further theoretical understandings, check file "explanation.md".
 """
-
-import numpy as np 
-import pickle
-
+import numpy as np
 import Test_suit
 #%%
 def network_generation_dar(alpha,xi,P=1, T=100, directed = False):
@@ -169,8 +153,7 @@ def network_generation_tgrg(phi0,phi1,sigma,T=100, directed = False):
                                     1-np.exp(theta[i,t]+theta[j,t])/(1+np.exp(theta[i,t]+theta[j,t])))) if j<i else temporal_network[t,i,j] for j in range(N)] for i in range(N)]
     return temporal_network, theta
     
-#%%
-# NETWORK ANALYSYS #
+#%% NETWORK ANALYSYS
 def degree_node(network,node,out = True):
     """
     Returns out- or in-going degree of a node at a certain time
@@ -277,7 +260,7 @@ def degree_mean_sequence(network,T, initial = 0, out = True):
         d_seq.append(np.average(degrees))
     return d_seq #it return a list
 
-#%%
+#%% CENTRALITY
 def communicability(temporal): 
     """
     Return Communicability matrix of a tempnetwork, as defined by Grindrod, and max spectral radius.
@@ -338,7 +321,7 @@ def broadcast_ranking(Q):
     """
     #FUNCTION    
     lines_sum = np.sum(Q, axis = 1) #Broadcast -> sum over lines:
-    rank = np.flip(np.argsort(lines_sum)) #argsort -> increasing score; flip -> decreasing
+    rank = np.flip(np.argsort(lines_sum)) #argsort -> nodes ordered by increasing score; flip -> decreasing
     return(lines_sum,rank)
     
 def receive_ranking(Q):
@@ -363,43 +346,3 @@ def receive_ranking(Q):
     lines_sum = np.sum(Q, axis = 0) #Broadcast -> sum over columns:
     rank = np.flip(np.argsort(lines_sum)) #argsort -> increasing score; flip -> decreasing
     return(lines_sum,rank)
-
-
-# NETWORK SAVE #
-def network_save(network, start,k=1,isDAR=True, P=1):
-    """ Saves network using pickle (so it must be installed) and giving it its proper name (with an identification provided by user) and folder
-    
-    Parameters
-    ----------
-    network: np.array
-        T*N*N (the functions extracts by itself T and N)
-    start: str
-        Name you choose for the function
-    isDAR: bool (default = True)
-        User is required to specify wheter network is DAR or TGRG
-    P: int (default = 1)
-        Natural number expressing the order of DAR. If network is TGRG, its value doesn't affect the result
-    k: int (default = 1)
-        Natural number expressing what iteration of the same network this is
-    
-    Returns
-    -------
-    name: network.txt
-        A file txt with the network, in a folder that follows syntax presented in documentation (if path doesn't exist, it's created)
-    """
-    #ASSERTS
-    Test_suit.assert_natural(P) #there's no need to perform other checks, since they have been already performed
-    Test_suit.assert_natural(k)
-
-    #FUNCTION
-    T = network.shape[0]
-    N = network.shape[1]
-    
-    name = str()
-    if isDAR:
-        name = "Networks/N"+str(N)+"_T"+str(T)+"_DAR"+str(P)+"_"+start+"/realization"+str(k)+"/network.txt"
-    else:
-        name = "Networks/N"+str(N)+"_T"+str(T)+"_TGRG_"+start+"/realization"+str(k)+"/network.txt"
-#TODO: CAPIRE SE SALVARLO IN PKL
-    with open(name, 'wb') as handle:
-        return pickle.dump(network,handle)
