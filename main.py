@@ -1,56 +1,66 @@
 """
-This script manages all the others, allowing user to actually create and save networks and epidemics, and to perform analysis.
+From this script, user can import and use functions from all the others, providing its own parameters.
+Functions in this script work in Pyhon3, may require numpy (v1.16) and function "quad" from scipy.integrate (scipy v1.3).
 
-Functions work in Pyhon3, and may require the following libraries (so, check if they are installed):
-    * numpy, used for its data structures and anaylisis, and to get random functions 
-    * pickle, used to store, in an efficient way, the complex information generated
-    * function "quad" from scipy.integrate
-[If you want to get some plots, you may use matplotlib.pyplot, for plots belluries, and networkx, to plot small networks]
+In this module are defined the following functions:
+    * poisson_probability
 
-#TODO: Stucture?
+You can set your parameters in "USER ACTION" section.
 
-For further understandings on how this script operates, check file "howto.md"
-For further theoretical understandings, check file "explanation.md"
+For further understandings on how this script operates, check file "howto.md".
+For further theoretical understandings, check file "explanation.md".
 """
-
 import numpy as np
 from scipy.integrate import quad #used in dictionary of probabilities
 
-import matplotlib.pyplot as plt
-import networkx as nx
-
 import Evolutions
 import Propagation_SI
-#%% PLOT FUNCTIONS, MANEGGIARE CON CURA#
-
-def networkplot(graph,figcount,savefig=False, figname = None, k = None, t = None):
-    """Requires an adiacency[t] and the figure count
-    If you want to save the image, you have to say savefig=True, and pass a 2-ple and the value of k and t.
-    Tuple figname contains the values needed by make_name: N,T,isDAR, start,P (P MUST BE SPECIFIED HERE)"""
-    figcount+=1
-    plt.figure(figcount)
-    plt.title("")
-    nxgraph = nx.from_numpy_matrix(graph) #convert np-matrix in a Network, readable by nx library:
-    nx.draw(nxgraph, pos = nx.drawing.layout.circular_layout(nxgraph), with_labels = True) #draw a circular plot and show the number of each node
-    if savefig and figname and k and t:
-        plt.savefig(figname+"Results"+'_realization%i_t=%i.pdf' %(k,t))
-    return figcount+1, plt.show()
-
-#%%             USER ACTION        ###
-# PARAMETERS SETTING #
+import Saves
+#%%         USER ACTION
+    #GENERAL PARAMETERS
 N=10 #nodes
 T=100 #duration
-K = 5 #infection iterations
-beta = 0.005 #infection rate
-    #dar inputs
+isDAR = True #type
+isDIRECTED = False #network symmetry
+    #NUMBER OF ITERATIONS
+NET_REAL = 1 #tempnet
+K = 5 #infection
+    #ANALYSIS
+net_name = 'CHOOSE NAME' #identification name
+it_chosen = 1 #what network iteration to infect
+
+    #DAR INPUTS
+P = 1 #order
 alpha = 0.6*np.ones((N,N)) #you can change values, but keep it (N,N)
 xi = 0.5*np.ones((N,N)) #you can change value, but keep it (N,N)
-    #tgrg inputs
-phi0 = 0.5*np.ones(N)
-phi1 = 0.5*np.ones(N)
-epsilon=0.5*np.ones(N)
+    #TGRG INPUTS
+phi0 = 0.5*np.ones(N) #change values, but keep it (N)
+phi1 = 0.5*np.ones(N) #change values, but keep it (N)
+epsilon=0.5*np.ones(N)#change values, but keep it (N)
 
-    #Probabilities dict, according to beta (same for DAR and TGRG)
+    #EPIDEMIC PARAMETERS
+beta = 0.005 #infection rate
+
+#%% OUTPUTS GENERATION
+    #preliminar assertions
+assert NET_REAL >= 1, "NET_REAL should be >=1"
+assert K > 1, "K should be >1"
+assert it_chosen >=1, "it_chosen should be >=1"
+assert it_chosen <=NET_REAL, "Realization not found"
+
+    #TEMPNETS GENERATION
+for k in range(NET_REAL): 
+    if isDAR: #use the proper functiond wheter user selected dar or tgrg
+        temp = Evolutions.network_generation_dar(alpha,xi,P=P,T=T,directed=isDIRECTED) 
+    else:
+        temp = Evolutions.network_generation_tgrg(alpha,xi,P=P,T=T,directed=isDIRECTED) 
+    Saves.network_save(temp,net_name, isDAR = isDAR, k=k, P=1)
+
+    #Network to analyze
+temporal_network = Saves.network_load(N=N,T=T,start=net_name, k=it_chosen)
+
+    #SI PROPAGATION
+    #Probabilities dict
 def poisson_probability(t): #function definition
     """
     This function reproduces the Poisson PDF, whose average depends on beta.
@@ -63,38 +73,36 @@ def poisson_probability(t): #function definition
     return(lam*np.exp(-lam*t))
 probabilities = dict() #dict building
 for t in range(T):
-    probabilities[t] = quad(poisson_probability,0,t)[0]
+    probabilities[t] = quad(poisson_probability,0,t)[0] #quad produces several outputs, integral is the first
 
-# TEMPNETS GENERATION AND SAVE
-temporal_dar = Evolutions.network_generation_dar(alpha,xi,T=T,directed=False) #tempnet generation
-#andrebbe usata la funzione di salvataggio
-
-# SI PROPAGATION
-label_dar = [] 
-#TODO: AGGIUNGERE TGRG OVUNQUE
+    #Function evoking
+label = [] 
 for index_case in range(N):
-    label_dar.append([]) #create the i-th entry
+    label.append([]) #create the i-th entry
     for iteration in range(K):
-        label_dar[index_case].append(Propagation_SI.propagation(temporal_dar, index_case, probabilities))
-        #TEST#
-        assert label_dar[index_case][iteration][0][index_case] == 1, "L'index case non sembra esserlo"
-        assert sum(label_dar[index_case][iteration][0].values()) == 1, "Ci dovrebbe essere solo un infetto all'inizio"
-assert [[label_dar[index_case][iteration][0] == label_dar[index_case][iteration-1][0] for iteration in range(1,K)] for index_case in range(N)], "Error: some initial condition is not equal for all iterations" 
-#%%                      CENTRALITIES MEASURES                      ###
-# DAR #
-spec_radius_dar, Q_dar = Evolutions.communicability(temporal_dar)
-nodes_Bcentrality_dar, nodes_Brank_dar = Evolutions.broadcast_ranking(Q_dar) #scores, node rankings
-nodes_Rcentrality_dar, nodes_Rrank_dar = Evolutions.receive_ranking(Q_dar) #cores, node rankings
+        label[index_case].append(Propagation_SI.propagation(temporal_network, index_case, probabilities))
+        # OUTPUT TESTS
+        assert label[index_case][iteration][0][index_case] == 1, "An index case appears to be uninfected"
+        assert sum(label[index_case][iteration][0].values()) == 1, "There should be only 1 infect at the beginning"
+assert [[label[index_case][iteration][0] == label[index_case][iteration-1][0] for iteration in range(1,K)] for index_case in range(N)], "Initial condition is not equal for all iterations" 
+    
+    #Centrality measures
+spec_radius, Q = Evolutions.communicability(temporal_network)
+nodes_Bcentrality, nodes_Brank = Evolutions.broadcast_ranking(Q) #scores, node rankings
+nodes_Rcentrality, nodes_Rrank = Evolutions.receive_ranking(Q) #scores, node rankings
 
-## TGRG #
-#spec_radius_tgrg, Q_tgrg = Evolution_DAR.communicability(temporal_tgrg)
-#nodes_Bcentrality_tgrg, nodes_Brank_tgrg = Evolutions.broadcast_ranking(Q_tgrg)
-#nodes_Rcentrality_tgrg, nodes_Rrank_tgrg = Evolutions.receive_ranking(Q_tgrg)
-
-#%%                     VIRULENCE MEASURES                            ###
-#DAR #
-score_dar = [] #list of N lists (one per index case), each of which is a list of K (one per iteration) floats (score of that iteration)
+    #Virulence measures
+virulence = [] #i-th entry is virulence of i-th node
 for index_case in range(N):
-    score_dar.append([]) #create the i-th entry
+    virulence.append([]) #create the i-th entry
     for iteration in range(K):
-        score_dar[index_case].append(Propagation_SI.time_score(label_dar[index_case][iteration],0.6))
+        virulence[index_case].append(Propagation_SI.time_score(label[index_case][iteration],0.6))
+virulence_rank = np.argsort(virulence)
+
+#Results print
+print("Top B-Centrality nodes:")
+print(nodes_Brank[0:9])
+print("Top Virulence nodes:")
+print(virulence_rank[0:9])
+print("Common nodes")
+print(set(nodes_Brank[0:9]).intersection(set(virulence_rank[0:9])))
