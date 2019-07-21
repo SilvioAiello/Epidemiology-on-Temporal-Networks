@@ -4,7 +4,6 @@ If you're interested in just one function or script, use Table of Content to dir
 
 # Table of contents (scripts and their functions)
 * [Main.py](#main)
-  * Poisson probability
 * [Evolutions.py](#evolutions)
   * [Network generation functions](#network_generation_dar-and-network_generation_tgrg)
   * [Degree functions](#degree-functions)
@@ -17,10 +16,6 @@ If you're interested in just one function or script, use Table of Content to dir
 * [Saves.py](#saves)
   * Network save/load
   * Analysis save/load
-* [Tests.py](#test_suite)
-  * [Assertions](#assertion-functions)
-  * [Evolution tests](#evolution-functions-tests)
-  * [Measures tests](#measures-functions-tests)
 
 # Main
         From this script, user can import and use functions from all the others, providing its own parameters.
@@ -33,9 +28,7 @@ Here's a list of the changeable parameters:
 * **P**,**alpha** and **xi** are defined, for DAR networks, in explanation, as well as, **phi0,phi1,epsilon** for TGRG;
 * **beta**: infection rate, that defines epidemic virulence.
 
-**Poisson_Probability** is the only function in this script; it should not be modified and reproduces the Poisson PDF (Probability Density Function), whose integral, defined over a temporal interval, is the probability of having an infection, for a SI couple, within that time; as stated in [Explanation](/explanation.md), since several integrals are often re-computed, they are computed once for all, by *quad* function, and results are stored in **probabilities** dictionary.
-
-These containers store data:
+These containers store produced data:
 * **temp** is a temporary structure that stores, step by step, each temporal network realization, while **temporal_network** loads the selected one (where performing propagation);
 * Epidemic states evolution goes in **label**, whose syntax is: label\[index_case]\[iteration]\[time_step]\[node]; so, it is a list of N dictionaries (one for each node-set as index case), containing a list of the results K iterations (one for each same epidemic simulation), which in turn are dictionary of dictionaries, describing evolution of nodes states (as you will see in *propagation function*);
 * **spec_radius** and **Q** are the inverse of maximum spectral radius of all adjacencies and Communicability matrix;
@@ -74,38 +67,67 @@ Strucure of both codes follow these ideas:
 This is what the function actually do:
 * In DAR, firstly, the initial adjacency is extracted (with 50% probability of having or not a link for each initial couple) and the whole T\*N\*N tensor is generated, copying in the the initial state. So, everything is set to continue evolution. Both initial state and evolutions are handled with two nested comprehensions and for cicles (that distinguish triangles by setting i> or <j), the inner one containing "choice". For the initial states, choice is between 0 and 1 with probability 0.5 for each, while for following moments, they are took from the previous P steps with probability alpha, or extracted by a tossing coin (whose "inner" probability is xi), just as DAR(P) says.
 
+      #EVOLUTION
+      #Initial adiacency, as tossing simple coin (0.5); if undirected, it's made symmetric
+      initial_state = [[np.random.choice((0,1),p=(0.5,1-0.5)) if j>i else 0 for j in range(N)] for i in range(N)] #upper triangle first (j>i)
+      if directed == False: #setting lower triangle as directed value
+          initial_state = [[initial_state[j][i] if j<i else initial_state[i][j] for j in range(N)] for i in range(N)]
+      else:
+          initial_state = [[np.random.choice((0,1),p=(0.5,1-0.5)) if j<i else initial_state[i][j] for j in range(N)] for i in range(N)]
+
       #Temporal network initilialization
       temporal_network = np.zeros((T,N,N))
       temporal_network[0] = initial_state
 
       #Network evolution
       for t in range(1,T):
-       #UPPER TRIANGLE (j>i):
-       temporal_network[t] = [[np.random.choice((temporal_network[t-P,i,j],np.random.choice((1,0), p=(xi[i,j],1-xi[i,j]))),
-                              p=(alpha[i,j],1-alpha[i,j])) if j>i else 0 for j in range(N)] for i in range(N)] #DAR(P) generation
+          #UPPER TRIANGLE (j>i):
+          temporal_network[t] = [[np.random.choice((temporal_network[t-P,i,j],np.random.choice((1,0), p=(xi[i,j],1-xi[i,j]))),
+                          p=(alpha[i,j],1-alpha[i,j])) if j>i else 0 for j in range(N)] for i in range(N)] #DAR(P) generation
+          #LOWER TRIANGLE (j<i)
+          if directed == False:    
+              temporal_network[t] = [[temporal_network[t,j,i] if j<i else temporal_network[t,i,j] for j in range(N)] for i in range(N)]
+              #copy upper triangle, if undirected
+          else:
+              temporal_network[t] = [[np.random.choice((temporal_network[t-P,i,j],np.random.choice((1,0), p=(xi[i,j],1-xi[i,j]))),
+                          p=(alpha[i,j],1-alpha[i,j])) if j<i else temporal_network[t,i,j] for j in range(N)] for i in range(N)]
+              #follow the same rule as upper, if directed
+      return temporal_network
 
 * In TGRG, firstly, all fitnesses evolutions are extracted (to see how this works, check "expalanation.md"), for each node, after initializing them to be equal to the respective "phi0". Then, T\*N\*N tensor is generated and, making use of nested for-cicles, and distinguishing triangles by setting i> or <j, it is computed the probability of link for each time step and couple of nodes, and it is put in "choice".
 
-        #ADIACENCIES COMPUTATION
+        #FITNESSES EVOLUTION
+      theta = np.zeros((N,T)) #definition
+      theta[:,0] = phi0
+      for t in range(1,T):
+          theta[:,t] = phi0 + phi1*theta[:,t-1] + np.random.normal(0,sigma,size=N) #evolution for each node and each time
+
+      #ADIACENCIES COMPUTATION
       temporal_network = np.zeros((T,N,N)) #tensor definition
-          for t in range(T):
-              for i in range(N):
-                  for j in range(N):
-                      #TGRG FOR UPPER TRIANGLE
-                      temporal_network[t] = [[np.random.choice((1,0), p=(np.exp(theta[i,t]+theta[j,t])  
-                      /(1+np.exp(theta[i,t]+theta[j,t])),
-                                      1 - np.exp(theta[i,t]+theta[j,t])/(1+np.exp(theta[i,t]+theta[j,t])))) 
-                                      if j>i else 0 for j in range(N)] for i in range(N)]
+      for t in range(T):
+          for i in range(N):
+              for j in range(N):
+                  #TGRG FOR UPPER TRIANGLE
+                  temporal_network[t] = [[np.random.choice((1,0), p=(np.exp(theta[i,t]+theta[j,t])/(1+np.exp(theta[i,t]+theta[j,t])),
+                                  1-np.exp(theta[i,t]+theta[j,t])/(1+np.exp(theta[i,t]+theta[j,t])))) if j>i else 0 for j in range(N)] for i in range(N)]
+                  #LOWER TRIANGLE (j<i)
+                  if directed == False:    
+                      temporal_network[t] = [[temporal_network[t,j,i] if j<i else temporal_network[t,i,j] for j in range(N)] for i in range(N)]
+                      #copy upper triangle, if undirected
+                  else:
+                      temporal_network[t] = [[np.random.choice((1,0), p=(np.exp(theta[i,t]+theta[j,t])/(1+np.exp(theta[i,t]+theta[j,t])),
+                                      1-np.exp(theta[i,t]+theta[j,t])/(1+np.exp(theta[i,t]+theta[j,t])))) if j<i else temporal_network[t,i,j] for j in range(N)] for i in range(N)]
+      return temporal_network, theta
                                       
 DAR gives back the network only, TGRG also the matrix of fitnesses.
 
 ### degree functions
-These functions can compute degree for a single node, mean degree at a certain time, temporal evolution of degrees. 
-They just require the adjacency/cies, from which extracting informations, the single node of interest, and wheter is required out-going degree or in-going degree.
+These functions can compute degree for a single node or for a whole temporal network, and will be very useful in further analysis. 
+They just require the adjacency/cies, from which extracting informations, and the specification of computing out- or in-going degree. Both functions will be useful in further development of this project
 
-Before operating, following assertions are checked: adjacencies must be N\*N (or N\*N\*T) np.array, and have null diagonal; if node index is required, it has to be a natural number that doesn't exceed network length; if temporal steps of analysis are required, they have to be integers >= 0 and not exceed network evolution duration.
+Before operating both functions check that adjacencies ar NN or NNT np.array, and have null diagonal; if node index is required, it is checked whether it exists in input network.
 
-* **degree_node** return out or in-going degree of the provided node, just by summing (respectively) column of line of node in provided network, and returns it as a natural number;
+* **degree_node** requires 1 adjacency and returns out or in-going degree of the provided node, just by summing (respectively) column of line of node in provided network, and returns it as a natural number;
 
       def degree_node(network,node,out = True):
            #FUNCTION
@@ -113,54 +135,62 @@ Before operating, following assertions are checked: adjacencies must be N\*N (or
               return sum(network[node])
                else:
                    return sum(network[:,node])
-        
-* **degree_mean_t** does the same but for each node of a certain adjacency, returning the mean degree at that time (real number);
 
-       def degree_mean_t(network,out = True):
-       #FUNCTION
-       for node in range(len(network)):
-        if out:
-            degrees.append(sum(network[node]))
-        else:
-            degrees.append(sum(network[:,node]))
-        return(np.average(degrees)) #it returns a float
+* **degree_mean** computes mean (out or in)-degree of all nodes in a temporal network of any duration (so, even for T = 1). Output is always a list, with T entries. To use the same code in case of both 2- or 3-dimensional arrays, function first checks dimensions, and, if bidimensional, copies adjacency in a 1NN array.
 
-* **degree_mean_sequence** does the same but for each adjacency from an initial to a final time step, return a list of degree evolution.
+      assert isinstance(tempnet,np.ndarray)
 
-       def degree_mean_sequence(network,T, initial = 0, out = True):
-           #FUNCTION
-           d_seq = []
-           for t in range(T):
-               degrees = []
-               for node in range(len(network)):
-                   if out:
-                       degrees.append(sum(network[node]))
-                   else:
-                       degrees.append(sum(network[:,node]))
-               d_seq.append(np.average(degrees))
-           return d_seq #it return a list
+      N = tempnet.shape[1] #this is true anyway
+      #Infer temporal duration and perform assertions
+      if len(tempnet.shape) == 3:
+          T = tempnet.shape[0]
+          [Test_suite.assert_square(tempnet[t]) for t in range(T)] #check square for each step
+          [Test_suite.assert_nulldiagonal(tempnet[t]) for t in range(T)] #check null diagonal for each step
+          network = tempnet #same new for 3- or 2-dimensional arrays
+      elif len(tempnet.shape) == 2:
+          T = 1
+          Test_suite.assert_square(tempnet) #check square for each step
+          Test_suite.assert_nulldiagonal(tempnet) #check null diagonal for each step
+          network = np.zeros((T,N,N))
+          network[0] = tempnet #same new for 3- or 2-dimensional arrays
+      else:
+          raise AssertionError ("You must provide an adjacency or a sequence of adjacencies")
+
+      #FUNCTION
+      d_seq = []
+      for t in range(T):
+          degrees = []
+          for node in range(N):
+              if out:
+                  degrees.append(sum(network[t][node]))
+              else:
+                  degrees.append(sum(network[t][:,node]))
+          d_seq.append(np.average(degrees))
+      return d_seq #output is always a list
 
 
 ### communicability and rankings
 These functions compute Communicability matrix for a provided temporal network, perform Broadcast and Receive Centrality and rank nodes accordingly.
 The only assertions they perform are about shape (sequence of squadre matrices) and diagonal nullity.
 
-* **communicability** extracts the number of nodes and evolution duration by the shape of the temporal network, then computes for each adjacency the maximum spectral radius (each of which makes use of np.linalg.eigvals) and selects the maximum from these. A quarter of the highest one is the factor applied to each adjacency in Communicability updating (as in Chen paper), but in further developments it could be different, or it could be given the possibility to choose among different ones; communicability is initialized as a normalized (np.linalg.norm) identity matrix, and multiplied, at each time step, by the inverse (np.linalg.inv) of the difference between identity (np.identity) and the the weighted adjacency; all matrices are normalized step by step, and matrices multiplications are performed by np.matmul;
+* **communicability** extracts the number of nodes and evolution duration by the shape of the temporal network, then computes for each adjacency the maximum spectral radius (each of which makes use of np.linalg.eigvals) and selects the maximum from these. A quarter of the highest one is the factor applied to each adjacency in Communicability updating (as in Chen paper), but in further developments it could be different, or it could be given the possibility to choose among different ones.
+Before operating, input is checked to be a temporal network, with square adjacencies and null diagonal, and each adjacency is checked not to be a 0 matrix: since we're working with inverse matrices, this operation must be well defined.
+Communicability is initialized as a normalized (np.linalg.norm) identity matrix, and multiplied, at each time step, by the normalized inverse (np.linalg.inv) of the difference between identity (np.identity) and the the weighted adjacency; normalizations take place step by step, multiplications are performed by np.matmul.
 
        #FUNCTION
-           T = temporal.shape[0]
-           N = temporal.shape[1]
-           #Find max spectral radius:
-           spec = []
-           for t in range(T):
-               spec.append(np.real(max(np.linalg.eigvals(temporal[t])))) #find eigenval with max real part for each adiacency
-           maxradius = 1/max(spec) #reciprocal of the maximum eigenvalue
-           #Communicability builing:
-           Q = np.identity(N)/np.linalg.norm(np.identity(N)) #initialization (and normalization)
-           for t in range(T):
-               inv = np.linalg.inv(np.identity(N)-0.25*maxradius*temporal[t]) #inverse factor, which has to be multiplicated to the previous Q
-               Q = np.matmul(Q,inv)/np.linalg.norm(np.matmul(Q,inv)) #updating and normalizing of Q
-           return(maxradius,Q) 
+    T = temporal.shape[0]
+    N = temporal.shape[1]
+    #Find max spectral radius:
+    spec = []
+    for t in range(T):
+        spec.append(np.real(max(np.linalg.eigvals(temporal[t])))) #find eigenval with max real part for each adiacency
+    rec_maxradius = 1/max(spec) #reciprocal of the maximum eigenvalue
+    #Communicability builing:
+    Q = np.identity(N)/np.linalg.norm(np.identity(N)) #initialization (and normalization)
+    for t in range(T):
+        inv = np.linalg.inv(np.identity(N)-0.25*rec_maxradius*temporal[t]) #new factor for that time step
+        Q = np.matmul(Q,inv)/np.linalg.norm(np.matmul(Q,inv)) #Q updating and normalizing
+    return(rec_maxradius,Q) 
 
 * **broadcast_ranking/receive_ranking** require such a communicability matrix, and returns a list with nodes BCs/RCs by summing over lines/columns; then it generates a list, lines_sum, containing nodes indeces ordered by their scores, the firsts being those with highest centralities, using np.argsort (that return indeces but from the worst to the best) and np.flip (that invertes lists); note that "lines_sum" doesn't follow such a order;
 
@@ -176,11 +206,14 @@ The only assertions they perform are about shape (sequence of squadre matrices) 
 
 ### easing simulation
 These functions allow [propagation](#propagation) to perform well and in an efficient way, solving simple tasks as analyzing adjacencies and node epidemic states.
-* **neighbourhood**: generates a set of neighbours of a node at a certain time, by checking the provided adjacency; set is create through a comprehension;
+* **neighbourhood**: 
 
-       def neighbourhood(adiacency,node):
-           neigh = {i for i in range(len(adiacency)) if adiacency[node,i]==1}
-           return neigh
+       def neighbourhood(adjacency,node):
+       "Extracts the subset of nodes that reach the given one at a certain time."
+      So, it doesn't care about network's directness.
+         #FUNCTION
+        neigh = {i for i in range(len(adjacency)) if adjacency[i,node]==1}
+        return neigh
 
 * **onlyzeros**: extracts the subset of susceptible nodes at that time, from a general set, list, etc, by checking the provided states dict; set is create through a comprehension;
 
@@ -191,24 +224,43 @@ These functions allow [propagation](#propagation) to perform well and in an effi
 * **contact_lasting**: computes the number of time steps an S and a I node were connected, starting from a provided time. This is accomplished by checking backwards, time by time, the existence of the link and the state of the I node, increasing the value of a counter variable as long these conditions are satisfied; so, the loop interrupts if it has gone so back that the link wasn't  yet present, or the I-node wasn't yet infected. Clearly, the higher the output is, the higher the probability of having an infection (the value is checked in the already mentioned probabilities dictionary).
 
       def contact_lasting(adjacencies,state,t,infected_node,susceptible_node):
-          #Function
-          counter = 0
-          for instant in range(t+1):
-              if (adjacencies[t-instant,infected_node,susceptible_node] == 1 and state[t-instant][infected_node] != state[t-instant][susceptible_node]):
-                  counter +=1
-              else:
-                  break
-          return counter
+         #FUNCTION
+        counter = 0
+        for instant in range(t+1):
+            if (tempnet[t-instant,infected_node,susceptible_node] == 1 and states_sequence[t-instant][infected_node] != states_sequence[t-instant][susceptible_node]):
+                counter +=1
+            else:
+                break
+         return counter
 
+* **Poisson_Probability** reproduces the Poisson PDF (Probability Density Function), whose integral, defined over a temporal interval, is the probability of having an infection, for a SI couple, within that time; as stated in [Explanation](/explanation.md), since several integrals are often re-computed, they should be computed once for all, by *quad* function, and results are stored in **probabilities** dictionary; moreover, assertions ensure the input beta to be a probability
+       
+       def poisson_probability(t,beta): 
+         lamda = -np.log(1-beta) # Chen, Benzi use 60
+         return(lamda*np.exp(-lamda*t))
 
 ### propagation
 This function requires a temporal network, an index case and the probabilities dictionary, and performs an iteration of a whole epidemic propagation in SI mode, from the first to last snapshot of the tempnet; the result is a dictionary of dictionaries, describing nodes' states for each time step.
 
 First operations are, as usual, definitions: T and N are extracted from the tempnet, and then an internal function, *set_infected*, is created with the purpose of setting input node states equals to 1 from a given time to the end (once infected, always infected); it will be used on every new infected; then, output is initialized by setting every node susceptible at every time, with the expection of the index case who is always infected (set_infected since t=0). Finally, infected and susceptibles nodes sets are initialized: they will be updated every time a new infection occurs. 
-Now, following Chen approach, epidemic is updated time by time by processing each susceptible node (at the previous time step), finding its infective neighbourhood (at the previous time step), and performing the "infection extraction" for each of them: if infection occurs, infective state is set "1" at present time step, sets are updated and the program jumps directly to next susceptible. Infection extraction compares the integral of Poisson distribution with a random uniform (from 0 to 1) extraction, performed by *np.random.uniform* function. This is iterated until the end of network evolution.
+Now, following Chen approach, epidemic is updated time by time by processing each susceptible node (at the previous time step), finding its infective neighbourhood at the previous time step (i.e. infected nodes whose links "point" to the susceptible one), and performing the "infection extraction" for each of them: if infection occurs, infective state is set "1" at present time step, sets are updated and the program jumps directly to next susceptible. Infection extraction compares the integral of Poisson distribution with a random uniform (from 0 to 1) extraction, performed by *np.random.uniform* function. This is iterated until the end of network evolution.
 
     def propagation(tempnet,index_case,probabilities):
+    #FUNCTION
+    def set_infected(node,t): #once one is infected,it stays infeced
+        for instant in range(t,T):
+            states_sequence[instant][node] = 1
+        return
     
+    #Output initialization:
+    states_sequence = dict()
+    for t in range(T):
+        states_sequence[t] = dict.fromkeys(range(N),0)
+    set_infected(index_case,0)
+    
+    #Sets initialization
+    susceptibles = onlyzeros(range(N),states_sequence[0]) #"targets"
+    infecteds = {index_case} #they will be decisive to change target state
     
     for t in range(1,T):
         for s in susceptibles.copy(): #copy avoids rising an error when the iteration set changes
@@ -239,11 +291,13 @@ They are computed making use of two functions:
 * **time_score**: uses infected_counter for each time step of the propagation, and saves the first step when the fraction of infected nodes was higher than a given value. If this never happens, it returns the total duration of the propagation.
 
       def time_score(scores,fraction):
-          for t in range(T):
-              if infected_counter(scores[t])>=fraction*N:
-                  time_spent = t
-                  break
-          return time_spent 
+          #FUNCTION
+      time_spent = T-1 #initialized as the final temporal step
+      for t in range(T):
+          if infected_counter(scores_evolution[t])>=fraction*N:
+              time_spent = t
+              break
+      return time_spent
 
 # Propagation_LTM
 This section will be deepened in further developments.
@@ -253,22 +307,3 @@ This section will be deepened in further developments.
 Results are saved, or load (you may need to load a previously generated network) by these functions:
  * **network_save**: serializes data structures in binary protocol, using **pickle** (if you don't know what does it mean, check [here](https://docs.python.org/3/library/pickle.html)), following the foldering/naming rule expressed in Readme (so, distinguishing networks according to their parameters and realizations), allowing user to add a particoular identification name to the file, and using **os** libary to generate folders. Os and pickle belong to Python standard library.
  * **network_load**: loads pickle files, checking them by parameters and identification name.
- 
-              What destiny for network plot?
-      
-# Test_suite
-TODO: AGGIORNARE QUI COPIANDO L'INCIPIT COME NEGLI ALTRI
-This script contains a suite of tests veryfing that every function in other scripts works properly, and some assertion functions, useful to these latter functions to check the inputs they are provided of. Most complex tests obviously deal with temporal networks and epidemics.
-
-### assertion functions
-This section is quite self-explaining: its function impose inputs to be an np.array of a certain dimension, or to have a square shape, or to be probability matrices (so accepting only values from 0 to 1), or to be a natural number (integer and >=0), or to be a matrix with 0-diagonal. Most of these functions are imported by Evolutions and Propagations scripts.
-
-### evolution functions tests
-This section contains both structural tests (checking the output temporal network having the right mathematical properties) and tests of the actual evolution (since it's a stochastic process, one cannot make assertions about the exact outcome values, aside from some limit-cases; these ones are found and tested).
-* **structural_suite**: since some structural tests will be repetead multiple times in both evolutions, they are collected in this function, which performs some of the previous asserts and, in the end, checks that the output temporal network has the right parameters (number of nodes and duration) and mathematical properties, like being a succession of adjacencies, which in turn are square matrices with null diagonal and, if case, symmetrical (Explanation.md if you need to better understand these lines). This function is recalled in any DAR and TGRG test. If it is verified, it doesn't mean that networks are produced correctly, but just that their structure is how it was supposed to. So, this is just a preliminary test.
-* **Evolution/dynamic tests**: as said, these tests check, besides the structural suite, some limit-case inputs, the only ones one can be sure of the outputs; since multiple combinations are possible, multiple tests of the same kind are performed, changing time by time some parameters like number of nodes and duration, just for sake of completenes.
-  * DAR(1): we can be sure that, if matrix alpha = all zeros, all following states are determined by performing a random extraction (ruled by xi), while if alpha = all ones: all following states are equals to the first (total persistence); moreover, if matrix xi = all zeros, there's no way of getting state "1" for any link, if an extraction occurs, and vice versa for xi = all ones. So, these limit cases are tested: **alpha and xi = all zeros**, expecting a sequence of ONLY ZEROS adjacencies; **alpha = all zeros, xi = all ones** expecting a sequence of ONLY ONES (but null diagonal, of couse) adjacencies; **alpha = all ones, caringless of xi** expecting a sequence of adjacencies equal to the initial one.
-  * TGRG: if "sigma" vector is set to 0, one removes randomness in fitnesses evolution (but not in link generation in following times); anyway, giving to each entry of phi0 and phi1 (or just phi0) very high (in module) values, one can jump into certainty domain. So, these limits will be checked, taking for guaranted that sigmas are 0: **very high values (100) for all phi0, and just 0 phi1**, expecting a sequence of ONLY ONES (but null diagonal) adjacencies; **very low values (-100) for all phi0, and just 0 phi1**, expecting a sequence of ONLY ZEROS adjacencies.
-
-### measures functions tests
-NEXT STEP
