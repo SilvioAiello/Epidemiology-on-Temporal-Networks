@@ -29,10 +29,12 @@ Since the two computations follow slightly processes, some differences may raise
 # Propagation_SI.py tests
 Also in this case, stochastic functions are tested through their limit cases.
 
-* **neighbourhood**: in this project, a node neighbourhood is the set of nodes that can be infected by another one. Still forbiding auto-loops, "empty" and "full" networks are verified to have all nodes with empty (0) and full (N-1) neighbourhoods. One node, from the full network, is also selected and deprived, time by time, of all outgoing links, verifying its neighbours (i.e. infectable nodes) to decrease, while all the others are unaffected. This proves that the way this functions has been built, avoids user of caring about out- or in- going links, since functions deals with it by itself.
+* **neighbourhood**: in this project, a node neighbourhood is the set of nodes that can infect another one. Still forbiding auto-loops, "empty" and "full" networks are verified to have all nodes with empty (0) and full (N-1) neighbourhoods. One node, from the full network, is also selected and deprived, time by time, of all ingoing links, verifying its neighbours to decrease, while all the others' ones are unaffected. This proves that the way this functions has been built, avoids user of caring about out- or in- going links, since functions deals with this by itself.
 
 * **contact_lasting** this fundamental function is tested in two ways:
 1) by generating a random temporal network, and verifying that temporal durations are smaller than the inquired temporal step, greater than 1 if exist, and always smaller than duration at next step, if it still exists (this may sound obvious, but it's important to ensure temporal solidity of measures;
 2) by generating a network with only one couple of nodes linked forever and with only one of them infected; duration is tested to be right step by step, then two "accidents" take place: links disappear at a certain time, and duration is checked again and expected to be smaller, then it is restoted but, at the same time (and only for that moment), susceptible node is made infected, and result is checked to be smaller, in the same way.
 
-* **propagation_SI**:
+* **propagation_SI** two limit cases are tested, recalling that beta is probability of infection after 1 time time step: 
+1) beta -> 0, ensuring no epidemic spread at all, regardless of network structure;
+2) "medium" beta (0.6666...), in a fully connected network of duration T=20, where each node (besides index case) has only 0.333... probability of not being infected after 1 time steps. Probability of not having a full infection after 20 steps is so small we expect this to never happen.
