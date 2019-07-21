@@ -9,8 +9,8 @@ From this module you can extract the following functions:
     * communicability, broadcast_ranking, receive_ranking
     #TODO: ADD CENTRALITIES AND UPDATE THIS LIST
 
-For further understandings on how this script operates, check file "howto.md".
-For further theoretical understandings, check file "explanation.md".
+For further understandings on how this script operates, check file "docs/howto.md".
+For further theoretical understandings, check file "docs/explanation.md".
 """
 import numpy as np
 import Test_suite
@@ -37,8 +37,22 @@ def network_generation_dar(alpha,xi,P=1, T=100, directed = False):
     Returns
     -------
     temporal_network: np.array
-        T*(N*N) array, expressing adiacencies for each time step
-        (so, it's entries are 0 or 1, and it can be or not symmetryc; null-diagonal only)
+        T*(N*N) array, expressing adjacencies for each time step; this is a stochastic output
+    
+    Examples
+    --------
+    
+        >>> network_generation_dar(0.6*np.ones((3,3)),0.5*np.ones((3,3)),P=1, T=3, directed = False)
+        array([[[0., 1., 0.],
+        [1., 0., 1.],
+        [0., 1., 0.]],
+        [[0., 1., 0.],
+        [1., 0., 1.],
+        [0., 1., 0.]],
+        [[0., 0., 0.],
+        [0., 0., 0.],
+        [0., 0., 0.]]])
+    
     """
     # PRELIMINARY ASSERTS, TO UNSURE FUNCTION WORKS PROPERLY
     Test_suite.assert_ndarray(alpha,2)
@@ -60,7 +74,7 @@ def network_generation_dar(alpha,xi,P=1, T=100, directed = False):
     assert type(directed) == bool, "Error: only bool type is allowed for variable directed"
     
     #EVOLUTION
-    #Initial adiacency, as tossing simple coin (0.5); if undirected, it's made symmetric
+    #Initial adjacency, as tossing simple coin (0.5); if undirected, it's made symmetric
     initial_state = [[np.random.choice((0,1),p=(0.5,1-0.5)) if j>i else 0 for j in range(N)] for i in range(N)] #upper triangle first (j>i)
     if directed == False: #setting lower triangle as directed value
         initial_state = [[initial_state[j][i] if j<i else initial_state[i][j] for j in range(N)] for i in range(N)]
@@ -109,14 +123,29 @@ def network_generation_tgrg(phi0,phi1,sigma,T=100, directed = False):
     Returns
     -------
     temporal_network: np.array
-        T*(N*N) tensor, expressing adiacencies for each time step 
-        (so, it's entries are 0 or 1, and it can be or not symmetryc)
+        T*(N*N) tensor, expressing adjacencies for each time step 
+        (so, it's entries are 0 or 1, and it can be or not symmetryc); this is a stochastic output
     theta: np.array
-        N*T matrix, expressing evolution of fitnesses for each node
-    """
-    #phi0 = 0.27*np.ones(N) #intercepts, typical of each node (values from Mazzarisi-Lillo paper)
-    #phi1 = 0.18*np.ones(N) #slopes, typical of each node
+        N*T matrix, expressing evolution of fitnesses for each node; this is a stochastic output
     
+    Examples
+    --------
+    
+        >>> network_generation_tgrg(0.6*np.ones(3),0.4*np.ones(3),0.1*np.ones(3),T=3, directed = False)
+        ( array([[[0., 1., 0.],
+         [1., 0., 1.],
+         [0., 1., 0.]],
+        [[0., 1., 1.],
+         [1., 0., 1.],
+         [1., 1., 0.]],
+        [[0., 1., 1.],
+         [1., 0., 1.],
+         [1., 1., 0.]]]), 
+        array([[0.6       , 0.99664444, 1.09950828],
+        [0.6       , 0.9285223 , 1.00334695],
+        [0.6       , 0.73700156, 0.85323848]]) )
+    
+    """
     # PRELIMINARY ASSERTS, TO UNSURE FUNCTION WORKS PROPERLY 
     Test_suite.assert_ndarray(phi0,1)
     Test_suite.assert_ndarray(phi1,1)
@@ -136,7 +165,7 @@ def network_generation_tgrg(phi0,phi1,sigma,T=100, directed = False):
     for t in range(1,T):
         theta[:,t] = phi0 + phi1*theta[:,t-1] + np.random.normal(0,sigma,size=N) #evolution for each node and each time
 
-    #ADIACENCIES COMPUTATION
+    #ADJACENCIES COMPUTATION
     temporal_network = np.zeros((T,N,N)) #tensor definition
     for t in range(T):
         for i in range(N):
@@ -161,7 +190,7 @@ def degree_node(network,node,out = True):
     Parameters
     ----------
     network: np.array
-        N*N adiacency (so, for a selected time; null diagonal)
+        N*N adjacency (so, for a selected time; null diagonal)
     node: int
         index of the node of interest
     out: bool
@@ -171,6 +200,15 @@ def degree_node(network,node,out = True):
     -------
     degree: int
     
+    Examples
+    --------
+    
+        >>> degree_node(np.array([[0,0,1],[1,0,1],[1,0,0]]),0)
+        1
+        
+        >>> degree_node(np.array([[0,0,1],[1,0,1],[1,0,0]]),1)
+        2
+        
     """
     #ASSERTS
     Test_suite.assert_ndarray(network,2)
@@ -203,6 +241,17 @@ def degree_mean(tempnet, out = True):
     -------
     d_seq: list
         list of floats, one per temporal step, expressing mean degree at that time
+    
+    Examples
+    --------
+    
+        >>> degree_mean(np.array([[0,0,1],[1,0,1],[1,0,0]]))
+        [1.3333333333333333]
+        
+        >>> degree_mean(np.array([[[0,0,1],[1,0,1],[1,0,0]],
+        [[0,1,1],[1,0,1],[1,0,0]]]))
+        [1.3333333333333333, 1.6666666666666667]
+        
     """
     assert isinstance(tempnet,np.ndarray)
     
@@ -244,14 +293,24 @@ def communicability(temporal):
     Parameters
     ----------
     temporal: np.array
-        T*N*N adiacencies (so, an adiacency for each time step; null diagonal)
+        T*N*N adjacencies (so, an adjacency for each time step; null diagonal)
     
     Returns
     -------
     rec_maxradius: float
-        Reciprocal of maximum eigenvalue of the whole set of adiacencies
+        Reciprocal of maximum eigenvalue of the whole set of adjacencies
     Q: np.array
         N*N matrix (N being number of nodes), expressing "how well information can be passed from i to j"
+    
+    Examples
+    --------
+    
+        >>> communicability(np.array([[[0,0,1],[1,0,1],[1,0,0]],
+        [[0,1,1],[1,0,1],[1,0,0]]]))
+        ( 0.6180339887498951, 
+        array([[0.54377529, 0.0840179 , 0.17483766],
+        [0.20185156, 0.52294101, 0.20185156],
+        [0.16411784, 0.0253576 , 0.53305547]]))
     """
     #At the moment, this function takes as default, as coefficient, a quarter of the inverse of max spectral radius
     
@@ -271,7 +330,7 @@ def communicability(temporal):
     #Find max spectral radius:
     spec = []
     for t in range(T):
-        spec.append(np.real(max(np.linalg.eigvals(temporal[t])))) #find eigenval with max real part for each adiacency
+        spec.append(np.real(max(np.linalg.eigvals(temporal[t])))) #find eigenval with max real part for each adjacency
     rec_maxradius = 1/max(spec) #reciprocal of the maximum eigenvalue
     #Communicability builing:
     Q = np.identity(N)/np.linalg.norm(np.identity(N)) #initialization (and normalization)
@@ -297,6 +356,17 @@ def broadcast_ranking(Q):
         N-list of floats representing Broacast Centrality scores of nodes
     rank: np.array
         N list of nodes, sorted by ranking (rank[0] is the most central node)
+    
+    Examples
+    --------
+    
+        >>> broadcast_ranking(np.array([[0.54377529, 0.0840179 , 0.17483766],
+        [0.20185156, 0.52294101, 0.20185156],
+        [0.16411784, 0.0253576 , 0.53305547]]))
+        (array([0.80263085, 0.92664413, 0.72253091]), 
+        array([1, 0, 2], 
+        dtype=int64))
+    
     """
     #FUNCTION    
     lines_sum = np.sum(Q, axis = 1) #Broadcast -> sum over lines:
@@ -320,6 +390,16 @@ def receive_ranking(Q):
         N-list of floats representing Receiveing Centrality scores of nodes
     rank: np.array
         N list of nodes, sorted by ranking (rank[0] is the most central node)
+    
+    Examples
+    --------
+    
+        >>> receive_ranking(np.array([[0.54377529, 0.0840179 , 0.17483766],
+        [0.20185156, 0.52294101, 0.20185156],
+        [0.16411784, 0.0253576 , 0.53305547]]))
+        (array([0.90974469, 0.63231651, 0.90974469]), 
+        array([2, 0, 1], 
+        dtype=int64))
     """
     #FUNCTION
     lines_sum = np.sum(Q, axis = 0) #Broadcast -> sum over columns:

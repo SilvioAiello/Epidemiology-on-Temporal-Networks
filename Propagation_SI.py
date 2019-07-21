@@ -8,14 +8,14 @@ From this module you can extract the following functions:
     * propagation
     * infected_counter, time_score
 
-For further understandings on how this script operates, check file "howto.md".
-For further theoretical understandings, check file "explanation.md".
+For further understandings on how this script operates, check file "docs/howto.md".
+For further theoretical understandings, check file "docs/explanation.md".
 """
 import numpy as np #Used for its random functions and data structures
 import Test_suite
 #%% EASING FUNCTIONS
 def neighbourhood(adjacency,node):
-    """Extracts the neighbourhood reachable by a node a given time.
+    """Extracts the subset of nodes that reach the given one at a certain time.
     So, it doesn't care about network's directness.
     
     Parameters
@@ -30,6 +30,16 @@ def neighbourhood(adjacency,node):
     -------
     neigh: set
         Set of neighbours linked to the input node
+    
+    Examples
+    -------
+        
+        >>> neighbourhood(np.array([[0,1],[0,0]]), 1)
+        {0}
+        
+        >>> neighbourhood(np.array([[0,1],[0,0]]), 0)
+        set()
+        
     """
     #ASSERTS
     Test_suite.assert_ndarray(adjacency,2)
@@ -40,7 +50,7 @@ def neighbourhood(adjacency,node):
     assert node <= len(adjacency), "Error: node not present"
      
     #FUNCTION
-    neigh = {i for i in range(len(adjacency)) if adjacency[node,i]==1}
+    neigh = {i for i in range(len(adjacency)) if adjacency[i,node]==1}
     return neigh
 
 def onlyzeros(nodes_set,states_dict):
@@ -59,6 +69,13 @@ def onlyzeros(nodes_set,states_dict):
     -------
     selected: set
         Set of susceptible nodes
+    
+    Examples
+    -------
+        
+        >>> onlyzeros([0,1,2], {0:1,1:0,2:0})
+        {1,2}
+        
     """
     assert type(states_dict) == dict, "states_dict is not a dictionary"
     
@@ -85,6 +102,18 @@ def contact_lasting(tempnet,states_sequence,t,infected_node,susceptible_node):
     -------
     counter: int
         SI contact duration; if 0, nodes are not linked, if t, they have been linked since network is born
+    
+    Examples
+    -------
+        
+        >>> contact_lasting(np.ones((2,3,3)) - np.identity(3),
+        {0:{0:1,1:0,2:0}, 1:{0:1,1:0,2:0}}, 1, 0, 1)
+        1
+        
+        >>> contact_lasting(np.ones((2,3,3)) - np.identity(3),
+        {0:{0:1,1:0,2:0}, 1:{0:1,1:0,2:0}}, 1, 0, 1)
+        2
+    
     """
     #ASSERTS
     assert isinstance(t, int)
@@ -105,7 +134,7 @@ def contact_lasting(tempnet,states_sequence,t,infected_node,susceptible_node):
     assert infected_node != susceptible_node, "Nodes are the same"
     assert states_sequence[t][infected_node] == 1, "Infected node is not infected at time %i"%(infected_node,t)
     assert states_sequence[t][susceptible_node] == 0, "Node %i is not susceptible at time %i"%(susceptible_node,t)
-    assert tempnet[t,infected_node,susceptible_node] == 1, "Nodes %i and %i are not linked at time %i"%(infected_node,susceptible_node,t)
+    assert tempnet[t,infected_node,susceptible_node] == 1, "I and S nodes %i and %i are not linked at time %i"%(infected_node,susceptible_node,t)
     
     #FUNCTION
     counter = 0
@@ -138,9 +167,13 @@ def poisson_probability(t,beta):
     return(lamda*np.exp(-lamda*t))
     
 #%%
-def propagation(tempnet,index_case,probabilities): #Remember: the outcome of this function is stochastic
+def propagation(tempnet,index_case,probabilities):
     '''
-    Produces the evolution of disease states over a temporal network
+    Produces the evolution of disease states over a temporal network.
+    
+    Output is a dictonary of dictionaries: first key selects time, second one selects node.
+    So, states_sequence[0] is a dictionary, in which each key stands for the node-state at that time
+    states_sequence[0][i] is the state at the time for i-th node.
     
     Parameters
     ----------
@@ -154,10 +187,14 @@ def propagation(tempnet,index_case,probabilities): #Remember: the outcome of thi
     Returns
     -------
     states_sequence: dict
-        It's a dictonary of dictionaries: first key selects time, second one selects node.
-        So, states_sequence[0] is a dictionary, in which each key stands for the node-state at that time
-        states_sequence[0][i] is the state at the time for i-th node.
+        TN dictionary, expresing results of SI epidemic propagation; this is a stochastic output
 
+    Examples
+    -------
+    
+        >>> propagation(np.ones((2,3,3)) - np.identity(3), 0, {0:0,1:0.999})
+        {0: {0: 1, 1: 0, 2: 0}, 1: {0: 1, 1: 1, 2: 0}}
+        
     '''
     T = tempnet.shape[0] #shape of array returns (T,N,N)-tuple
     N = tempnet.shape[1] #shape of array returns (T,N,N)-tuple
@@ -215,11 +252,11 @@ def infected_counter(set_of_nodes):
     return counter
 def time_score(scores_evolution,fraction):
     """
-    Returns the time each node spent to infect a fraction of network, for one whole iteration.
+    Returns the time step when a certain fraction of a network is infected.
     
-    The output is the first time step when the fraction of infected nodes is bigger than the given fraction.
-    If this never happens, function just returns the last time step of network evolution.
+    If this never happens, function just returns the last time step + 1 of network evolution.
     Output is computed using external function "infected_counter".
+    Remember: first time step is 0, last is T-1
     
     Parameters
     ----------
@@ -231,7 +268,19 @@ def time_score(scores_evolution,fraction):
     Returns
     -------
     time_spent: int
-        Score for that iteration
+        Score for that iteration; 
+    
+    Examples
+    -------
+    
+        >>> time_score({0:{0:0,1:1,2:1,3:0,4:0,5:0},1:{0:1,1:1,2:1,3:0,4:0,5:0},2:{0:1,1:1,2:1,3:1,4:1,5:1}},0.5)
+        1
+        
+        >>> time_score({0:{0:0,1:1,2:1,3:0,4:0,5:0},1:{0:1,1:1,2:1,3:0,4:0,5:0},2:{0:1,1:1,2:1,3:1,4:1,5:0}},0.8)
+        2
+        
+        >>> time_score({0:{0:0,1:1,2:1,3:0,4:0,5:0},1:{0:1,1:1,2:1,3:0,4:0,5:0},2:{0:1,1:1,2:1,3:1,4:1,5:0}},0.9)
+        3
     """
     T = len(scores_evolution)
     N = len(scores_evolution[0])
@@ -242,7 +291,7 @@ def time_score(scores_evolution,fraction):
     assert isinstance(scores_evolution, dict), "scores_evolution is not a dictionary"
     
     #FUNCTION
-    time_spent = T-1 #initialized as the final temporal step
+    time_spent = T #initialized as the final temporal step + 1
     for t in range(T):
         if infected_counter(scores_evolution[t])>=fraction*N:
             time_spent = t
