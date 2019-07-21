@@ -11,7 +11,7 @@
 # Repository scheme
 This repository is structured as follows:
 * **Main folder**: 
-  * .gitgnore, \\_\_pycache\_\_\
+  * .gitgnore
   * README.md
   * Evolutions.py: suite of functions that generate and analyze temporal networks (and save results);
   * main.py: allows to smartly manage the whole set of functions and provide them of the desidered inputs;
@@ -29,6 +29,8 @@ This repository is structured as follows:
 So, the final output will be something like: Networks/N_T_TYPE_name/realizationX/beta_k.pkl or /network.pkl.
 
 **To make your personal use of this project, you can just open main.py, modify the input structures and let it run to get results. You should only modify values in "USER ACTION" section, while any other function or script should not be changed.** Once main.py has run, you can keep on operating from your Python IDE; for example, to call a function from "Evolutions", you may just type Evolutions.FUNCTNAME, etc.
+
+For any other clarification, check files in docs/ folder.
 
 Any pending "TODO" you may find across code analysis, reminds future developments of the project.
 
