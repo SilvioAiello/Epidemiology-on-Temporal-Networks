@@ -94,6 +94,19 @@ This is what the function actually do:
               #follow the same rule as upper, if directed
       return temporal_network
 
+          Examples
+          --------
+        >>> network_generation_dar(0.6*np.ones((3,3)),0.5*np.ones((3,3)),P=1, T=3, directed = False)
+        array([[[0., 1., 0.],
+        [1., 0., 1.],
+        [0., 1., 0.]],
+        [[0., 1., 0.],
+        [1., 0., 1.],
+        [0., 1., 0.]],
+        [[0., 0., 0.],
+        [0., 0., 0.],
+        [0., 0., 0.]]])
+
 * In TGRG, firstly, all fitnesses evolutions are extracted (to see how this works, check "expalanation.md"), for each node, after initializing them to be equal to the respective "phi0". Then, T\*N\*N tensor is generated and, making use of nested for-cicles, and distinguishing triangles by setting i> or <j, it is computed the probability of link for each time step and couple of nodes, and it is put in "choice".
 
         #FITNESSES EVOLUTION
@@ -118,6 +131,22 @@ This is what the function actually do:
                       temporal_network[t] = [[np.random.choice((1,0), p=(np.exp(theta[i,t]+theta[j,t])/(1+np.exp(theta[i,t]+theta[j,t])),
                                       1-np.exp(theta[i,t]+theta[j,t])/(1+np.exp(theta[i,t]+theta[j,t])))) if j<i else temporal_network[t,i,j] for j in range(N)] for i in range(N)]
       return temporal_network, theta
+      
+        Examples
+        --------
+        >>> network_generation_tgrg(0.6*np.ones(3),0.4*np.ones(3),0.1*np.ones(3),T=3, directed = False)
+        ( array([[[0., 1., 0.],
+         [1., 0., 1.],
+         [0., 1., 0.]],
+        [[0., 1., 1.],
+         [1., 0., 1.],
+         [1., 1., 0.]],
+        [[0., 1., 1.],
+         [1., 0., 1.],
+         [1., 1., 0.]]]), 
+        array([[0.6       , 0.99664444, 1.09950828],
+        [0.6       , 0.9285223 , 1.00334695],
+        [0.6       , 0.73700156, 0.85323848]]) )
                                       
 DAR gives back the network only, TGRG also the matrix of fitnesses.
 
@@ -135,38 +164,56 @@ Before operating both functions check that adjacencies ar NN or NNT np.array, an
               return sum(network[node])
                else:
                    return sum(network[:,node])
+       
+         Examples
+         --------
+        >>> degree_node(np.array([[0,0,1],[1,0,1],[1,0,0]]),0)
+        1
+        
+        >>> degree_node(np.array([[0,0,1],[1,0,1],[1,0,0]]),1)
+        2
 
 * **degree_mean** computes mean (out or in)-degree of all nodes in a temporal network of any duration (so, even for T = 1). Output is always a list, with T entries. To use the same code in case of both 2- or 3-dimensional arrays, function first checks dimensions, and, if bidimensional, copies adjacency in a 1NN array.
 
-      assert isinstance(tempnet,np.ndarray)
+      def degree_mean(tempnet, out = True):
+        assert isinstance(tempnet,np.ndarray)
 
-      N = tempnet.shape[1] #this is true anyway
-      #Infer temporal duration and perform assertions
-      if len(tempnet.shape) == 3:
-          T = tempnet.shape[0]
-          [Test_suite.assert_square(tempnet[t]) for t in range(T)] #check square for each step
-          [Test_suite.assert_nulldiagonal(tempnet[t]) for t in range(T)] #check null diagonal for each step
-          network = tempnet #same new for 3- or 2-dimensional arrays
-      elif len(tempnet.shape) == 2:
-          T = 1
-          Test_suite.assert_square(tempnet) #check square for each step
-          Test_suite.assert_nulldiagonal(tempnet) #check null diagonal for each step
-          network = np.zeros((T,N,N))
-          network[0] = tempnet #same new for 3- or 2-dimensional arrays
-      else:
-          raise AssertionError ("You must provide an adjacency or a sequence of adjacencies")
+        N = tempnet.shape[1] #this is true anyway
+        #Infer temporal duration and perform assertions
+        if len(tempnet.shape) == 3:
+            T = tempnet.shape[0]
+            [Test_suite.assert_square(tempnet[t]) for t in range(T)] #check square for each step
+            [Test_suite.assert_nulldiagonal(tempnet[t]) for t in range(T)] #check null diagonal for each step
+            network = tempnet #same new for 3- or 2-dimensional arrays
+        elif len(tempnet.shape) == 2:
+            T = 1
+            Test_suite.assert_square(tempnet) #check square for each step
+            Test_suite.assert_nulldiagonal(tempnet) #check null diagonal for each step
+            network = np.zeros((T,N,N))
+            network[0] = tempnet #same new for 3- or 2-dimensional arrays
+        else:
+            raise AssertionError ("You must provide an adjacency or a sequence of adjacencies")
 
-      #FUNCTION
-      d_seq = []
-      for t in range(T):
-          degrees = []
-          for node in range(N):
-              if out:
-                  degrees.append(sum(network[t][node]))
-              else:
-                  degrees.append(sum(network[t][:,node]))
-          d_seq.append(np.average(degrees))
-      return d_seq #output is always a list
+        #FUNCTION
+        d_seq = []
+        for t in range(T):
+            degrees = []
+            for node in range(N):
+                if out:
+                    degrees.append(sum(network[t][node]))
+                else:
+                    degrees.append(sum(network[t][:,node]))
+            d_seq.append(np.average(degrees))
+        return d_seq #output is always a list
+      
+      Examples
+      --------
+        >>> degree_mean(np.array([[0,0,1],[1,0,1],[1,0,0]]))
+        [1.3333333333333333]
+        
+        >>> degree_mean(np.array([[[0,0,1],[1,0,1],[1,0,0]],
+        [[0,1,1],[1,0,1],[1,0,0]]]))
+        [1.3333333333333333, 1.6666666666666667]
 
 
 ### communicability and rankings
@@ -177,27 +224,48 @@ The only assertions they perform are about shape (sequence of squadre matrices) 
 Before operating, input is checked to be a temporal network, with square adjacencies and null diagonal, and each adjacency is checked not to be a 0 matrix: since we're working with inverse matrices, this operation must be well defined.
 Communicability is initialized as a normalized (np.linalg.norm) identity matrix, and multiplied, at each time step, by the normalized inverse (np.linalg.inv) of the difference between identity (np.identity) and the the weighted adjacency; normalizations take place step by step, multiplications are performed by np.matmul.
 
-       #FUNCTION
-    T = temporal.shape[0]
-    N = temporal.shape[1]
-    #Find max spectral radius:
-    spec = []
-    for t in range(T):
-        spec.append(np.real(max(np.linalg.eigvals(temporal[t])))) #find eigenval with max real part for each adiacency
-    rec_maxradius = 1/max(spec) #reciprocal of the maximum eigenvalue
-    #Communicability builing:
-    Q = np.identity(N)/np.linalg.norm(np.identity(N)) #initialization (and normalization)
-    for t in range(T):
-        inv = np.linalg.inv(np.identity(N)-0.25*rec_maxradius*temporal[t]) #new factor for that time step
-        Q = np.matmul(Q,inv)/np.linalg.norm(np.matmul(Q,inv)) #Q updating and normalizing
-    return(rec_maxradius,Q) 
+    def communicability(temporal): 
+         #FUNCTION
+      T = temporal.shape[0]
+      N = temporal.shape[1]
+      #Find max spectral radius:
+      spec = []
+      for t in range(T):
+          spec.append(np.real(max(np.linalg.eigvals(temporal[t])))) #find eigenval with max real part for each adiacency
+      rec_maxradius = 1/max(spec) #reciprocal of the maximum eigenvalue
+      #Communicability builing:
+      Q = np.identity(N)/np.linalg.norm(np.identity(N)) #initialization (and normalization)
+      for t in range(T):
+          inv = np.linalg.inv(np.identity(N)-0.25*rec_maxradius*temporal[t]) #new factor for that time step
+          Q = np.matmul(Q,inv)/np.linalg.norm(np.matmul(Q,inv)) #Q updating and normalizing
+      return(rec_maxradius,Q)
+    
+     Examples
+     --------
+        >>> communicability(np.array([[[0,0,1],[1,0,1],[1,0,0]],
+        [[0,1,1],[1,0,1],[1,0,0]]]))
+        ( 0.6180339887498951, 
+        array([[0.54377529, 0.0840179 , 0.17483766],
+        [0.20185156, 0.52294101, 0.20185156],
+        [0.16411784, 0.0253576 , 0.53305547]]))
 
 * **broadcast_ranking/receive_ranking** require such a communicability matrix, and returns a list with nodes BCs/RCs by summing over lines/columns; then it generates a list, lines_sum, containing nodes indeces ordered by their scores, the firsts being those with highest centralities, using np.argsort (that return indeces but from the worst to the best) and np.flip (that invertes lists); note that "lines_sum" doesn't follow such a order;
 
-      #FUNCTION    
-      lines_sum = np.sum(Q, axis = 1) #Broadcast -> sum over lines:
-      rank = np.flip(np.argsort(lines_sum)) #argsort -> increasing score; flip -> decreasing
-      return(lines_sum,rank)
+      def broadcast_ranking(Q):
+        #FUNCTION    
+        lines_sum = np.sum(Q, axis = 1) #Broadcast -> sum over lines:
+        rank = np.flip(np.argsort(lines_sum)) #argsort -> increasing score; flip -> decreasing
+        return(lines_sum,rank)
+      
+       Examples
+       --------
+        >>> broadcast_ranking(np.array([[0.54377529, 0.0840179 , 0.17483766],
+        [0.20185156, 0.52294101, 0.20185156],
+        [0.16411784, 0.0253576 , 0.53305547]]))
+        (array([0.80263085, 0.92664413, 0.72253091]), 
+        array([1, 0, 2], 
+        dtype=int64))
+      
 
 # Propagation_SI
     Functions in this script work in Pyhon3, may require numpy (v1.16) and allow to:
@@ -209,29 +277,51 @@ These functions allow [propagation](#propagation) to perform well and in an effi
 * **neighbourhood**: 
 
        def neighbourhood(adjacency,node):
-       "Extracts the subset of nodes that reach the given one at a certain time."
-      So, it doesn't care about network's directness.
-         #FUNCTION
-        neigh = {i for i in range(len(adjacency)) if adjacency[i,node]==1}
-        return neigh
+       "Extracts the subset of nodes that reach the given one at a certain time. So, it doesn't care about network's directness."
+            #FUNCTION
+           neigh = {i for i in range(len(adjacency)) if adjacency[i,node]==1}
+           return neigh
+       
+       Examples
+       -------
+        >>> neighbourhood(np.array([[0,1],[0,0]]), 1)
+        {0}
+        
+        >>> neighbourhood(np.array([[0,1],[0,0]]), 0)
+        set()
 
 * **onlyzeros**: extracts the subset of susceptible nodes at that time, from a general set, list, etc, by checking the provided states dict; set is create through a comprehension;
 
       def onlyzeros(nodes_set,states_dict):
           selected = {node for node in nodes_set if states_dict[node]==0} #0 means susceptible
           return selected
+       
+       Examples
+       -------
+        >>> onlyzeros([0,1,2], {0:1,1:0,2:0})
+        {1,2}
 
 * **contact_lasting**: computes the number of time steps an S and a I node were connected, starting from a provided time. This is accomplished by checking backwards, time by time, the existence of the link and the state of the I node, increasing the value of a counter variable as long these conditions are satisfied; so, the loop interrupts if it has gone so back that the link wasn't  yet present, or the I-node wasn't yet infected. Clearly, the higher the output is, the higher the probability of having an infection (the value is checked in the already mentioned probabilities dictionary).
 
       def contact_lasting(adjacencies,state,t,infected_node,susceptible_node):
-         #FUNCTION
-        counter = 0
-        for instant in range(t+1):
-            if (tempnet[t-instant,infected_node,susceptible_node] == 1 and states_sequence[t-instant][infected_node] != states_sequence[t-instant][susceptible_node]):
-                counter +=1
-            else:
-                break
-         return counter
+          #FUNCTION
+         counter = 0
+         for instant in range(t+1):
+             if (tempnet[t-instant,infected_node,susceptible_node] == 1 and states_sequence[t-instant][infected_node] != states_sequence[t-instant][susceptible_node]):
+                 counter +=1
+             else:
+                 break
+          return counter
+         
+         Examples
+         -------
+        >>> contact_lasting(np.ones((2,3,3)) - np.identity(3),
+        {0:{0:1,1:0,2:0}, 1:{0:1,1:0,2:0}}, 1, 0, 1)
+        1
+        
+        >>> contact_lasting(np.ones((2,3,3)) - np.identity(3),
+        {0:{0:1,1:0,2:0}, 1:{0:1,1:0,2:0}}, 1, 0, 1)
+        2
 
 * **Poisson_Probability** reproduces the Poisson PDF (Probability Density Function), whose integral, defined over a temporal interval, is the probability of having an infection, for a SI couple, within that time; as stated in [Explanation](/explanation.md), since several integrals are often re-computed, they should be computed once for all, by *quad* function, and results are stored in **probabilities** dictionary; moreover, assertions ensure the input beta to be a probability
        
@@ -242,39 +332,44 @@ These functions allow [propagation](#propagation) to perform well and in an effi
 ### propagation
 This function requires a temporal network, an index case and the probabilities dictionary, and performs an iteration of a whole epidemic propagation in SI mode, from the first to last snapshot of the tempnet; the result is a dictionary of dictionaries, describing nodes' states for each time step.
 
-First operations are, as usual, definitions: T and N are extracted from the tempnet, and then an internal function, *set_infected*, is created with the purpose of setting input node states equals to 1 from a given time to the end (once infected, always infected); it will be used on every new infected; then, output is initialized by setting every node susceptible at every time, with the expection of the index case who is always infected (set_infected since t=0). Finally, infected and susceptibles nodes sets are initialized: they will be updated every time a new infection occurs. 
-Now, following Chen approach, epidemic is updated time by time by processing each susceptible node (at the previous time step), finding its infective neighbourhood at the previous time step (i.e. infected nodes whose links "point" to the susceptible one), and performing the "infection extraction" for each of them: if infection occurs, infective state is set "1" at present time step, sets are updated and the program jumps directly to next susceptible. Infection extraction compares the integral of Poisson distribution with a random uniform (from 0 to 1) extraction, performed by *np.random.uniform* function. This is iterated until the end of network evolution.
+First operations are, as usual, definitions: T and N are extracted from the tempnet, and then is defined an internal function, *set_infected*, that sets - from a given time to the end - its input node states equals to 1 (once infected, always infected) and will be used on every new infected; then, output is initialized by setting every node susceptible at every time, with the expection of the index case who is always infected (set_infected since t=0). Finally, infected and susceptibles nodes sets are initialized: they will be updated every time a new infection occurs. 
+Following Chen approach, node states are updated time by time by processing each susceptible node (at previous time step), finding its infective neighbourhood at the previous time step (i.e. infected nodes whose links "point" to the susceptible one), and performing the *infection extraction* for each of them: if infection occurs, infective state is set "1" at present time step, S/I sets are updated and the program jumps directly to next temporal step (this is a conscious choice; future developments may adopt different solutions), by for...else loop (check [here](http://book.pythontips.com/en/latest/for_-_else.html) if you want to learn more). Infection extraction compares the integral of Poisson distribution with a random uniform (from 0 to 1) extraction, performed by *np.random.uniform* function. This is iterated until the end of network evolution.
 
     def propagation(tempnet,index_case,probabilities):
-    #FUNCTION
-    def set_infected(node,t): #once one is infected,it stays infeced
-        for instant in range(t,T):
-            states_sequence[instant][node] = 1
-        return
-    
-    #Output initialization:
-    states_sequence = dict()
-    for t in range(T):
-        states_sequence[t] = dict.fromkeys(range(N),0)
-    set_infected(index_case,0)
-    
-    #Sets initialization
-    susceptibles = onlyzeros(range(N),states_sequence[0]) #"targets"
-    infecteds = {index_case} #they will be decisive to change target state
-    
-    for t in range(1,T):
-        for s in susceptibles.copy(): #copy avoids rising an error when the iteration set changes
-            infectneighbourhood = neighbourhood(tempnet[t-1],s).intersection(infecteds)
-            for i in infectneighbourhood.copy(): 
-                if probabilities[contact_lasting(tempnet,states_sequence,t-1,i,s)]>np.random.uniform(0,1): #rand extraction
-                        set_infected(s,t) #if successful, change the state of the node, at next t
-                        susceptibles.remove(s)
-                        infecteds.add(s)
-                        break
-            else:
-                continue # only executed if the inner loop did NOT break
-            break  # only executed if the inner loop DID break
-    return(states_sequence)
+        #FUNCTION
+        def set_infected(node,t): #once one is infected,it stays infeced
+            for instant in range(t,T):
+                states_sequence[instant][node] = 1
+            return
+
+        #Output initialization:
+        states_sequence = dict()
+        for t in range(T):
+            states_sequence[t] = dict.fromkeys(range(N),0)
+        set_infected(index_case,0)
+
+        #Sets initialization
+        susceptibles = onlyzeros(range(N),states_sequence[0]) #"targets"
+        infecteds = {index_case} #they will be decisive to change target state
+
+        for t in range(1,T):
+            for s in susceptibles.copy(): #copy avoids rising an error when the iteration set changes
+                infectneighbourhood = neighbourhood(tempnet[t-1],s).intersection(infecteds)
+                for i in infectneighbourhood.copy(): 
+                    if probabilities[contact_lasting(tempnet,states_sequence,t-1,i,s)]>np.random.uniform(0,1): #rand extraction
+                            set_infected(s,t) #if successful, change the state of the node, at next t
+                            susceptibles.remove(s)
+                            infecteds.add(s)
+                            break
+                else:
+                    continue # only executed if the inner loop did NOT break
+                break  # only executed if the inner loop DID break
+        return(states_sequence)
+        
+        Examples
+        -------
+        >>> propagation(np.ones((2,3,3)) - np.identity(3), 0, {0:0,1:0.999})
+        {0: {0: 1, 1: 0, 2: 0}, 1: {0: 1, 1: 1, 2: 0}}
 
 
 ### epidemic scores
@@ -291,13 +386,25 @@ They are computed making use of two functions:
 * **time_score**: uses infected_counter for each time step of the propagation, and saves the first step when the fraction of infected nodes was higher than a given value. If this never happens, it returns the total duration of the propagation.
 
       def time_score(scores,fraction):
-          #FUNCTION
-      time_spent = T-1 #initialized as the final temporal step
-      for t in range(T):
-          if infected_counter(scores_evolution[t])>=fraction*N:
-              time_spent = t
-              break
-      return time_spent
+           #FUNCTION
+       time_spent = T-1 #initialized as the final temporal step
+       for t in range(T):
+           if infected_counter(scores_evolution[t])>=fraction*N:
+               time_spent = t
+               break
+       return time_spent
+       
+       Examples
+       -------
+    
+        >>> time_score({0:{0:0,1:1,2:1,3:0,4:0,5:0},1:{0:1,1:1,2:1,3:0,4:0,5:0},2:{0:1,1:1,2:1,3:1,4:1,5:1}},0.5)
+        1
+        
+        >>> time_score({0:{0:0,1:1,2:1,3:0,4:0,5:0},1:{0:1,1:1,2:1,3:0,4:0,5:0},2:{0:1,1:1,2:1,3:1,4:1,5:0}},0.8)
+        2
+        
+        >>> time_score({0:{0:0,1:1,2:1,3:0,4:0,5:0},1:{0:1,1:1,2:1,3:0,4:0,5:0},2:{0:1,1:1,2:1,3:1,4:1,5:0}},0.9)
+        3
 
 # Propagation_LTM
 This section will be deepened in further developments.
