@@ -3,19 +3,14 @@ Functions in this script provide:
     1) assertions functions to use at the beginning of those functions, to be sure their inputs are correct.
     2) tests to verify that functions in "Evolutions.py" and "Propagation_SI.py" run correctly.
     
-Functions work in Pyhon3, and may require the following libraries (so, check if they are installed):
-    * numpy, used for its data structures and anaylisis, and to get random functions   
+Functions in this script work in Pyhon3, may require numpy (v1.16) and function "quad" from scipy.integrate (scipy v1.3).
 
-From this module you can extract the following functions:
-ASSERTIONS: adiacency, ndarray, nulldiagonal, probability, square, symmetry; natural.
-STRUCTURAL:
-    Structural suite
-    Tests for DAR generation
-    Tests for TGRG generation
-    #TODO: TESTS FOR MEASURES
+From this module you can extract the following assertion-functions: 
+    adiacency, ndarray, nulldiagonal, probability, square, symmetry; natural.
+
 #TODO: AS TEACHER SAID, EXPLAIN HOW TO GET THE SAME RESULTS I GOT
 
-For further understandings on how this script operates, check file "howto.md"      
+For further understandings on how this script operates, check file "docs/tests.md"      
 """
 import numpy as np
 from scipy.integrate import quad 
@@ -83,7 +78,6 @@ def assert_natural(number):
     assert isinstance(number, int), "Error: %f is not an integer, but it should be" %number
     assert number>0, "Error: %i is not positive, but it should be" %number
 
-#%% ASSERTIONS ABOUT STRUCTURAL PROPERTIES OF TEMPNETS
 def structural_suite(network,nodes_number,duration,symmetry = True):
     """
     Checks some ubiquitary properties of temporal networks in this work.
@@ -163,7 +157,7 @@ def test_Evolutions_degree_node():
         assert Evolutions.degree_node(np.ones((100,100))-np.identity(100),i) == 99
     
     test_network = np.zeros((2,3,3))
-    #T = 0, out and in degree
+    #T = 0, out and in degrees, that show to differ in nodes 0 and 1
     test_network[0,0,1] = 1
     assert Evolutions.degree_node(test_network[0],0,out=True) == 1
     assert Evolutions.degree_node(test_network[0],1,out=True) == 0
@@ -221,7 +215,7 @@ def test_PropagationSI_neighbourhood():
         assert len(Propagation_SI.neighbourhood(network_test,i)) == N-1 #all-linked network
     
     for i in range(1,N):
-        network_test[0,i] = 0
+        network_test[i,0] = 0
         assert len(Propagation_SI.neighbourhood(network_test,0)) == N-1-i
         assert len(Propagation_SI.neighbourhood(network_test,i)) == N-1 #confirm unaffection for reached node
 
@@ -285,27 +279,15 @@ def test_PropagationSI_poissonprobability():
     
     
 #%% PROPAGATION_SI
-def test_PropagationSI():
-    #Input
-    T = 20
+def test_PropagationSI1():
+    #Inputs
+    T = 25
     N = 10
     tempnet = np.ones((T,N,N))
     for t in range(T):
         tempnet[t] -= np.identity(N)
     
     #Tests
-    
-    
-    #all infected
-    beta = 2/3
-    probabilities = dict()
-    for t in range(T):
-        probabilities[t] = quad(Propagation_SI.poisson_probability,0,t, args = beta)[0]
-    
-    final_state = dict.fromkeys(range(N),1)
-    for index_case in range(N):
-        assert Propagation_SI.propagation(tempnet,index_case,probabilities)[T-1] == final_state
-    
     #only index case stays infected
     beta = 1e-10
     probabilities = dict()
@@ -316,3 +298,43 @@ def test_PropagationSI():
         final_state = dict.fromkeys(range(N),0)
         final_state[index_case] = 1
         assert Propagation_SI.propagation(tempnet,index_case,probabilities)[T-1] == final_state
+    
+    #all infected
+    beta = 2/3
+    probabilities = dict()
+    for t in range(T):
+        probabilities[t] = quad(Propagation_SI.poisson_probability,0,t, args = beta)[0]
+    
+    final_state = dict.fromkeys(range(N),1)
+    for index_case in range(N):
+        assert Propagation_SI.propagation(tempnet,index_case,probabilities)[T-1] == final_state
+
+    #all infected but one node is isolated
+    for t in range(T):
+        tempnet[t,:,N-1] = np.zeros(N)
+    final_state = dict.fromkeys(range(N),1)
+    final_state[N-1] = 0
+    for index_case in range(N-1):
+        assert Propagation_SI.propagation(tempnet,index_case,probabilities)[T-1] == final_state
+
+def test_PropagationSI2():
+    K = 3
+    T = 10
+    N = 20
+    temp = Evolutions.network_generation_dar(0.6*(np.ones((N,N))-np.identity(N)),0.6*(np.ones((N,N))-np.identity(N)),P=1,T=T,directed=False) 
+    
+    beta = 0.4
+    probabilities = dict() #dict building
+    for t in range(T):
+        probabilities[t] = quad(Propagation_SI.poisson_probability,0,t, args = beta)[0] #quad produces several outputs, integral is the first
+        
+    label = [] 
+    for index_case in range(N):
+        label.append([]) #create the i-th entry
+        for iteration in range(K):
+            label[index_case].append(Propagation_SI.propagation(temp, index_case, probabilities))
+    # OUTPUT TESTS
+    assert label[index_case][iteration][0][index_case] == 1, "An index case appears to be uninfected"
+    assert sum(label[index_case][iteration][0].values()) == 1, "There should be only 1 infect at the beginning"
+    assert [[label[index_case][iteration][0] == label[index_case][iteration-1][0] for iteration in range(1,K)] for index_case in range(N)], "Initial condition is not equal for all iterations" 
+#asserire che sum deve essere sempre <= N? (usa .values())
