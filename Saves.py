@@ -5,7 +5,7 @@ In this module are defined the following functions:
     * network_save and network_load
     * plot save
 
-For further understandings on how this script operates, check file "howto.md"
+For further understandings on how this script operates, check file "docs/howto.md"
 """
 import pickle
 import os

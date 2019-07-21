@@ -71,11 +71,6 @@ for index_case in range(N):
     label.append([]) #create the i-th entry
     for iteration in range(K):
         label[index_case].append(Propagation_SI.propagation(temporal_network, index_case, probabilities))
-        # OUTPUT TESTS
-        assert label[index_case][iteration][0][index_case] == 1, "An index case appears to be uninfected"
-        assert sum(label[index_case][iteration][0].values()) == 1, "There should be only 1 infect at the beginning"
-assert [[label[index_case][iteration][0] == label[index_case][iteration-1][0] for iteration in range(1,K)] for index_case in range(N)], "Initial condition is not equal for all iterations" 
-#asserire che sum deve essere sempre <= N? (usa .values())
 
     #Centrality measures
 rec_spec_radius, Q = Evolutions.communicability(temporal_network)
