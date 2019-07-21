@@ -6,6 +6,7 @@
 * [References](#references)
 * [docs/Explanation (theoretical concepts)](/docs/explanation.md)
 * [docs/How to (how code works)](/docs/howto.md)
+* [docs/Tests](docs/tests.md)
 
 # Repository scheme
 This repository is structured as follows:
@@ -20,6 +21,7 @@ This repository is structured as follows:
 * **\docs** subfolder: complete documentation files
   * explanation.md: deepening of theorical concepts this project deals with;
   * howto.md: deepening of how each single script works, and how to use it properly
+  * tests.md: explaining how tests are performed
 * **\Networks** subfolder: in this folder networks and analysis results are stored, as **pickle** (native data serialization module in Python, check [here](https://docs.python.org/3/library/pickle.html) for further explanations) files, with this "rule of thumb": one folder per network (defined by its input parameters), whose name keeps track of *number of nodes*, *duration*, *type of evolution* (DAR/TGRG) and an *identification name*; into each one, one can find 
   1) as many folders as iterations of network evolution (*/realization/*), with inside network (*/network.pkl*) and epidemic propagation (with a name that records beta value and propagation iteration) files; 
   2) a folder (*/Results/*) where epidemic and structural centrality measures are stored.
@@ -27,6 +29,8 @@ This repository is structured as follows:
 So, the final output will be something like: Networks/N_T_TYPE_name/realizationX/beta_k.pkl or /network.pkl.
 
 **To make your personal use of this project, you can just open file "main.py", modify the input structures and let it run to get results. Scripts should not be modified; you should only modify values in "USER ACTION" section of main script.** Once main has run, you can keep on operating from your Python IDE; for example, to call a function from "Evolutions", you may just type Evolutions.FUNCTNAME, etc.
+
+Any pending "TODO" you may find across code analysis, reminds future developments of the project.
 
 # Project purposes
 The purpose of this project is to simulate epidemics on temporal networks, try to correlate it to netwroks' structure, and apply results to real data, took from eMID interbank network. The analysis will be made more complex, and realistic, by violating symmetries such as network underictness and homogeneity of node-parameters. 
