@@ -177,7 +177,7 @@ def degree_node(network,node,out = True):
     Test_suite.assert_square(network)
     Test_suite.assert_nulldiagonal(network)
     
-    Test_suite.assert_natural(node)
+    assert type(node) == int, "Error: index for nodes must be an integer"
     assert node <= len(network), "Error: node not present"
      
     #FUNCTION
@@ -185,80 +185,54 @@ def degree_node(network,node,out = True):
         return sum(network[node])
     else:
         return sum(network[:,node])
-
-def degree_mean_t(network,out = True):
+    
+def degree_mean(tempnet, out = True):
     """
-    Returns out- or in-going mean degree of a network at a certain time.
+    Returns out- or in-going mean degree of a whole temporal network, even of duration 1 (i.e. a single adjacency).
+    It returns a list of mean degrees over time.
+    If you're interested in just one instant, just select the proper output entry.
     
     Parameters
     ----------
-    network: np.array
-        N*N adiacency (so, for a selected time; null diagonal)
+    tempnet: np.array
+        TNN temporal network
     out: bool
         Expresses interest in out or in-going degree; if undirected graph, both give the same result
     
     Returns
     -------
-    degree: float
-        Mean degree at that time
-    
+    d_seq: list
+        list of floats, one per temporal step, expressing mean degree at that time
     """
-    #ASSERTS
-    Test_suite.assert_ndarray(network,2) 
-    Test_suite.assert_square(network)
-    Test_suite.assert_nulldiagonal(network)
+    assert isinstance(tempnet,np.ndarray)
     
-    #FUNCTION
-    degrees = []
-    for node in range(len(network)):
-        if out:
-            degrees.append(sum(network[node]))
-        else:
-            degrees.append(sum(network[:,node]))
-    return(np.average(degrees)) #it returns a float
-
-def degree_mean_sequence(network,T, initial = 0, out = True):
-    """
-    Returns out- or in-going mean degree of a whole sequence of networks
-    
-    It makes use of function np.average, so check if numpy is available first
-    
-    Parameters
-    ----------
-    network: np.array
-        T*N*N adiacency (so, an adiacency for each time step; null diagonal)
-    T: int
-        Natural number expressing last instant to check
-    initial: int (default = 0)
-        Natural number expressing first instant to check
-    out: bool
-        Expresses interest in out or in-going degree; if undirected graph, both give the same result
-    
-    Returns
-    -------
-    degree: float
-        Mean degree
-    
-    """
-    #ASSERTS
-    Test_suite.assert_natural(T)
-    assert T>initial, "Error: something wrong in initial-final time step"
-    
-    Test_suite.assert_ndarray(network,3) #ask it to be a square array of the first dimension of the network
-    [Test_suite.assert_square(network[t]) for t in range(len(network))] #check square for each step
-    [Test_suite.assert_nulldiagonal(network[t]) for t in range(initial,T)] #check null diagonal for each step
-    
+    N = tempnet.shape[1] #this is true anyway
+    #Infer temporal duration and perform assertions
+    if len(tempnet.shape) == 3:
+        T = tempnet.shape[0]
+        [Test_suite.assert_square(tempnet[t]) for t in range(T)] #check square for each step
+        [Test_suite.assert_nulldiagonal(tempnet[t]) for t in range(T)] #check null diagonal for each step
+        network = tempnet #same new for 3- or 2-dimensional arrays
+    elif len(tempnet.shape) == 2:
+        T = 1
+        Test_suite.assert_square(tempnet) #check square for each step
+        Test_suite.assert_nulldiagonal(tempnet) #check null diagonal for each step
+        network = np.zeros((T,N,N))
+        network[0] = tempnet #same new for 3- or 2-dimensional arrays
+    else:
+        raise AssertionError ("You must provide an adjacency or a sequence of adjacencies")
+        
     #FUNCTION
     d_seq = []
     for t in range(T):
         degrees = []
-        for node in range(len(network)):
+        for node in range(N):
             if out:
-                degrees.append(sum(network[node]))
+                degrees.append(sum(network[t][node]))
             else:
-                degrees.append(sum(network[:,node]))
+                degrees.append(sum(network[t][:,node]))
         d_seq.append(np.average(degrees))
-    return d_seq #it return a list
+    return d_seq #output is always a list
 
 #%% CENTRALITY
 def communicability(temporal): 
@@ -274,17 +248,22 @@ def communicability(temporal):
     
     Returns
     -------
-    maxradius: float
+    rec_maxradius: float
         Reciprocal of maximum eigenvalue of the whole set of adiacencies
     Q: np.array
         N*N matrix (N being number of nodes), expressing "how well information can be passed from i to j"
     """
     #At the moment, this function takes as default, as coefficient, a quarter of the inverse of max spectral radius
     
+    T = temporal.shape[0]
+    N = temporal.shape[1]
+    
     #ASSERTS
     Test_suite.assert_ndarray(temporal,3) #ask it to be a square array of the first dimension of the network
-    [Test_suite.assert_square(temporal[t]) for t in range(len(temporal))] #check square for each step
-    [Test_suite.assert_nulldiagonal(temporal[t]) for t in range(len(temporal))] #check null diagonal for each step
+    [Test_suite.assert_square(temporal[t]) for t in range(T)] #check square for each step
+    [Test_suite.assert_nulldiagonal(temporal[t]) for t in range(T)] #check null diagonal for each step
+    
+    assert any([(temporal[t] == np.zeros((N,N))).all() for t in range(T)]) == False, "At least one adjacency is a zero matrix: communicability is not defined"
     
     #FUNCTION
     T = temporal.shape[0]
@@ -293,13 +272,13 @@ def communicability(temporal):
     spec = []
     for t in range(T):
         spec.append(np.real(max(np.linalg.eigvals(temporal[t])))) #find eigenval with max real part for each adiacency
-    maxradius = 1/max(spec) #reciprocal of the maximum eigenvalue
+    rec_maxradius = 1/max(spec) #reciprocal of the maximum eigenvalue
     #Communicability builing:
     Q = np.identity(N)/np.linalg.norm(np.identity(N)) #initialization (and normalization)
     for t in range(T):
-        inv = np.linalg.inv(np.identity(N)-0.25*maxradius*temporal[t]) #inverse factor, which has to be multiplicated to the previous Q
-        Q = np.matmul(Q,inv)/np.linalg.norm(np.matmul(Q,inv)) #updating and normalizing of Q
-    return(maxradius,Q) 
+        inv = np.linalg.inv(np.identity(N)-0.25*rec_maxradius*temporal[t]) #new factor for that time step
+        Q = np.matmul(Q,inv)/np.linalg.norm(np.matmul(Q,inv)) #Q updating and normalizing
+    return(rec_maxradius,Q) 
 
 def broadcast_ranking(Q):
     """

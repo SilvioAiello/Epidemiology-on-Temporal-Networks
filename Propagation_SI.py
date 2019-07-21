@@ -4,7 +4,7 @@ Functions in this script work in Pyhon3, may require numpy (v1.16) and allow to:
     2) measure virulence of each node
 
 From this module you can extract the following functions:
-    * neighbourhood, onlyzeros, contact_lasting
+    * neighbourhood, onlyzeros, contact_lasting, poisson_probability
     * propagation
     * infected_counter, time_score
 
@@ -15,7 +15,8 @@ import numpy as np #Used for its random functions and data structures
 import Test_suite
 #%% EASING FUNCTIONS
 def neighbourhood(adjacency,node):
-    """Extracts the neighbourhood reachable by a node a given time. 
+    """Extracts the neighbourhood reachable by a node a given time.
+    So, it doesn't care about network's directness.
     
     Parameters
     ----------
@@ -70,11 +71,16 @@ def contact_lasting(tempnet,states_sequence,t,infected_node,susceptible_node):
     
     Parameters
     ----------
-    tempnet: TNN-np.array
-    states_sequence: TN-dict
-    t: int, time step from which going backwards in time
-    infected_node, susceptible_node: int
-    
+    tempnet: np.array
+        TNN temporal network
+    states_sequence: dict
+        TN dict, states evolution at each time step
+    t: int
+        time step from which going backwards in time
+    infected_node: int
+        
+    susceptible_node: int
+        
     Returns
     -------
     counter: int
@@ -97,9 +103,9 @@ def contact_lasting(tempnet,states_sequence,t,infected_node,susceptible_node):
     [Test_suite.assert_nulldiagonal(tempnet[i]) for i in range(t)] #check null diagonal for each step
     
     assert infected_node != susceptible_node, "Nodes are the same"
-    assert states_sequence[t][infected_node] == 1, "Infected node is not infected at the latest instant"
-    assert states_sequence[t][susceptible_node] == 0, "Susceptible node is not susceptible at the latest instant"
-    assert tempnet[t,infected_node,susceptible_node] == 1, "Nodes couple is not linked at latest instant"
+    assert states_sequence[t][infected_node] == 1, "Infected node is not infected at time %i"%(infected_node,t)
+    assert states_sequence[t][susceptible_node] == 0, "Node %i is not susceptible at time %i"%(susceptible_node,t)
+    assert tempnet[t,infected_node,susceptible_node] == 1, "Nodes %i and %i are not linked at time %i"%(infected_node,susceptible_node,t)
     
     #FUNCTION
     counter = 0
@@ -109,6 +115,28 @@ def contact_lasting(tempnet,states_sequence,t,infected_node,susceptible_node):
         else:
             break
     return counter
+
+def poisson_probability(t,beta):
+    """
+    This function reproduces the Poisson PDF, whose average depends on beta.
+    Its integral is the probability of having and infection for a I-S contact lasting t.
+    
+    Parameters
+    ----------
+    t: int
+        time duration of a contact
+    beta: float
+        infection rate
+        
+    Returns
+    -------
+    A float, representing PDF value for that t, with given beta.
+    """
+    assert beta <1, "Error: beta must be <1"
+    assert beta >=0, "Error: beta must be >=0"
+    lamda = -np.log(1-beta) # Chen, Benzi use 60
+    return(lamda*np.exp(-lamda*t))
+    
 #%%
 def propagation(tempnet,index_case,probabilities): #Remember: the outcome of this function is stochastic
     '''

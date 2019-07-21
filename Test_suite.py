@@ -1,8 +1,8 @@
 """
 Functions in this script provide:
-    1) tests to verify that functions in "Evolutions.py" and "Propagation_SI.py" run correctly.
-    2) assertions functions to use at the beginning of those functions, to be sure their inputs are correct.
-
+    1) assertions functions to use at the beginning of those functions, to be sure their inputs are correct.
+    2) tests to verify that functions in "Evolutions.py" and "Propagation_SI.py" run correctly.
+    
 Functions work in Pyhon3, and may require the following libraries (so, check if they are installed):
     * numpy, used for its data structures and anaylisis, and to get random functions   
 
@@ -18,6 +18,7 @@ STRUCTURAL:
 For further understandings on how this script operates, check file "howto.md"      
 """
 import numpy as np
+from scipy.integrate import quad 
 
 import Evolutions
 import Propagation_SI
@@ -82,7 +83,7 @@ def assert_natural(number):
     assert isinstance(number, int), "Error: %f is not an integer, but it should be" %number
     assert number>0, "Error: %i is not positive, but it should be" %number
 
-#%% STRUCTURAL PROPERTIES
+#%% ASSERTIONS ABOUT STRUCTURAL PROPERTIES OF TEMPNETS
 def structural_suite(network,nodes_number,duration,symmetry = True):
     """
     Checks some ubiquitary properties of temporal networks in this work.
@@ -106,8 +107,8 @@ def structural_suite(network,nodes_number,duration,symmetry = True):
     if symmetry:
         [assert_symmetry(network[t]) for t in range(duration)]
 
-#%% DAR TESTS
-def test_DARgeneration1():
+#%% DAR GENERATION 
+def test_Evolutions_DARgeneration1():
     #3 nodes, duration 10, a,xi->zeros; check "docs/howto.md" for further clarifications
     a_input = np.zeros((3,3))
     xi_input = np.zeros((3,3))
@@ -116,7 +117,7 @@ def test_DARgeneration1():
     for t in range(1,10):
         assert (tested1[t] == np.zeros((3,3))).all()
 
-def test_DARgeneration2():  
+def test_Evolutions_DARgeneration2():  
     #16 nodes, duration 20, a->zeros and xi->ones; check "docs/howto.md" for further clarifications
     a_input = np.zeros((16,16))
     xi_input = np.ones((16,16))
@@ -125,7 +126,7 @@ def test_DARgeneration2():
     for t in range(1,20):
         assert (tested2[t] == (np.ones((16,16))-np.identity(16))).all()
 
-def test_DARgeneration3():    
+def test_Evolutions_DARgeneration3():    
     #30 nodes, duration 5, a zeros and xi ones; check "docs/howto.md" for further clarifications
     a_input = np.ones((30,30))
     xi_input = np.zeros((30,30))
@@ -134,8 +135,8 @@ def test_DARgeneration3():
     for t in range(1,5):
         assert (tested3[t] == tested3[0]).all()
 
-#%% TGRG TESTS
-def test_TGRGgeneration1():
+#%% TGRG GENERATION 
+def test_Evolutions_TGRGgeneration1():
     #20 nodes, duration 10, low phi0; check "docs/howto.md" for further clarifications
     input_0 = 100*np.ones(20)
     input_1 = np.zeros(20)
@@ -145,7 +146,7 @@ def test_TGRGgeneration1():
     for t in range(10):
         assert (tested1[t] == (np.ones(20)-np.identity(20))).all()
         
-def test_TGRGgeneration2():
+def test_Evolutions_TGRGgeneration2():
     #10 nodes, duration 15, low phi0; check "docs/howto.md" for further clarifications
     input_0 = -100*np.ones(10)
     input_1 = np.zeros(10)
@@ -155,7 +156,163 @@ def test_TGRGgeneration2():
     for t in range(15):
         assert (tested2[t] == np.zeros(10)).all()
 
-#TODO : i test per la Katz possono essere fatti ritornando al caso statico
-#TODO: test poisson probability using #I = quad(poisson_probability,0,np.inf) #verify the correct normalization
-#TODO: UN MODO PER TESTARE contact_lasting E' VEDERE CHE AD OGNI ISTANTE SUCCESSIVO E' DIVERSO DAL PRECEDENTE, PER LA STESSA COPPIA
-        #sicuramente il suo output non può essere maggiore del t di input
+#%% DEGREE AND COMMUNICABILITY 
+def test_Evolutions_degree_node():
+    for i in range(100):
+        assert Evolutions.degree_node(np.zeros((100,100)),i) == 0
+        assert Evolutions.degree_node(np.ones((100,100))-np.identity(100),i) == 99
+    
+    test_network = np.zeros((2,3,3))
+    #T = 0, out and in degree
+    test_network[0,0,1] = 1
+    assert Evolutions.degree_node(test_network[0],0,out=True) == 1
+    assert Evolutions.degree_node(test_network[0],1,out=True) == 0
+    assert Evolutions.degree_node(test_network[0],2,out=True) == 0
+    assert Evolutions.degree_node(test_network[0],0,out=False) == 0
+    assert Evolutions.degree_node(test_network[0],1,out=False) == 1
+    assert Evolutions.degree_node(test_network[0],2,out=False) == 0
+    #T=1, out and in degree
+    test_network[1,0,1] = 1
+    test_network[1,1,0] = 1
+    test_network[1,2,0] = 1
+    assert Evolutions.degree_node(test_network[1],0,out=True) == 1
+    assert Evolutions.degree_node(test_network[1],1,out=True) == 1
+    assert Evolutions.degree_node(test_network[1],2,out=True) == 1
+    assert Evolutions.degree_node(test_network[1],0,out=False) == 2
+    assert Evolutions.degree_node(test_network[1],1,out=False) == 1
+    assert Evolutions.degree_node(test_network[1],2,out=False) == 0    
+
+def test_Evolutions_degree_mean():
+    assert Evolutions.degree_mean(np.zeros((100,100))) == [0]
+    assert Evolutions.degree_mean(np.ones((100,100))-np.identity(100)) == [99]
+    
+    test_network = np.zeros((2,3,3))
+    test_network[0,0,1] = 1
+    test_network[1,1,0] = 1
+    assert Evolutions.degree_mean(test_network, out=True) == [1/3, 1/3]
+    assert Evolutions.degree_mean(test_network, out=False) == [1/3,1/3]
+    #more links
+    test_network[0,1,2] = 1
+    assert Evolutions.degree_mean(test_network, out=True)[0] == [2/3]
+    assert Evolutions.degree_mean(test_network, out=False)[0] == [2/3]
+    test_network[1,0,1] = 1
+    test_network[1,2,0] = 1
+    assert Evolutions.degree_mean(test_network, out=True)[1] == [1]
+    assert Evolutions.degree_mean(test_network, out=False)[1] == [1]
+
+def test_Evolutions_communicability():
+    #3 nodes and 3 time step, all nodes linked without autoloops
+    #input building:
+    temporal_test = np.ones((3,3,3)) - np.identity(3) #input for tested function
+    adj = temporal_test[0] #input for manual building
+    
+    Q = np.identity(3)
+    inv = np.linalg.inv(np.identity(3)-0.125*adj)
+    for t in range(3):
+        Q = np.matmul(Q,inv)/np.linalg.norm(np.matmul(Q,inv))
+    assert (Q - Evolutions.communicability(temporal_test)[1] <= 1e-10).all()
+
+#%% Propagation easing functions
+def test_PropagationSI_neighbourhood():
+    N = 10
+    network_test = np.ones((N,N))-np.identity(N)
+    for i in range(N):
+        assert Propagation_SI.neighbourhood(np.zeros((N,N)),i) == set() #null network
+        assert len(Propagation_SI.neighbourhood(network_test,i)) == N-1 #all-linked network
+    
+    for i in range(1,N):
+        network_test[0,i] = 0
+        assert len(Propagation_SI.neighbourhood(network_test,0)) == N-1-i
+        assert len(Propagation_SI.neighbourhood(network_test,i)) == N-1 #confirm unaffection for reached node
+
+def test_PropagationSI_contactlasting1():
+    T = 50
+    N = 20
+    #tempnet initialization
+    network_test = np.zeros((T,N,N))
+    for t in range(T):
+        for i in range(N):
+            for j in range(N):
+                if j != i: #null diagonal
+                    network_test[t,i,j] = np.random.choice((0,1)) #random links
+    
+    #states initialization, only 0 infected, always
+    states_sequence = dict()
+    for t in range(T):
+        states_sequence[t] = dict.fromkeys(range(N),0)
+        states_sequence[t][0] = 1
+    
+    for t in range(T-2):
+        for i in range(1,N):
+            if network_test[t,0,i] == 1:
+                contact_now = Propagation_SI.contact_lasting(network_test,states_sequence, t,0,i)
+                assert contact_now <= t+1, "Contact lasts %i, which is bigger than %i"%(contact_now,t) #t+1 since python starts count from 0
+                assert  contact_now >= 1
+                if network_test[t+1,0,i] == 1:
+                    assert contact_now < Propagation_SI.contact_lasting(network_test,states_sequence, t+1,0,i)
+                
+def test_PropagationSI_contactlasting2():
+    T = 75
+    N = 10
+    #tempnet initialization
+    network_test = np.zeros((T,N,N))
+    for t in range(T):
+        network_test[t,0,1] = 1 #0 and 1 always linked
+
+    #states initialization, only 0 infected, always
+    states_sequence = dict()
+    for t in range(T):
+        states_sequence[t] = dict.fromkeys(range(N),0)
+        states_sequence[t][0] = 1
+        
+    #TEST2
+    for t in range(T-1):
+        assert Propagation_SI.contact_lasting(network_test,states_sequence, t,0,1) == t+1
+    
+    #TEST3
+    network_test[10,0,1] =0 #break contact only at a certain instant
+    assert Propagation_SI.contact_lasting(network_test,states_sequence, 74,0,1) == 64
+    
+    #TEST4
+    network_test[10,0,1] =0 #turn back
+    states_sequence[10][1] = 1 #infected only at a certain instant
+    assert Propagation_SI.contact_lasting(network_test,states_sequence, 74,0,1) == 64
+
+def test_PropagationSI_poissonprobability():
+    beta = np.random.random() #for any beta it must work
+    integral = quad(Propagation_SI.poisson_probability, 0, np.inf, args = beta)
+    assert integral[0]-1 <= integral[1]
+    
+    
+#%% PROPAGATION_SI
+def test_PropagationSI():
+    #Input
+    T = 20
+    N = 10
+    tempnet = np.ones((T,N,N))
+    for t in range(T):
+        tempnet[t] -= np.identity(N)
+    
+    #Tests
+    
+    
+    #all infected
+    beta = 2/3
+    probabilities = dict()
+    for t in range(T):
+        probabilities[t] = quad(Propagation_SI.poisson_probability,0,t, args = beta)[0]
+    
+    final_state = dict.fromkeys(range(N),1)
+    for index_case in range(N):
+        assert Propagation_SI.propagation(tempnet,index_case,probabilities)[T-1] == final_state
+    
+    #only index case stays infected
+    beta = 1e-10
+    probabilities = dict()
+    for t in range(T):
+        probabilities[t] = quad(Propagation_SI.poisson_probability,0,t, args = beta)[0]
+    
+    for index_case in range(N):
+        final_state = dict.fromkeys(range(N),0)
+        final_state[index_case] = 1
+        assert Propagation_SI.propagation(tempnet,index_case,probabilities)[T-1] == final_state

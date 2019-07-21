@@ -61,19 +61,9 @@ temporal_network = Saves.network_load(N=N,T=T,start=net_name, k=it_chosen)
 
     #SI PROPAGATION
     #Probabilities dict
-def poisson_probability(t): #function definition
-    """
-    This function reproduces the Poisson PDF, whose average depends on beta.
-    Its integral is the probability of having and infection for a I-S contact lasting t.
-    
-    Parameter: t (int), representing time duration of a contact.
-    Returns: a float, representing PDF for that t.
-    """
-    lam = -np.log(1-beta) # Chen, Benzi use 60
-    return(lam*np.exp(-lam*t))
 probabilities = dict() #dict building
 for t in range(T):
-    probabilities[t] = quad(poisson_probability,0,t)[0] #quad produces several outputs, integral is the first
+    probabilities[t] = quad(Propagation_SI.poisson_probability,0,t, args = beta)[0] #quad produces several outputs, integral is the first
 
     #Function evoking
 label = [] 
@@ -85,9 +75,10 @@ for index_case in range(N):
         assert label[index_case][iteration][0][index_case] == 1, "An index case appears to be uninfected"
         assert sum(label[index_case][iteration][0].values()) == 1, "There should be only 1 infect at the beginning"
 assert [[label[index_case][iteration][0] == label[index_case][iteration-1][0] for iteration in range(1,K)] for index_case in range(N)], "Initial condition is not equal for all iterations" 
-    
+#asserire che sum deve essere sempre <= N? (usa .values())
+
     #Centrality measures
-spec_radius, Q = Evolutions.communicability(temporal_network)
+rec_spec_radius, Q = Evolutions.communicability(temporal_network)
 nodes_Bcentrality, nodes_Brank = Evolutions.broadcast_ranking(Q) #scores, node rankings
 nodes_Rcentrality, nodes_Rrank = Evolutions.receive_ranking(Q) #scores, node rankings
 
@@ -97,6 +88,7 @@ for index_case in range(N):
     virulence.append([]) #create the i-th entry
     for iteration in range(K):
         virulence[index_case].append(Propagation_SI.time_score(label[index_case][iteration],0.6))
+    virulence[index_case] = np.mean(virulence[index_case])
 virulence_rank = np.argsort(virulence)
 
 #Results print
