@@ -5,8 +5,8 @@ This file provides further explanations about tests perfromed in Test Suite.
 
 # Table of contents
 * [Assertions](#assertion-functions)
-* [Evolution tests](#evolution-functions-tests)
-* [Measures tests](#measures-functions-tests)
+* [Evolutions.py tests](#evolutions-tests)
+* [Propagation.py tests](#propagation_si-tests)
 
 # Assertion functions
 This project makes deep use of assertion as preliminary checks of **input** parameters for functions. It's known that assertions may be easily muted, so they don't guarantee high security standards, but for our purposes they're enough. 
@@ -14,7 +14,7 @@ Since some checks will require more than one assertions and more then one perfor
 
 One larger function, used only in this script for **output** datas, is **Structural_suite**: since some structural tests will be repetead multiple times in DAR/TGRG tests, they are collected here, to ensure a temporal network has the right parameters (number of nodes and duration) and **mathematical properties**. If they are passed, it doesn't mean that output networks are produced correctly, but just that their structure is how it was supposed to.
 
-# Evolution.py tests
+# Evolutions tests
 Since it's a stochastic process, one cannot make assertions about the exact outcome values of network evolution functions, aside from some limit-cases, that are found and checked. The other functions are easier to prove right.
 
 * **generations**: structural suite and limit cases are checked; since multiple limit combinations are possible, multiple tests of the same kind are performed, changing time by time some parameters like number of nodes and duration, just for sake of completenes.
@@ -26,7 +26,7 @@ Since it's a stochastic process, one cannot make assertions about the exact outc
 * **communicability**: test is performed by comparing a "manual" computation of a communicability matrix, and the one performed by the namesake function. Temporal network is a 3-3-3 sequence of equal adjacences, with all nodes linked and no auto-loops; max eigenvalue is known being 2, so the coefficient multipling each adjacency (check [Centrality Measure section](https://github.com/SilvioAiello/Epidemiology-on-Temporal-Networks/blob/master/docs/explanation.md#centrality-measures)) is 0.125.
 Since the two computations follow slightly processes, some differences may raise at last decimals, so we don't state results to be equal, but just to differ within a very small number as 10^(-10), which is several orders of magnitude greater then the average deviation between all communicability values.
 
-# Propagation_SI.py tests
+# Propagation_SI tests
 Also in this case, stochastic functions are tested through their limit cases.
 
 * **neighbourhood**: in this project, a node neighbourhood is the set of nodes that can infect another one. Still forbiding auto-loops, "empty" and "full" networks are verified to have all nodes with empty (0) and full (N-1) neighbourhoods. One node, from the full network, is also selected and deprived, time by time, of all ingoing links, verifying its neighbours to decrease, while all the others' ones are unaffected. This proves that the way this functions has been built, avoids user of caring about out- or in- going links, since functions deals with this by itself.
@@ -38,3 +38,4 @@ Also in this case, stochastic functions are tested through their limit cases.
 * **propagation_SI** two limit cases are tested, recalling that beta is probability of infection after 1 time time step: 
 1) beta -> 0, ensuring no epidemic spread at all, regardless of network structure;
 2) "medium" beta (0.6666...), in a fully connected network of duration T=20, where each node (besides index case) has only 0.333... probability of not being infected after 1 time steps. Probability of not having a full infection after 20 steps is so small we expect this to never happen.
+Moreover, a standard generation of DAR tempnet, with propagation, is performed, and result undergoes following tests: index case is properly initialized, and definitely is the only starting infected; all initial conditions with same indexcases are the same.
