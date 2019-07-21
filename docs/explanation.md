@@ -86,7 +86,8 @@ Probability of infection, for a contact lasting t, is given by integrating Poiss
 This section will be deepened in further developments.
 
 ## Epidemic scores
-Node virulence is determined by:
-    * making a node an epidemic index case, so we can be sure that infection time depends on its, and neighbours', "centrality" and 
-    * computing minimum or avaverageg time (over a range of K iterations, with the same initial condition) infection takes to reach to a certain percentage of the whole network.
+Node virulence can be determined in two steps:
+1) making a node an epidemic index case, so we can be sure that infection time depends on its, and neighbours', "centrality" and 
+2) computing minimum or avaverageg time (over a range of K iterations, with the same initial condition) infection takes to reach to a certain percentage of the whole network.
+
 Choosing minimum or average may lead to different scores; at the moment, only average is considered.
