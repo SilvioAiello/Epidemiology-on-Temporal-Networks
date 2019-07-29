@@ -4,13 +4,15 @@ This file provides further explanations about tests perfromed in Test Suite.
         2) tests to verify that functions in "Evolutions.py" and "Propagation_SI.py" run correctly.
 
 # Table of contents
-* [Assertions](#assertion-functions)
+* [Assertions_suite.py](#assertion-functions)
 * [Evolutions.py tests](#evolutions-tests)
 * [Propagation.py tests](#propagation_si-tests)
 
 # Assertion functions
 This project makes deep use of assertion as preliminary checks of **input** parameters for functions. It's known that assertions may be easily muted, so they don't guarantee high security standards, but for our purposes they're enough. 
-Since some checks will require more than one assertions and more then one performance, they are collected in some functions, located here and mostly imported by **Evolutions** and **Propagations** scripts. These functions impose inputs to be an np.array of a certain dimension, or to have a square shape, or to be probability matrices (so accepting only values from 0 to 1), or to be a natural number (integer and >=0), or to be a matrix with 0-diagonal.
+Since some checks will require more than one assertions and more then one performance, they are collected in some functions, located in "Assertions_suite" script and mostly imported by **Evolutions** and **Propagations** scripts. These functions impose inputs to be an np.array of a certain dimension, or to have a square shape, or to be probability matrices (so accepting only values from 0 to 1), or to be a natural number (integer and >=0), or to be a matrix with 0-diagonal.
+
+These verifications always return a True or False value, so that they can be "asserted" in importing functions.
 
 One larger function, used only in this script for **output** datas, is **Structural_suite**: since some structural tests will be repetead multiple times in DAR/TGRG tests, they are collected here, to ensure a temporal network has the right parameters (number of nodes and duration) and **mathematical properties**. If they are passed, it doesn't mean that output networks are produced correctly, but just that their structure is how it was supposed to.
 

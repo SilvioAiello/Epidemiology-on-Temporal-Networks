@@ -4,6 +4,7 @@ If you're interested in just one function or script, use Table of Content to dir
 
 # Table of contents (scripts and their functions)
 * [Main.py](#main)
+* [Main_analysis.py](#main_analysis)
 * [Evolutions.py](#evolutions)
   * [Network generation functions](#network_generation_dar-and-network_generation_tgrg)
   * [Degree functions](#degree-functions)
@@ -14,27 +15,34 @@ If you're interested in just one function or script, use Table of Content to dir
   * [Epidemic scores functions](#epidemic-scores)
 * [Propagation LTM](#propagation_ltm)
 * [Saves.py](#saves)
-  * Network save/load
-  * Analysis save/load
+  * Networks save/load
+  * Epidemics save/load
 
 # Main
-        From this script, user can import and use functions from all the others, providing its own parameters.
-Here's a list of the changeable parameters:
+        From this script, user can generate temporal networks and perform epidemic upon them.
+        System parameters must be set in "inputs.ini" file.
+
+Here's a list of the changeable parameters you can set in "inputs.ini" file:
 * **N, T**: nodes and duration of temporal network;
 * **isDAR**, **isDIRECTED**: tempnet evolution's law and symmetry;
 * **net_REAL**,**K**: number of tempnet realizations and epidemic simulations; generating several tempnet is up to you, but iterating propagation for nodes is "compulsory", since scores MUST be averages; so net_REAL can be 1, K must be > 1 (some assertions make sure of this);
 * **net_name**: identificative name you give to network (make sure to variate: networks with same N,T,type,iteration and identification may be overwritten;
-* **it_chosen**: what temporal realization you want to be infected;
 * **P**,**alpha** and **xi** are defined, for DAR networks, in explanation, as well as, **phi0,phi1,epsilon** for TGRG;
 * **beta**: infection rate, that defines epidemic virulence.
 
-These containers store produced data:
-* **temp** is a temporary structure that stores, step by step, each temporal network realization, while **temporal_network** loads the selected one (where performing propagation);
-* Epidemic states evolution goes in **label**, whose syntax is: label\[index_case]\[iteration]\[time_step]\[node]; so, it is a list of N dictionaries (one for each node-set as index case), containing a list of the results K iterations (one for each same epidemic simulation), which in turn are dictionary of dictionaries, describing evolution of nodes states (as you will see in *propagation function*);
+To create a new network or epidemic, just add a new section in the input file: this script performs a simulation for each section. Similarly, remove a section if it's not more of your interest, otherwise it will be always used for simulations.
+
+The script produces, and saves, a **temporal_network** and a **label** structure, whose syntax is: label\[index_case]\[iteration]\[time_step]\[node]; so, it is a list of N dictionaries (one for each node-set as index case), containing a list of the results K iterations (one for each same epidemic simulation), which in turn are dictionary of dictionaries, describing evolution of nodes states (as you will see in *propagation function*);
+
+# Main analysis
+         From this script, user can perform structural and epidemiological measures upon networks.
+         System parameters must be set in "inputs.ini" file
+
+After loading both network and epidemic, centrality and virulence measures are performed, and these data strucrures are used to store informations:
 * **spec_radius** and **Q** are the inverse of maximum spectral radius of all adjacencies and Communicability matrix;
 * **B/R Centrality** and **virulence** scores are computed in namesake lists.
 
-Script ends with printing of structural and virulence results: hopefully, as many nodes as possible lead both rankings.
+Script ends with printing of structural and virulence results.
 
 # Evolutions
     Functions in this script work in Pyhon3, may require numpy (v1.16) and allow to:
@@ -410,7 +418,9 @@ They are computed making use of two functions:
 This section will be deepened in further developments.
 
 # Saves
-     Functions in this script work in Pyhon3, require os, pickle, and allow to save results and produce plots.
+     Functions in this script work in Pyhon3, require os, pickle, and allow to save results.
 Results are saved, or load (you may need to load a previously generated network) by these functions:
  * **network_save**: serializes data structures in binary protocol, using **pickle** (if you don't know what does it mean, check [here](https://docs.python.org/3/library/pickle.html)), following the foldering/naming rule expressed in Readme (so, distinguishing networks according to their parameters and realizations), allowing user to add a particoular identification name to the file, and using **os** libary to generate folders. Os and pickle belong to Python standard library.
  * **network_load**: loads pickle files, checking them by parameters and identification name.
+ 
+ * **infection_save/load** work in a very similar way; the first just doesn't make preliminary check, since at that point of the script everything should have worked as expected. They require to underline parameter "beta", which is used in output file name.
