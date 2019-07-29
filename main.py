@@ -19,58 +19,58 @@ import Saves
 import configparser
 #%%         CONFIGURATION READING
 config = configparser.ConfigParser()
-config.read('inputs.ini')
-for section in config.sections():
-    N = config[section].getint('N') #nodes
-    T = config[section].getint('T') #duration
-    isDAR = config[section].getboolean('isDAR') #type
-    isDIRECTED = config[section].getboolean('isDIRECTED') #network symmetry
-    
-    NET_REAL  = config[section].getint('NET_REAL') #network realizations
-    K = config[section].getint('K') #infection realizations
-    
-    net_name = config[section]['net_name'] #identification name
-    
-    P = config[section].getint('P') #DAR order
-    alpha_constant = config[section].getfloat('alpha_constant') #alpha matrix constant
-    xi_constant = config[section].getfloat('xi_constant') #xi matrix constant
-    
-    phi0_constant = config[section].getfloat('phi0_constant') #phi0 vector constant
-    phi1_constant = config[section].getfloat('phi1_constant') #phi1 vector constant
-    epsilon_constant = config[section].getfloat('epsilon_constant') #epsilon vector constant
-    
-    beta = config[section].getfloat('beta') #infection rate
+config.read('run2.ini') #CHANGE THE NUMBER OF THE RUN TO PERFORM YOUR SIMULATION
 
-    #%% MATRICES BUILDING
-        #DAR MATRICES
-    alpha = alpha_constant*np.ones((N,N))
-    xi = xi_constant*np.ones((N,N))
-        #TGRG MATRICES
-    phi0 = phi0_constant*np.ones(N)
-    phi1 = phi1_constant*np.ones(N)
-    epsilon=epsilon_constant*np.ones(N)
-    #%% OUTPUTS GENERATION
-        #preliminar assertions
-    assert NET_REAL >= 1, "NET_REAL should be >=1"
-    assert K > 1, "K should be >1"
+N = config['simulation'].getint('N') #nodes
+T = config['simulation'].getint('T') #duration
+isDAR = config['simulation'].getboolean('isDAR') #type
+isDIRECTED = config['simulation'].getboolean('isDIRECTED') #network symmetry
+
+NET_REAL  = config['simulation'].getint('NET_REAL') #network realizations
+K = config['simulation'].getint('K') #infection realizations
+
+net_name = config['simulation']['net_name'] #identification name
+
+P = config['simulation'].getint('P') #DAR order
+alpha_constant = config['simulation'].getfloat('alpha_constant') #alpha matrix constant
+xi_constant = config['simulation'].getfloat('xi_constant') #xi matrix constant
+
+phi0_constant = config['simulation'].getfloat('phi0_constant') #phi0 vector constant
+phi1_constant = config['simulation'].getfloat('phi1_constant') #phi1 vector constant
+epsilon_constant = config['simulation'].getfloat('epsilon_constant') #epsilon vector constant
+
+beta = config['simulation'].getfloat('beta') #infection rate
+
+#%% MATRICES BUILDING
+    #DAR MATRICES
+alpha = alpha_constant*np.ones((N,N))
+xi = xi_constant*np.ones((N,N))
+    #TGRG MATRICES
+phi0 = phi0_constant*np.ones(N)
+phi1 = phi1_constant*np.ones(N)
+epsilon=epsilon_constant*np.ones(N)
+#%% OUTPUTS GENERATION
+    #preliminar assertions
+assert NET_REAL >= 1, "NET_REAL should be >=1"
+assert K > 1, "K should be >1"
+
+    #TEMPNETS GENERATION
+for k in range(1,NET_REAL+1):  #so first realization has index 1
+    if isDAR: #use the proper functiond wheter user selected dar or tgrg
+        temporal_network = Evolutions.network_generation_dar(alpha,xi,P=P,T=T,directed=isDIRECTED) 
+    else:
+        temporal_network = Evolutions.network_generation_tgrg(alpha,xi,P=P,T=T,directed=isDIRECTED) 
+    Saves.network_save(temporal_network,net_name, isDAR = isDAR, k=k, P=1)
+        #SI PROPAGATION
+        #Probabilities dict
+    probabilities = dict() #dict building
+    for t in range(T):
+        probabilities[t] = quad(Propagation_SI.poisson_probability,0,t, args = beta)[0] #quad produces several outputs, integral is the first
     
-        #TEMPNETS GENERATION
-    for k in range(1,NET_REAL+1):  #so first realization has index 1
-        if isDAR: #use the proper functiond wheter user selected dar or tgrg
-            temporal_network = Evolutions.network_generation_dar(alpha,xi,P=P,T=T,directed=isDIRECTED) 
-        else:
-            temporal_network = Evolutions.network_generation_tgrg(alpha,xi,P=P,T=T,directed=isDIRECTED) 
-        Saves.network_save(temporal_network,net_name, isDAR = isDAR, k=k, P=1)
-            #SI PROPAGATION
-            #Probabilities dict
-        probabilities = dict() #dict building
-        for t in range(T):
-            probabilities[t] = quad(Propagation_SI.poisson_probability,0,t, args = beta)[0] #quad produces several outputs, integral is the first
-        
-            #Function evoking
-        label = [] 
-        for index_case in range(N):
-            label.append([]) #create the i-th entry
-            for iteration in range(K):
-                label[index_case].append(Propagation_SI.propagation(temporal_network, index_case, probabilities))
-        Saves.infection_save(label,N,T,beta, net_name, isDAR = isDAR, k=k, P=1)
+        #Function evoking
+    label = [] 
+    for index_case in range(N):
+        label.append([]) #create the i-th entry
+        for iteration in range(K):
+            label[index_case].append(Propagation_SI.propagation(temporal_network, index_case, probabilities))
+    Saves.infection_save(label,N,T,beta, net_name, isDAR = isDAR, k=k, P=1)
