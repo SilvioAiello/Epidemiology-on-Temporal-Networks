@@ -16,61 +16,68 @@ from scipy.integrate import quad #used in dictionary of probabilities
 import Evolutions
 import Propagation_SI
 import Saves
-#%%         USER ACTION
-    #GENERAL PARAMETERS
-N=10 #nodes
-T=100 #duration
-isDAR = True #type
-isDIRECTED = False #network symmetry
-    #NUMBER OF ITERATIONS
-NET_REAL = 1 #tempnet
-K = 5 #infection
-    #ANALYSIS
-net_name = 'CHOOSE NAME' #identification name
-it_chosen = 1 #what network iteration to infect
 
-    #DAR INPUTS
-P = 1 #order
-alpha = 0.6*np.ones((N,N)) #you can change values, but keep it (N,N)
-xi = 0.5*np.ones((N,N)) #you can change value, but keep it (N,N)
-    #TGRG INPUTS
-phi0 = 0.5*np.ones(N) #change values, but keep it (N)
-phi1 = 0.5*np.ones(N) #change values, but keep it (N)
-epsilon=0.5*np.ones(N)#change values, but keep it (N)
+import configparser
+#%%         CONFIGURATION IMPORT
+config = configparser.ConfigParser()
+config.read('inputs.ini')
+for section in config.sections():
+    N = config[section].getint('N') #nodes
+    T = config[section].getint('T') #duration
+    isDAR = config[section].getboolean('isDAR') #type
+    isDIRECTED = config[section].getboolean('isDIRECTED') #network symmetry
+    
+    NET_REAL  = config[section].getint('NET_REAL') #network realizations
+    K = config[section].getint('K') #infection realizations
+    
+    net_name = config[section]['net_name'] #identification name
+    
+    P = config[section].getint('P') #DAR order
+    alpha_constant = config[section].getfloat('alpha_constant') #alpha matrix constant
+    xi_constant = config[section].getfloat('xi_constant') #xi matrix constant
+    
+    phi0_constant = config[section].getfloat('phi0_constant') #phi0 vector constant
+    phi1_constant = config[section].getfloat('phi1_constant') #phi1 vector constant
+    epsilon_constant = config[section].getfloat('epsilon_constant') #epsilon vector constant
 
-    #EPIDEMIC PARAMETERS
-beta = 0.005 #infection rate
+    #%% MATRICES BUILDING
+        #DAR MATRICES
+    alpha = alpha_constant*np.ones((N,N))
+    xi = xi_constant*np.ones((N,N))
+        #TGRG MATRICES
+    phi0 = phi0_constant*np.ones(N)
+    phi1 = phi1_constant*np.ones(N)
+    epsilon=epsilon_constant*np.ones(N)
+    
+        #EPIDEMIC PARAMETERS
+    beta = 0.005 #infection rate
+    
+    #%% OUTPUTS GENERATION
+        #preliminar assertions
+    assert NET_REAL >= 1, "NET_REAL should be >=1"
+    assert K > 1, "K should be >1"
+    
+        #TEMPNETS GENERATION
+    for k in range(1,NET_REAL+1):  #so first realization has index 1
+        if isDAR: #use the proper functiond wheter user selected dar or tgrg
+            temporal_network = Evolutions.network_generation_dar(alpha,xi,P=P,T=T,directed=isDIRECTED) 
+        else:
+            temporal_network = Evolutions.network_generation_tgrg(alpha,xi,P=P,T=T,directed=isDIRECTED) 
+        Saves.network_save(temporal_network,net_name, isDAR = isDAR, k=k, P=1)
+       
+            #SI PROPAGATION
+            #Probabilities dict
+        probabilities = dict() #dict building
+        for t in range(T):
+            probabilities[t] = quad(Propagation_SI.poisson_probability,0,t, args = beta)[0] #quad produces several outputs, integral is the first
+        
+            #Function evoking
+        label = [] 
+        for index_case in range(N):
+            label.append([]) #create the i-th entry
+            for iteration in range(K):
+                label[index_case].append(Propagation_SI.propagation(temporal_network, index_case, probabilities))
 
-#%% OUTPUTS GENERATION
-    #preliminar assertions
-assert NET_REAL >= 1, "NET_REAL should be >=1"
-assert K > 1, "K should be >1"
-assert it_chosen >=1, "it_chosen should be >=1"
-assert it_chosen <=NET_REAL, "Realization not found"
-
-    #TEMPNETS GENERATION
-for k in range(1,NET_REAL+1):  #so first realization has index 1
-    if isDAR: #use the proper functiond wheter user selected dar or tgrg
-        temp = Evolutions.network_generation_dar(alpha,xi,P=P,T=T,directed=isDIRECTED) 
-    else:
-        temp = Evolutions.network_generation_tgrg(alpha,xi,P=P,T=T,directed=isDIRECTED) 
-    Saves.network_save(temp,net_name, isDAR = isDAR, k=k, P=1)
-
-    #Network to analyze
-temporal_network = Saves.network_load(N=N,T=T,start=net_name, k=it_chosen)
-
-    #SI PROPAGATION
-    #Probabilities dict
-probabilities = dict() #dict building
-for t in range(T):
-    probabilities[t] = quad(Propagation_SI.poisson_probability,0,t, args = beta)[0] #quad produces several outputs, integral is the first
-
-    #Function evoking
-label = [] 
-for index_case in range(N):
-    label.append([]) #create the i-th entry
-    for iteration in range(K):
-        label[index_case].append(Propagation_SI.propagation(temporal_network, index_case, probabilities))
 
     #Centrality measures
 rec_spec_radius, Q = Evolutions.communicability(temporal_network)
