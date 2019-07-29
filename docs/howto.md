@@ -30,7 +30,7 @@ Here's a list of the changeable parameters you can set in "inputs.ini" file:
 * **P**,**alpha** and **xi** are defined, for DAR networks, in explanation, as well as, **phi0,phi1,epsilon** for TGRG;
 * **beta**: infection rate, that defines epidemic virulence.
 
-To create a new network or epidemic, just add a new section in the input file: this script performs a simulation for each section. Similarly, remove a section if it's not more of your interest, otherwise it will be always used for simulations.
+To create a new network or epidemic, just create a new *run.ini* file: this script performs simulation for the selected configuration file.
 
 The script produces, and saves, a **temporal_network** and a **label** structure, whose syntax is: label\[index_case]\[iteration]\[time_step]\[node]; so, it is a list of N dictionaries (one for each node-set as index case), containing a list of the results K iterations (one for each same epidemic simulation), which in turn are dictionary of dictionaries, describing evolution of nodes states (as you will see in *propagation function*);
 
