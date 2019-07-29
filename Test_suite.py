@@ -8,8 +8,6 @@ Functions in this script work in Pyhon3, may require numpy (v1.16) and function 
 From this module you can extract the following assertion-functions: 
     adiacency, ndarray, nulldiagonal, probability, square, symmetry; natural.
 
-#TODO: AS TEACHER SAID, EXPLAIN HOW TO GET THE SAME RESULTS I GOT
-
 For further understandings on how this script operates, check file "docs/tests.md"      
 """
 import numpy as np
@@ -17,66 +15,7 @@ from scipy.integrate import quad
 
 import Evolutions
 import Propagation_SI
-#%% ASSERTIONS
-# Matrices
-def assert_adiacency(network):
-    """
-    Verifies that the provided network only has 0 or 1 values, so it's an adiacency with max 1 link per couple of nodes.
-    
-    np.extract returns an array containing input values with a provided property.
-    If searching for non-(0,1) values returns an empty list, matrix is correctly and adiacency of desidered type.
-    
-    Parameters: np.array, of any dimension
-    """
-    #extact returns an array containing all values with a provided property
-    assert len(np.extract(np.extract(network!=0, network) !=1, network)) ==0, "Error: there is at least one non-0 or non-1 value in adiacency"
-
-def assert_ndarray(network,dimensions):
-    """
-    Check if a data structure is a np.array, with proper dimension expressed by an integer
-    
-    Parameters: np.array and an integer for dimension
-    """
-    assert isinstance(network,np.ndarray), "Error: matrix must be a numpy array"
-    assert len(network.shape) == dimensions, "Error: matrix has not the proper dimension"
-
-def assert_nulldiagonal(matrix):
-    """
-    Check that matrix has null diagonal
-    """
-    assert sum(np.diag(matrix)) == 0, "Error: network has not-0 diagonal"
-
-def assert_probability(network):
-    """
-    Verify input matrix is a probability matrix: it's value must be whitin 0 and 1
-    """
-    #check that all elements are probabilities
-    assert (network<= 1).all(),"Error: at least one element in a probability matrix is >1, so it's not a probability"
-    assert (network>=0).all(),"Error: at least one element in probability matrix is <0, so it's not a probability"
-
-def assert_square(network):
-    """
-    Checks if a data structure is square-like, i.e. each of its sides has the same length (as the first one)
-    """
-    #check if matrix is a square by comparing each side length with the first side
-    for i in range(len(network.shape)):
-        assert network.shape[i] == network.shape[0], "Error: matrix is not a square"
-
-def assert_symmetry(temporal_network):
-    """
-    Verifies if a matrix is simmetric, by appling definition using python built-in T module
-    
-    Remember that simmetry is defined only for squared matrices.
-    """
-    assert (temporal_network == temporal_network.T).all(), "Error: network is not symmetric"
-
-# Parameters
-def assert_natural(number):
-    """
-    Check that input is a positive integer
-    """
-    assert isinstance(number, int), "Error: %f is not an integer, but it should be" %number
-    assert number>0, "Error: %i is not positive, but it should be" %number
+import Assertions_suite
 
 def structural_suite(network,nodes_number,duration,symmetry = True):
     """
@@ -92,14 +31,15 @@ def structural_suite(network,nodes_number,duration,symmetry = True):
         supposed duration (i.e. number of adiacencies)
     symmetry: bool
     """
-    assert_ndarray(network,3) #3d np.array
+    assert Assertions_suite.check_is_ndarray(network,3) #3d np.array
     assert len(network) == duration, "Error: output network has not the right duration"
     assert len(network[0]) == nodes_number, "Error: number of nodes doesn't match with one of adiecency length"
-    assert_adiacency(network) #only 0 or 1 values for adiacencies
-    [assert_square(network[t]) for t in range(duration)]  #each adiacency is a square of proper size
-    [assert_nulldiagonal(network[t]) for t in range(duration)] #each adiacency has null-diagonal
-    if symmetry:
-        [assert_symmetry(network[t]) for t in range(duration)]
+    assert Assertions_suite.check_is_adiacency(network) #only 0 or 1 values for adiacencies
+    for t in range(duration):
+        assert Assertions_suite.check_is_square(network[t]) #each adiacency is a square of proper size
+        assert Assertions_suite.check_is_nulldiagonal(network[t]) #each adiacency has null-diagonal
+        if symmetry:
+            assert Assertions_suite.check_is_symmetry(network[t])
 
 #%% DAR GENERATION 
 def test_Evolutions_DARgeneration1():
