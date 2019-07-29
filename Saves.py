@@ -10,7 +10,7 @@ For further understandings on how this script operates, check file "docs/howto.m
 import pickle
 import os
 
-import Test_suite
+import Assertions_suite
 
 def network_save(network, start,isDAR=True,k=1, P=1):
     """ Saves network using pickle (so it must be installed) and giving it its proper name (with an identification provided by user) and folder
@@ -34,8 +34,8 @@ def network_save(network, start,isDAR=True,k=1, P=1):
         If PATH didn't exist, it's created
     """
     #ASSERTS
-    Test_suite.assert_natural(P) #there's no need to perform other checks, since they have been already performed
-    Test_suite.assert_natural(k)
+    assert Assertions_suite.check_is_natural(P) #there's no need to perform other checks, since they have been already performed
+    assert Assertions_suite.check_is_natural(k)
     assert type(start) == str
 
     #FUNCTION

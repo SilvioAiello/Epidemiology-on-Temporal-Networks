@@ -12,7 +12,7 @@ For further understandings on how this script operates, check file "docs/howto.m
 For further theoretical understandings, check file "docs/explanation.md".
 """
 import numpy as np #Used for its random functions and data structures
-import Test_suite
+import Assertions_suite
 #%% EASING FUNCTIONS
 def neighbourhood(adjacency,node):
     """Extracts the subset of nodes that reach the given one at a certain time.
@@ -42,9 +42,9 @@ def neighbourhood(adjacency,node):
         
     """
     #ASSERTS
-    Test_suite.assert_ndarray(adjacency,2)
-    Test_suite.assert_square(adjacency)
-    Test_suite.assert_nulldiagonal(adjacency)
+    assert Assertions_suite.check_is_ndarray(adjacency,2)
+    assert Assertions_suite.check_is_square(adjacency)
+    assert Assertions_suite.check_is_nulldiagonal(adjacency)
     
     assert isinstance(node, int)
     assert node <= len(adjacency), "Error: node not present"
@@ -127,9 +127,10 @@ def contact_lasting(tempnet,states_sequence,t,infected_node,susceptible_node):
     assert infected_node<N, "infected_node doesn't exist"
     assert susceptible_node<N, "susceptible_node doesn't exist"
     
-    Test_suite.assert_ndarray(tempnet,3) #ask it to be a square array of the first dimension of the network
-    [Test_suite.assert_square(tempnet[i]) for i in range(t)] #check square for each step
-    [Test_suite.assert_nulldiagonal(tempnet[i]) for i in range(t)] #check null diagonal for each step
+    assert Assertions_suite.check_is_ndarray(tempnet,3) #ask it to be a square array of the first dimension of the network
+    for i in range(T):
+        assert Assertions_suite.check_is_square(tempnet[i]) #check square for each step
+        assert Assertions_suite.check_is_nulldiagonal(tempnet[i]) #check null diagonal for each step
     
     assert infected_node != susceptible_node, "Nodes are the same"
     assert states_sequence[t][infected_node] == 1, "Infected node is not infected at time %i"%(infected_node,t)
@@ -203,9 +204,10 @@ def propagation(tempnet,index_case,probabilities):
     assert isinstance(index_case, int)
     assert index_case<N, "index_case doesn't exist"
     
-    Test_suite.assert_ndarray(tempnet,3) #ask it to be a square array of the first dimension of the network
-    [Test_suite.assert_square(tempnet[t]) for t in range(T)] #check square for each step
-    [Test_suite.assert_nulldiagonal(tempnet[t]) for t in range(T)] #check null diagonal for each step
+    assert Assertions_suite.check_is_ndarray(tempnet,3) #ask it to be a square array of the first dimension of the network
+    for t in range(T):
+        assert Assertions_suite.check_is_square(tempnet[t]) #check square for each step
+        assert Assertions_suite.check_is_nulldiagonal(tempnet[t]) #check null diagonal for each step
     
     assert isinstance(probabilities, dict), "Probabilities is not a dictionary"
     assert len(probabilities) == T, "Probabilities doesn't meet tempnet duration"

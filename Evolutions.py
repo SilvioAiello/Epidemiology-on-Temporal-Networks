@@ -13,7 +13,7 @@ For further understandings on how this script operates, check file "docs/howto.m
 For further theoretical understandings, check file "docs/explanation.md".
 """
 import numpy as np
-import Test_suite
+import Assertions_suite
 #%%
 def network_generation_dar(alpha,xi,P=1, T=100, directed = False):
     """
@@ -55,19 +55,19 @@ def network_generation_dar(alpha,xi,P=1, T=100, directed = False):
     
     """
     # PRELIMINARY ASSERTS, TO UNSURE FUNCTION WORKS PROPERLY
-    Test_suite.assert_ndarray(alpha,2)
-    Test_suite.assert_square(alpha)
-    Test_suite.assert_probability(alpha)
+    assert Assertions_suite.check_is_ndarray(alpha,2)
+    assert Assertions_suite.check_is_square(alpha)
+    assert Assertions_suite.check_is_probability(alpha)
     
-    Test_suite.assert_ndarray(xi,2)
-    Test_suite.assert_square(xi)
-    Test_suite.assert_probability(xi)
+    assert Assertions_suite.check_is_ndarray(xi,2)
+    assert Assertions_suite.check_is_square(xi)
+    assert Assertions_suite.check_is_probability(xi)
 
     N = len(alpha) #if everything is ok, get info about number of nodes
     assert N<1000, "Error: for computational ease, this functuion accepts only networks with dimension < 1000"
     
-    Test_suite.assert_natural(T)
-    Test_suite.assert_natural(P)
+    assert Assertions_suite.check_is_natural(T)
+    assert Assertions_suite.check_is_natural(P)
     assert T<1000, "Note: for computational ease, this functuion accepts only networks with duration < 1000"
     assert P < T, "Error: you're trying to generate a DAR(P) model where P is higher or equal to evolution's lasting"
     
@@ -147,14 +147,14 @@ def network_generation_tgrg(phi0,phi1,sigma,T=100, directed = False):
     
     """
     # PRELIMINARY ASSERTS, TO UNSURE FUNCTION WORKS PROPERLY 
-    Test_suite.assert_ndarray(phi0,1)
-    Test_suite.assert_ndarray(phi1,1)
-    Test_suite.assert_ndarray(sigma,1)
+    assert Assertions_suite.check_is_ndarray(phi0,1)
+    assert Assertions_suite.check_is_ndarray(phi1,1)
+    assert Assertions_suite.check_is_ndarray(sigma,1)
     
     N = len(phi0) #if everything is ok, get info about number of nodes
     assert N<1000, "Error: for computational ease, this functuion accepts only networks with dimension < 1000"
     
-    Test_suite.assert_natural(T)
+    assert Assertions_suite.check_is_natural(T)
     assert T<1000, "Note: for computational ease, this functuion accepts only networks with duration < 1000"
     
     assert type(directed) == bool, "Error: only bool type is allowed for variable directed"
@@ -211,9 +211,9 @@ def degree_node(network,node,out = True):
         
     """
     #ASSERTS
-    Test_suite.assert_ndarray(network,2)
-    Test_suite.assert_square(network)
-    Test_suite.assert_nulldiagonal(network)
+    assert Assertions_suite.check_is_ndarray(network,2)
+    assert Assertions_suite.check_is_square(network)
+    assert Assertions_suite.check_is_nulldiagonal(network)
     
     assert type(node) == int, "Error: index for nodes must be an integer"
     assert node <= len(network), "Error: node not present"
@@ -259,13 +259,14 @@ def degree_mean(tempnet, out = True):
     #Infer temporal duration and perform assertions
     if len(tempnet.shape) == 3:
         T = tempnet.shape[0]
-        [Test_suite.assert_square(tempnet[t]) for t in range(T)] #check square for each step
-        [Test_suite.assert_nulldiagonal(tempnet[t]) for t in range(T)] #check null diagonal for each step
+        for t in range(T):
+            assert Assertions_suite.check_is_square(tempnet[t]) #check square for each step
+            assert Assertions_suite.check_is_nulldiagonal(tempnet[t]) #check null diagonal for each step
         network = tempnet #same new for 3- or 2-dimensional arrays
     elif len(tempnet.shape) == 2:
         T = 1
-        Test_suite.assert_square(tempnet) #check square for each step
-        Test_suite.assert_nulldiagonal(tempnet) #check null diagonal for each step
+        assert Assertions_suite.check_is_square(tempnet) #check square for each step
+        assert Assertions_suite.check_is_nulldiagonal(tempnet) #check null diagonal for each step
         network = np.zeros((T,N,N))
         network[0] = tempnet #same new for 3- or 2-dimensional arrays
     else:
@@ -318,9 +319,10 @@ def communicability(temporal):
     N = temporal.shape[1]
     
     #ASSERTS
-    Test_suite.assert_ndarray(temporal,3) #ask it to be a square array of the first dimension of the network
-    [Test_suite.assert_square(temporal[t]) for t in range(T)] #check square for each step
-    [Test_suite.assert_nulldiagonal(temporal[t]) for t in range(T)] #check null diagonal for each step
+    assert Assertions_suite.check_is_ndarray(temporal,3) #ask it to be a square array of the first dimension of the network
+    for t in range(T):
+        assert Assertions_suite.check_is_square(temporal[t])
+        assert Assertions_suite.check_is_nulldiagonal(temporal[t]) #check null diagonal for each step
     
     assert any([(temporal[t] == np.zeros((N,N))).all() for t in range(T)]) == False, "At least one adjacency is a zero matrix: communicability is not defined"
     
