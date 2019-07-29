@@ -84,7 +84,7 @@ def network_load(N,T,start,isDAR=True,k=1,P=1):
 #temporal_dar = network_load(100,100,'alphaeqs_xieqs',k=1,isDAR=True,P=1)
 #temporal_fitn= load_network(100,100,isDAR=True,alleq,k=1)
 
-def infection_save(label, N,T, start,isDAR=True,k=1, P=1):
+def infection_save(label, N,T, beta, start,isDAR=True,k=1, P=1):
     """ Saves an infection data structure, defined by its different iterations, using pickle (so it must be installed).
     A proper name and folder is provided for this strucure.
     
@@ -112,14 +112,14 @@ def infection_save(label, N,T, start,isDAR=True,k=1, P=1):
     """
     name = str()
     if isDAR:
-        name = "Networks/N"+str(N)+"_T"+str(T)+"_DAR"+str(P)+"_"+start+"/realization"+str(k)+"/infections.pkl"
+        name = "Networks/N"+str(N)+"_T"+str(T)+"_DAR"+str(P)+"_"+start+"/realization"+str(k)+"/infections_beta"+str(beta)+".pkl"
     else:
-        name = "Networks/N"+str(N)+"_T"+str(T)+"_TGRG_"+start+"/realization"+str(k)+"/infections.pkl"
+        name = "Networks/N"+str(N)+"_T"+str(T)+"_TGRG_"+start+"/realization"+str(k)+"/infections_beta"+str(beta)+".pkl"
     os.makedirs(os.path.dirname(name), exist_ok=True)
     with open(name, 'wb') as handle: #wb = write binary
         pickle.dump(label,handle)
 
-def infection_load(N,T, start,isDAR=True,k=1, P=1):
+def infection_load(N,T, beta, start,isDAR=True,k=1, P=1):
     """ Loads a previously generated infection data structure, defined by its different iterations, using pickle (so it must be installed).
     
     Parameters
@@ -144,9 +144,9 @@ def infection_load(N,T, start,isDAR=True,k=1, P=1):
     """
     name = str()
     if isDAR:
-        name = "Networks/N"+str(N)+"_T"+str(T)+"_DAR"+str(P)+"_"+start+"/realization"+str(k)+"/infections.pkl"
+        name = "Networks/N"+str(N)+"_T"+str(T)+"_DAR"+str(P)+"_"+start+"/realization"+str(k)+"/infections_beta"+str(beta)+".pkl"
     else:
-        name = "Networks/N"+str(N)+"_T"+str(T)+"_TGRG_"+start+"/realization"+str(k)+"/infections.pkl"
+        name = "Networks/N"+str(N)+"_T"+str(T)+"_TGRG_"+start+"/realization"+str(k)+"/infections_beta"+str(beta)+".pkl"
     os.makedirs(os.path.dirname(name), exist_ok=True)
     with open(name, 'rb') as f:
         return pickle.load(f)

@@ -30,10 +30,12 @@ for section in config.sections(): #if you want to analyze few networks, just ???
     
     P = config[section].getint('P') #DAR order
     
+    beta = config[section].getfloat('beta') #infection rate
+    
     #Imports
     for k in range(1,NET_REAL+1):  #so first realization has index 1
-        temporal_network = Saves.load(N,T,net_name,isDAR=isDAR,k=k,P=P)
-        label = Saves.infection_load(N,T,net_name,isDAR=True,k=1, P=1)
+        temporal_network = Saves.network_load(N,T,net_name,isDAR=isDAR,k=k,P=P)
+        label = Saves.infection_load(N,T,beta,net_name,isDAR=True,k=1, P=1)
         
     #%% MEASURES
         #Centrality

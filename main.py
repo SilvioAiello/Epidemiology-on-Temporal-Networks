@@ -38,6 +38,8 @@ for section in config.sections():
     phi0_constant = config[section].getfloat('phi0_constant') #phi0 vector constant
     phi1_constant = config[section].getfloat('phi1_constant') #phi1 vector constant
     epsilon_constant = config[section].getfloat('epsilon_constant') #epsilon vector constant
+    
+    beta = config[section].getfloat('beta') #infection rate
 
     #%% MATRICES BUILDING
         #DAR MATRICES
@@ -47,10 +49,6 @@ for section in config.sections():
     phi0 = phi0_constant*np.ones(N)
     phi1 = phi1_constant*np.ones(N)
     epsilon=epsilon_constant*np.ones(N)
-    
-        #EPIDEMIC PARAMETERS
-    beta = 0.005 #infection rate
-    
     #%% OUTPUTS GENERATION
         #preliminar assertions
     assert NET_REAL >= 1, "NET_REAL should be >=1"
@@ -75,4 +73,4 @@ for section in config.sections():
             label.append([]) #create the i-th entry
             for iteration in range(K):
                 label[index_case].append(Propagation_SI.propagation(temporal_network, index_case, probabilities))
-        Saves.infection_save(label,N,T,net_name, isDAR = isDAR, k=k, P=1)
+        Saves.infection_save(label,N,T,beta, net_name, isDAR = isDAR, k=k, P=1)
