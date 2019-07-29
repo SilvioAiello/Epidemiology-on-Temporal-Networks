@@ -1,11 +1,10 @@
 """
-From this script, user can import and use functions from all the others, providing its own parameters.
+From this script, user can generate temporal networks and perform epidemic upon them.
+System parameters must be set in "inputs.ini" file.
 Functions in this script work in Pyhon3, may require numpy (v1.16) and function "quad" from scipy.integrate (scipy v1.3).
 
 In this module are defined the following functions:
     * poisson_probability
-
-You can set your parameters in "USER ACTION" section.
 
 For further understandings on how this script operates, check file "howto.md".
 For further theoretical understandings, check file "explanation.md".
@@ -18,7 +17,7 @@ import Propagation_SI
 import Saves
 
 import configparser
-#%%         CONFIGURATION IMPORT
+#%%         CONFIGURATION READING
 config = configparser.ConfigParser()
 config.read('inputs.ini')
 for section in config.sections():
@@ -64,7 +63,6 @@ for section in config.sections():
         else:
             temporal_network = Evolutions.network_generation_tgrg(alpha,xi,P=P,T=T,directed=isDIRECTED) 
         Saves.network_save(temporal_network,net_name, isDAR = isDAR, k=k, P=1)
-       
             #SI PROPAGATION
             #Probabilities dict
         probabilities = dict() #dict building
@@ -77,26 +75,4 @@ for section in config.sections():
             label.append([]) #create the i-th entry
             for iteration in range(K):
                 label[index_case].append(Propagation_SI.propagation(temporal_network, index_case, probabilities))
-
-
-    #Centrality measures
-rec_spec_radius, Q = Evolutions.communicability(temporal_network)
-nodes_Bcentrality, nodes_Brank = Evolutions.broadcast_ranking(Q) #scores, node rankings
-nodes_Rcentrality, nodes_Rrank = Evolutions.receive_ranking(Q) #scores, node rankings
-
-    #Virulence measures
-virulence = [] #i-th entry is virulence of i-th node
-for index_case in range(N):
-    virulence.append([]) #create the i-th entry
-    for iteration in range(K):
-        virulence[index_case].append(Propagation_SI.time_score(label[index_case][iteration],0.6))
-    virulence[index_case] = np.mean(virulence[index_case])
-virulence_rank = np.argsort(virulence)
-
-#Results print
-print("Top B-Centrality nodes:")
-print(nodes_Brank[0:9])
-print("Top Virulence nodes:")
-print(virulence_rank[0:9])
-print("Common nodes")
-print(set(nodes_Brank[0:9]).intersection(set(virulence_rank[0:9])))
+        Saves.infection_save(label,N,T,net_name, isDAR = isDAR, k=k, P=1)
