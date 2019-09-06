@@ -17,9 +17,12 @@ import Propagation_SI
 import Saves
 
 import configparser
+
+import time
+start = time.time()
 #%%         CONFIGURATION READING
 config = configparser.ConfigParser()
-config.read('run2.ini') #CHANGE THE NUMBER OF THE RUN TO PERFORM YOUR SIMULATION
+config.read('run1.ini') #CHANGE THE NUMBER OF THE RUN TO PERFORM YOUR SIMULATION
 
 N = config['simulation'].getint('N') #nodes
 T = config['simulation'].getint('T') #duration
@@ -74,3 +77,5 @@ for k in range(1,NET_REAL+1):  #so first realization has index 1
         for iteration in range(K):
             label[index_case].append(Propagation_SI.propagation(temporal_network, index_case, probabilities))
     Saves.infection_save(label,N,T,beta, net_name, isDAR = isDAR, k=k, P=1)
+end = time.time()
+print(end-start)

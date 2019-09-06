@@ -14,9 +14,11 @@ import Saves
 
 import configparser
 
+import time
+start = time.time()
 #%%         CONFIGURATION READING
 config = configparser.ConfigParser()
-config.read('run2.ini') #CHANGE THE NUMBER OF THE RUN TO PERFORM YOUR SIMULATION
+config.read('run1.ini') #CHANGE THE NUMBER OF THE RUN TO PERFORM YOUR SIMULATION
 N = config['simulation'].getint('N') #nodes
 T = config['simulation'].getint('T') #duration
 isDAR = config['simulation'].getboolean('isDAR') #type
@@ -60,3 +62,6 @@ print("Top Virulence nodes:")
 print(virulence_rank[0:9])
 print("Common nodes")
 print(set(nodes_Brank[0:9]).intersection(set(virulence_rank[0:9])))
+
+end = time.time()
+print(end-start)
