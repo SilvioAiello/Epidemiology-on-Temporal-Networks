@@ -76,6 +76,7 @@ for k in range(1,NET_REAL+1):  #so first realization has index 1
         label.append([]) #create the i-th entry
         for iteration in range(K):
             label[index_case].append(Propagation_SI.propagation(temporal_network, index_case, probabilities))
+            print(iteration)
     Saves.infection_save(label,N,T,beta, net_name, isDAR = isDAR, isDIRECTED=isDIRECTED, k=k, P=1)
 end = time.time()
 print(end-start)
