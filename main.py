@@ -40,7 +40,7 @@ xi_constant = config['simulation'].getfloat('xi_constant') #xi matrix constant
 
 phi0_constant = config['simulation'].getfloat('phi0_constant') #phi0 vector constant
 phi1_constant = config['simulation'].getfloat('phi1_constant') #phi1 vector constant
-epsilon_constant = config['simulation'].getfloat('epsilon_constant') #epsilon vector constant
+sigma_constant = config['simulation'].getfloat('sigma_constant') #sigma_constant vector constant
 
 beta = config['simulation'].getfloat('beta') #infection rate
 
@@ -51,7 +51,7 @@ xi = xi_constant*np.ones((N,N))
     #TGRG MATRICES
 phi0 = phi0_constant*np.ones(N)
 phi1 = phi1_constant*np.ones(N)
-epsilon=epsilon_constant*np.ones(N)
+sigma= sigma_constant*np.ones(N)
 #%% OUTPUTS GENERATION
     #preliminar assertions
 assert NET_REAL >= 1, "NET_REAL should be >=1"
@@ -62,7 +62,7 @@ for k in range(1,NET_REAL+1):  #so first realization has index 1
     if isDAR: #use the proper functiond wheter user selected dar or tgrg
         temporal_network = Evolutions.network_generation_dar(alpha,xi,P=P,T=T,directed=isDIRECTED) 
     else:
-        temporal_network = Evolutions.network_generation_tgrg(alpha,xi,P=P,T=T,directed=isDIRECTED) 
+        temporal_network = Evolutions.network_generation_tgrg(phi0,phi1,sigma,T=T,directed=isDIRECTED) 
     Saves.network_save(temporal_network,net_name, isDAR = isDAR, isDIRECTED = isDIRECTED, k=k, P=1)
         #SI PROPAGATION
         #Probabilities dict

@@ -111,7 +111,7 @@ def network_generation_tgrg(phi0,phi1,sigma,T=100, directed = False):
         Vector of length N expressing intercept for each of the N nodes
     phi1: np.array 
         Vector of length N expressing angoular coefficient for each of the N nodes
-    epsilon: np.array 
+    sigma: np.array 
         Vector of length N expressing standard deviation for the gaussian stochastic term for each of the N nodes
     N: int (default = 100)
         Natural number expressing network dimension
