@@ -41,13 +41,13 @@ def neighbourhood(adjacency,node):
         set()
         
     """
-    #ASSERTS
-    assert Assertions_suite.check_is_ndarray(adjacency,2)
-    assert Assertions_suite.check_is_square(adjacency)
-    assert Assertions_suite.check_is_nulldiagonal(adjacency)
-    
-    assert isinstance(node, int)
-    assert node <= len(adjacency), "Error: node not present"
+#    #ASSERTS
+#    assert Assertions_suite.check_is_ndarray(adjacency,2)
+#    assert Assertions_suite.check_is_square(adjacency)
+#    assert Assertions_suite.check_is_nulldiagonal(adjacency)
+#    
+#    assert isinstance(node, int)
+#    assert node <= len(adjacency), "Error: node not present"
      
     #FUNCTION
     neigh = {i for i in range(len(adjacency)) if adjacency[i,node]==1}
@@ -77,7 +77,7 @@ def onlyzeros(nodes_set,states_dict):
         {1,2}
         
     """
-    assert type(states_dict) == dict, "states_dict is not a dictionary"
+#    assert type(states_dict) == dict, "states_dict is not a dictionary"
     
     selected = {node for node in nodes_set if states_dict[node]==0} #0 means susceptible
     return selected
@@ -115,27 +115,27 @@ def contact_lasting(tempnet,states_sequence,t,infected_node,susceptible_node):
         2
     
     """
-    #ASSERTS
-    assert isinstance(t, int)
-    assert isinstance(infected_node, int)
-    assert isinstance(susceptible_node, int)
-    assert isinstance(states_sequence, dict), "states_sequence is not a dictionary"
+#    #ASSERTS
+#    assert isinstance(t, int)
+#    assert isinstance(infected_node, int)
+#    assert isinstance(susceptible_node, int)
+#    assert isinstance(states_sequence, dict), "states_sequence is not a dictionary"
     
     T = tempnet.shape[0]
     N = tempnet.shape[1]
-    assert t <= T, "t is bigger than the total network duration"
-    assert infected_node<N, "infected_node doesn't exist"
-    assert susceptible_node<N, "susceptible_node doesn't exist"
-    
-    assert Assertions_suite.check_is_ndarray(tempnet,3) #ask it to be a square array of the first dimension of the network
-    for i in range(T):
-        assert Assertions_suite.check_is_square(tempnet[i]) #check square for each step
-        assert Assertions_suite.check_is_nulldiagonal(tempnet[i]) #check null diagonal for each step
-    
-    assert infected_node != susceptible_node, "Nodes are the same"
-    assert states_sequence[t][infected_node] == 1, "Infected node is not infected at time %i"%(infected_node,t)
-    assert states_sequence[t][susceptible_node] == 0, "Node %i is not susceptible at time %i"%(susceptible_node,t)
-    assert tempnet[t,infected_node,susceptible_node] == 1, "I and S nodes %i and %i are not linked at time %i"%(infected_node,susceptible_node,t)
+#    assert t <= T, "t is bigger than the total network duration"
+#    assert infected_node<N, "infected_node doesn't exist"
+#    assert susceptible_node<N, "susceptible_node doesn't exist"
+#    
+#    assert Assertions_suite.check_is_ndarray(tempnet,3) #ask it to be a square array of the first dimension of the network
+#    for i in range(T):
+#        assert Assertions_suite.check_is_square(tempnet[i]) #check square for each step
+#        assert Assertions_suite.check_is_nulldiagonal(tempnet[i]) #check null diagonal for each step
+#    
+#    assert infected_node != susceptible_node, "Nodes are the same"
+#    assert states_sequence[t][infected_node] == 1, "Infected node is not infected at time %i"%(infected_node,t)
+#    assert states_sequence[t][susceptible_node] == 0, "Node %i is not susceptible at time %i"%(susceptible_node,t)
+#    assert tempnet[t,infected_node,susceptible_node] == 1, "I and S nodes %i and %i are not linked at time %i"%(infected_node,susceptible_node,t)
     
     #FUNCTION
     counter = 0
@@ -162,8 +162,8 @@ def poisson_probability(t,beta):
     -------
     A float, representing PDF value for that t, with given beta.
     """
-    assert beta <1, "Error: beta must be <1"
-    assert beta >=0, "Error: beta must be >=0"
+#    assert beta <1, "Error: beta must be <1"
+#    assert beta >=0, "Error: beta must be >=0"
     lamda = -np.log(1-beta) # Chen, Benzi use 60
     return(lamda*np.exp(-lamda*t))
     
@@ -200,17 +200,17 @@ def propagation(tempnet,index_case,probabilities):
     T = tempnet.shape[0] #shape of array returns (T,N,N)-tuple
     N = tempnet.shape[1] #shape of array returns (T,N,N)-tuple
     
-    #ASSERTS
-    assert isinstance(index_case, int)
-    assert index_case<N, "index_case doesn't exist"
-    
-    assert Assertions_suite.check_is_ndarray(tempnet,3) #ask it to be a square array of the first dimension of the network
-    for t in range(T):
-        assert Assertions_suite.check_is_square(tempnet[t]) #check square for each step
-        assert Assertions_suite.check_is_nulldiagonal(tempnet[t]) #check null diagonal for each step
-    
-    assert isinstance(probabilities, dict), "Probabilities is not a dictionary"
-    assert len(probabilities) == T, "Probabilities doesn't meet tempnet duration"
+#    #ASSERTS
+#    assert isinstance(index_case, int)
+#    assert index_case<N, "index_case doesn't exist"
+#    
+#    assert Assertions_suite.check_is_ndarray(tempnet,3) #ask it to be a square array of the first dimension of the network
+#    for t in range(T):
+#        assert Assertions_suite.check_is_square(tempnet[t]) #check square for each step
+#        assert Assertions_suite.check_is_nulldiagonal(tempnet[t]) #check null diagonal for each step
+#    
+#    assert isinstance(probabilities, dict), "Probabilities is not a dictionary"
+#    assert len(probabilities) == T, "Probabilities doesn't meet tempnet duration"
     
     #FUNCTION
     def set_infected(node,t): #once one is infected,it stays infeced
