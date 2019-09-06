@@ -63,7 +63,7 @@ for k in range(1,NET_REAL+1):  #so first realization has index 1
         temporal_network = Evolutions.network_generation_dar(alpha,xi,P=P,T=T,directed=isDIRECTED) 
     else:
         temporal_network = Evolutions.network_generation_tgrg(alpha,xi,P=P,T=T,directed=isDIRECTED) 
-    Saves.network_save(temporal_network,net_name, isDAR = isDAR, k=k, P=1)
+    Saves.network_save(temporal_network,net_name, isDAR = isDAR, isDIRECTED = isDIRECTED, k=k, P=1)
         #SI PROPAGATION
         #Probabilities dict
     probabilities = dict() #dict building
@@ -76,6 +76,6 @@ for k in range(1,NET_REAL+1):  #so first realization has index 1
         label.append([]) #create the i-th entry
         for iteration in range(K):
             label[index_case].append(Propagation_SI.propagation(temporal_network, index_case, probabilities))
-    Saves.infection_save(label,N,T,beta, net_name, isDAR = isDAR, k=k, P=1)
+    Saves.infection_save(label,N,T,beta, net_name, isDAR = isDAR, isDIRECTED=isDIRECTED, k=k, P=1)
 end = time.time()
 print(end-start)

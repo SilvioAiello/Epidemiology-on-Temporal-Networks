@@ -12,7 +12,7 @@ import os
 
 import Assertions_suite
 
-def network_save(network, start,isDAR=True,k=1, P=1):
+def network_save(network, start,isDAR=True,isDIRECTED=False,k=1, P=1):
     """ Saves network using pickle (so it must be installed) and giving it its proper name (with an identification provided by user) and folder
     
     Parameters
@@ -44,14 +44,20 @@ def network_save(network, start,isDAR=True,k=1, P=1):
     
     name = str()
     if isDAR:
-        name = "Networks/N"+str(N)+"_T"+str(T)+"_DAR"+str(P)+"_"+start+"/realization"+str(k)+"/network.pkl"
-    else:
-        name = "Networks/N"+str(N)+"_T"+str(T)+"_TGRG_"+start+"/realization"+str(k)+"/network.pkl"
+        if isDIRECTED:
+            name = "Networks/N"+str(N)+"_T"+str(T)+"_DIRECT"+"_DAR"+str(P)+"_"+start+"/realization"+str(k)+"/network.pkl"
+        else:
+            name = "Networks/N"+str(N)+"_T"+str(T)+"_UNDIRECT"+"_DAR"+str(P)+"_"+start+"/realization"+str(k)+"/network.pkl"            
+    elif isDAR == False:
+        if isDIRECTED:
+            name = "Networks/N"+str(N)+"_T"+str(T)+"_DIRECT"+"_TGRG_"+start+"/realization"+str(k)+"/network.pkl"
+        else:
+            name = "Networks/N"+str(N)+"_T"+str(T)+"_UNDIRECT"+"_TGRG_"+start+"/realization"+str(k)+"/network.pkl"            
     os.makedirs(os.path.dirname(name), exist_ok=True)
     with open(name, 'wb') as handle: #wb = write binary
         pickle.dump(network,handle)
 
-def network_load(N,T,start,isDAR=True,k=1,P=1):
+def network_load(N,T,start,isDAR=True,isDIRECTED=False,k=1,P=1):
     """ Loads a previously generated temporal network using pickle (so it must be installed), if it's present
     
     Parameters
@@ -76,15 +82,21 @@ def network_load(N,T,start,isDAR=True,k=1,P=1):
     """
     name = str()
     if isDAR:
-        name = "Networks/N"+str(N)+"_T"+str(T)+"_DAR"+str(P)+"_"+start+"/realization"+str(k)+"/network.pkl"
-    else:
-        name = "Networks/N"+str(N)+"_T"+str(T)+"_TGRG_"+start+"/realization"+str(k)+"/network.pkl" 
+        if isDIRECTED:
+            name = "Networks/N"+str(N)+"_T"+str(T)+"_DIRECT"+"_DAR"+str(P)+"_"+start+"/realization"+str(k)+"/network.pkl"
+        else:
+            name = "Networks/N"+str(N)+"_T"+str(T)+"_UNDIRECT"+"_DAR"+str(P)+"_"+start+"/realization"+str(k)+"/network.pkl"            
+    elif isDAR == False:
+        if isDIRECTED:
+            name = "Networks/N"+str(N)+"_T"+str(T)+"_DIRECT"+"_TGRG_"+start+"/realization"+str(k)+"/network.pkl" 
+        else:
+            name = "Networks/N"+str(N)+"_T"+str(T)+"_UNDIRECT"+"_TGRG_"+start+"/realization"+str(k)+"/network.pkl"             
     with open(name, 'rb') as f:
         return pickle.load(f)
 #temporal_dar = network_load(100,100,'alphaeqs_xieqs',k=1,isDAR=True,P=1)
 #temporal_fitn= load_network(100,100,isDAR=True,alleq,k=1)
 
-def infection_save(label, N,T, beta, start,isDAR=True,k=1, P=1):
+def infection_save(label, N,T, beta, start,isDAR=True,isDIRECTED=False,k=1, P=1):
     """ Saves an infection data structure, defined by its different iterations, using pickle (so it must be installed).
     A proper name and folder is provided for this strucure.
     
@@ -112,14 +124,20 @@ def infection_save(label, N,T, beta, start,isDAR=True,k=1, P=1):
     """
     name = str()
     if isDAR:
-        name = "Networks/N"+str(N)+"_T"+str(T)+"_DAR"+str(P)+"_"+start+"/realization"+str(k)+"/infections_beta"+str(beta)+".pkl"
+        if isDIRECTED:
+            name = "Networks/N"+str(N)+"_T"+str(T)+"_DIRECT"+"_DAR"+str(P)+"_"+start+"/realization"+str(k)+"/infections_beta"+str(beta)+".pkl"
+        else:
+            name = "Networks/N"+str(N)+"_T"+str(T)+"_UNDIRECT"+"_DAR"+str(P)+"_"+start+"/realization"+str(k)+"/infections_beta"+str(beta)+".pkl"            
     else:
-        name = "Networks/N"+str(N)+"_T"+str(T)+"_TGRG_"+start+"/realization"+str(k)+"/infections_beta"+str(beta)+".pkl"
+        if isDIRECTED:
+            name = "Networks/N"+str(N)+"_T"+str(T)+"_DIRECT"+"_TGRG_"+start+"/realization"+str(k)+"/infections_beta"+str(beta)+".pkl"
+        else:
+            name = "Networks/N"+str(N)+"_T"+str(T)+"_UNDIRECT"+"_TGRG_"+start+"/realization"+str(k)+"/infections_beta"+str(beta)+".pkl"            
     os.makedirs(os.path.dirname(name), exist_ok=True)
     with open(name, 'wb') as handle: #wb = write binary
         pickle.dump(label,handle)
 
-def infection_load(N,T, beta, start,isDAR=True,k=1, P=1):
+def infection_load(N,T, beta, start,isDAR=True,isDIRECTED=False,k=1, P=1):
     """ Loads a previously generated infection data structure, defined by its different iterations, using pickle (so it must be installed).
     
     Parameters
@@ -144,9 +162,15 @@ def infection_load(N,T, beta, start,isDAR=True,k=1, P=1):
     """
     name = str()
     if isDAR:
-        name = "Networks/N"+str(N)+"_T"+str(T)+"_DAR"+str(P)+"_"+start+"/realization"+str(k)+"/infections_beta"+str(beta)+".pkl"
+        if isDIRECTED:
+            name = "Networks/N"+str(N)+"_T"+str(T)+"_DIRECT"+"_DAR"+str(P)+"_"+start+"/realization"+str(k)+"/infections_beta"+str(beta)+".pkl"
+        else:
+            name = "Networks/N"+str(N)+"_T"+str(T)+"_UNDIRECT"+"_DAR"+str(P)+"_"+start+"/realization"+str(k)+"/infections_beta"+str(beta)+".pkl"            
     else:
-        name = "Networks/N"+str(N)+"_T"+str(T)+"_TGRG_"+start+"/realization"+str(k)+"/infections_beta"+str(beta)+".pkl"
+        if isDIRECTED:
+            name = "Networks/N"+str(N)+"_T"+str(T)+"_DIRECT"+"_TGRG_"+start+"/realization"+str(k)+"/infections_beta"+str(beta)+".pkl"
+        else:
+            name = "Networks/N"+str(N)+"_T"+str(T)+"_UNDIRECT"+"_TGRG_"+start+"/realization"+str(k)+"/infections_beta"+str(beta)+".pkl"            
     os.makedirs(os.path.dirname(name), exist_ok=True)
     with open(name, 'rb') as f:
         return pickle.load(f)
