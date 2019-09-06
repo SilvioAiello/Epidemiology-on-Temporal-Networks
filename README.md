@@ -29,7 +29,7 @@ This repository is structured as follows:
   1) as many folders as iterations of network evolution (*/realization/*), with inside network (*/network.pkl*) and epidemic propagation (with a name that records beta value and propagation iteration) files; 
   2) a folder (*/Results/*) where epidemic and structural centrality measures are stored.
  
-So, the final output will be something like: Networks/N_T_TYPE_name/realizationX/infection_betaX.pkl or /network.pkl.
+So, the final output will be something like: Networks/N_T_DIRECTNESS_TYPE_name/realizationX/infection_betaX.pkl or /network.pkl.
 
 **To make your personal use of this project, you can just create a new "runX.ini" file, following the same rules of the existing ones (better exlpained in howto.md), and let main.py and main_analysis run to get your results and their analysis. Be sure to properly modify the name of the configuration file these scripts imports.** Once mains has run, you can keep on operating from your Python IDE; for example, to call a function from "Evolutions", you may just type Evolutions.FUNCTNAME, etc.
 
