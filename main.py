@@ -17,6 +17,7 @@ import Propagation_SI
 import Saves
 
 import configparser
+import pickle
 
 import time
 start = time.time()
@@ -52,7 +53,7 @@ xi = xi_constant*np.ones((N,N))
 phi0 = phi0_constant*np.ones(N)
 phi1 = phi1_constant*np.ones(N)
 sigma= sigma_constant*np.ones(N)
-#%% OUTPUTS GENERATION
+#%%     OUTPUTS GENERATION
     #preliminar assertions
 assert NET_REAL >= 1, "NET_REAL should be >=1"
 assert K > 1, "K should be >1"
@@ -64,6 +65,29 @@ for k in range(1,NET_REAL+1):  #so first realization has index 1
     else:
         temporal_network = Evolutions.network_generation_tgrg(phi0,phi1,sigma,T=T,directed=isDIRECTED) 
     Saves.network_save(temporal_network,net_name, isDAR = isDAR, isDIRECTED = isDIRECTED, k=k, P=1)
+    
+        #ANALYSIS
+    Q = Evolutions.communicability(temporal_network)[1] #as there's 1 tempnet, there's 1 Q per k
+    nodes_Bcentrality = Evolutions.broadcast_ranking(Q)[0] #scores, node rankings
+    nodes_Rcentrality = Evolutions.receive_ranking(Q)[0] #scores, node rankings
+        #SAVES
+    starting_name = str()
+    if isDAR:
+        if isDIRECTED:
+            starting_name = "Networks/N"+str(N)+"_T"+str(T)+"_DIRECT"+"_DAR"+str(P)+"_"+net_name+"/realization"+str(k)+"/infections_beta"+str(beta)
+        else:
+            starting_name = "Networks/N"+str(N)+"_T"+str(T)+"_UNDIRECT"+"_DAR"+str(P)+"_"+net_name+"/realization"+str(k)+"/infections_beta"+str(beta)            
+    else:
+        if isDIRECTED:
+            starting_name = "Networks/N"+str(N)+"_T"+str(T)+"_DIRECT"+"_TGRG_"+net_name+"/realization"+str(k)+"/infections_beta"+str(beta)
+        else:
+            starting_name = "Networks/N"+str(N)+"_T"+str(T)+"_UNDIRECT"+"_TGRG_"+net_name+"/realization"+str(k)+"/infections_beta"+str(beta)           
+
+    with open(starting_name+"_BCENTR.pkl", 'wb') as handle:
+        pickle.dump(nodes_Bcentrality,handle)
+    with open(starting_name+"_RCENTR.pkl", 'wb') as handle:
+        pickle.dump(nodes_Rcentrality,handle)
+        
         #SI PROPAGATION
         #Probabilities dict
     probabilities = dict() #dict building
@@ -71,12 +95,17 @@ for k in range(1,NET_REAL+1):  #so first realization has index 1
         probabilities[t] = quad(Propagation_SI.poisson_probability,0,t, args = beta)[0] #quad produces several outputs, integral is the first
     
         #Function evoking
-    label = [] 
+    label = []
+    virulence=[]
     for index_case in range(N):
         label.append([]) #create the i-th entry
         for iteration in range(K):
             label[index_case].append(Propagation_SI.propagation(temporal_network, index_case, probabilities))
-            print(iteration)
+        virulence.append(np.mean([Propagation_SI.time_score(label[index_case][k],0.6) for k in range(K)]))
+        #SAVES
     Saves.infection_save(label,N,T,beta, net_name, isDAR = isDAR, isDIRECTED=isDIRECTED, k=k, P=1)
+    with open(starting_name+"_VIRULENCE.pkl", 'wb') as handle:
+        pickle.dump(virulence,handle)
+    
 end = time.time()
 print(end-start)

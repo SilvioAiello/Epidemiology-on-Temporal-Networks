@@ -7,13 +7,11 @@ or further understandings on how this script operates, check file "howto.md".
 For further theoretical understandings, check file "explanation.md".
 """
 import numpy as np
-
-import Evolutions
-import Propagation_SI
-import Saves
+import matplotlib.pyplot as plt
 
 import configparser
 
+import pickle
 import time
 start = time.time()
 #%%         CONFIGURATION READING
@@ -29,39 +27,72 @@ K = config['simulation'].getint('K') #infection realizations
 
 net_name = config['simulation']['net_name'] #identification name
 
+alpha_constant = config['simulation'].getfloat('alpha_constant')
+xi_constant = config['simulation'].getfloat('xi_constant')
+
 P = config['simulation'].getint('P') #DAR order
 
 beta = config['simulation'].getfloat('beta') #infection rate
 
-#Imports
+#%% ANALYSIS
+nodes_Bcentrality = []
+nodes_Rcentrality = []
+virulence = []
+
 for k in range(1,NET_REAL+1):  #so first realization has index 1
-    temporal_network = Saves.network_load(N,T,net_name,isDAR=isDAR,isDIRECTED=isDIRECTED,k=k,P=P)
-    label = Saves.infection_load(N,T,beta,net_name,isDAR=isDAR,isDIRECTED=isDIRECTED,k=1, P=1)
+    starting_name = str()
+    if isDAR:
+        if isDIRECTED:
+            starting_name = "Networks/N"+str(N)+"_T"+str(T)+"_DIRECT"+"_DAR"+str(P)+"_"+net_name+"/realization"+str(k)+"/infections_beta"+str(beta)
+        else:
+            starting_name = "Networks/N"+str(N)+"_T"+str(T)+"_UNDIRECT"+"_DAR"+str(P)+"_"+net_name+"/realization"+str(k)+"/infections_beta"+str(beta)            
+    else:
+        if isDIRECTED:
+            starting_name = "Networks/N"+str(N)+"_T"+str(T)+"_DIRECT"+"_TGRG_"+net_name+"/realization"+str(k)+"/infections_beta"+str(beta)
+        else:
+            starting_name = "Networks/N"+str(N)+"_T"+str(T)+"_UNDIRECT"+"_TGRG_"+net_name+"/realization"+str(k)+"/infections_beta"+str(beta)           
     
-#%% MEASURES
-    #Centrality
-rec_spec_radius, Q = Evolutions.communicability(temporal_network)
-nodes_Bcentrality, nodes_Brank = Evolutions.broadcast_ranking(Q) #scores, node rankings
-nodes_Rcentrality, nodes_Rrank = Evolutions.receive_ranking(Q) #scores, node rankings
+    with open(starting_name+"_BCENTR.pkl", 'rb') as f:
+        nodes_Bcentrality.append(pickle.load(f))
+    with open(starting_name+"_RCENTR.pkl", 'rb') as f:
+        nodes_Rcentrality.append(pickle.load(f))
+    with open(starting_name+"_VIRULENCE.pkl", 'rb') as f:
+        virulence.append(pickle.load(f))
 
-    #Virulence
-virulence = [] #i-th entry is virulence of i-th node
-for index_case in range(N):
-    virulence.append([]) #create the i-th entry
-    for iteration in range(K):
-        virulence[index_case].append(Propagation_SI.time_score(label[index_case][iteration],0.6))
-    virulence[index_case] = np.mean(virulence[index_case])
-virulence_rank = np.argsort(virulence)
+nodes_B = []
+[nodes_B.extend(el) for el in nodes_Bcentrality]
+nodes_R = []
+[nodes_R.extend(el) for el in nodes_Rcentrality]
+vir = []
+[vir.extend(el) for el in virulence]
 
-#Results print
-print("")
-print("RESULTS FOR NETWORK: "+net_name)
-print("Top B-Centrality nodes:")
-print(nodes_Brank[0:9])
-print("Top Virulence nodes:")
-print(virulence_rank[0:9])
-print("Common nodes")
-print(set(nodes_Brank[0:9]).intersection(set(virulence_rank[0:9])))
+plt.figure(1)
+plt.scatter(nodes_B, vir)
+plt.xlabel("Broadcast Centrality")
+plt.ylabel('Epidemic score')
+plt.title(r"Undirected DAR(1) network, $\alpha$ = %.2f, $\chi$ = %.2f; $\beta$ = %.3f; N=%i, T=%i; Netw iter = %i, Epid iter = %i" %(alpha_constant,xi_constant,beta,N,T,NET_REAL,K))
 
-end = time.time()
-print(end-start)
+plt.figure(2)
+plt.scatter(nodes_R, vir)
+plt.xlabel("Receive Centrality")
+plt.ylabel('Epidemic score')
+plt.title(r"Undirected DAR(1) network, $\alpha$ = %.2f, $\chi$ = %.2f; $\beta$ = %.3f; N=%i, T=%i; Netw iter = %i, Epid iter = %i" %(alpha_constant,xi_constant,beta,N,T,NET_REAL,K))
+
+
+import scipy.stats
+print(scipy.stats.pearsonr(nodes_B, vir))
+print(scipy.stats.pearsonr(nodes_R, vir))
+
+
+##Results print
+#print("")
+#print("RESULTS FOR NETWORK: "+net_name)
+#print("Top B-Centrality nodes:")
+##print(nodes_Brank[0:9])
+#print("Top Virulence nodes:")
+##print(virulence_rank[0:9])
+#print("Common nodes")
+##print(set(nodes_Brank[0:9]).intersection(set(virulence_rank[0:9])))
+#
+#end = time.time()
+#print(end-start)
