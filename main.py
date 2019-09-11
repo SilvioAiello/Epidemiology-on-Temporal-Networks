@@ -16,34 +16,27 @@ import Evolutions
 import Propagation_SI
 import Saves
 
-import configparser
 import pickle
+import matplotlib.pyplot as plt
 
-import time
-start = time.time()
-#%%         CONFIGURATION READING
-config = configparser.ConfigParser()
-config.read('run1.ini') #CHANGE THE NUMBER OF THE RUN TO PERFORM YOUR SIMULATION
+#%%         CONFIGURATION PARAMETERS
+net_name = "THESIS_TRY"
+N = 100
+T = 90
+isDAR = True
+P = 1
+isDIRECTED = False
+beta = 0.005 #infection rate
 
-N = config['simulation'].getint('N') #nodes
-T = config['simulation'].getint('T') #duration
-isDAR = config['simulation'].getboolean('isDAR') #type
-isDIRECTED = config['simulation'].getboolean('isDIRECTED') #network symmetry
+NET_REAL = 25
+K = 100 #infection realizations
 
-NET_REAL  = config['simulation'].getint('NET_REAL') #network realizations
-K = config['simulation'].getint('K') #infection realizations
+alpha_constant = 0.25
+xi_constant = 0.5
 
-net_name = config['simulation']['net_name'] #identification name
-
-P = config['simulation'].getint('P') #DAR order
-alpha_constant = config['simulation'].getfloat('alpha_constant') #alpha matrix constant
-xi_constant = config['simulation'].getfloat('xi_constant') #xi matrix constant
-
-phi0_constant = config['simulation'].getfloat('phi0_constant') #phi0 vector constant
-phi1_constant = config['simulation'].getfloat('phi1_constant') #phi1 vector constant
-sigma_constant = config['simulation'].getfloat('sigma_constant') #sigma_constant vector constant
-
-beta = config['simulation'].getfloat('beta') #infection rate
+phi0_constant = 0.1
+phi1_constant = 0.35
+sigma_constant = 0.05
 
 #%% MATRICES BUILDING
     #DAR MATRICES
@@ -66,10 +59,10 @@ for k in range(1,NET_REAL+1):  #so first realization has index 1
         temporal_network = Evolutions.network_generation_tgrg(phi0,phi1,sigma,T=T,directed=isDIRECTED) 
     Saves.network_save(temporal_network,net_name, isDAR = isDAR, isDIRECTED = isDIRECTED, k=k, P=1)
     
-        #ANALYSIS
+        #CENTRALITIES
     Q = Evolutions.communicability(temporal_network)[1] #as there's 1 tempnet, there's 1 Q per k
-    nodes_Bcentrality = Evolutions.broadcast_ranking(Q)[0] #scores, node rankings
-    nodes_Rcentrality = Evolutions.receive_ranking(Q)[0] #scores, node rankings
+    nodes_Bcentrality = Evolutions.broadcast_ranking(Q)[0]
+    nodes_Rcentrality = Evolutions.receive_ranking(Q)[0]
         #SAVES
     starting_name = str()
     if isDAR:
@@ -93,7 +86,6 @@ for k in range(1,NET_REAL+1):  #so first realization has index 1
     probabilities = dict() #dict building
     for t in range(T):
         probabilities[t] = quad(Propagation_SI.poisson_probability,0,t, args = beta)[0] #quad produces several outputs, integral is the first
-    
         #Function evoking
     label = []
     virulence=[]
@@ -106,6 +98,52 @@ for k in range(1,NET_REAL+1):  #so first realization has index 1
     Saves.infection_save(label,N,T,beta, net_name, isDAR = isDAR, isDIRECTED=isDIRECTED, k=k, P=1)
     with open(starting_name+"_VIRULENCE.pkl", 'wb') as handle:
         pickle.dump(virulence,handle)
+
+#%% ANALYSIS
+nodes_Bcentrality = []
+nodes_Rcentrality = []
+virulence = []
+
+for k in range(1,NET_REAL+1):  #so first realization has index 1
+    starting_name = str()
+    if isDAR:
+        if isDIRECTED:
+            starting_name = "Networks/N"+str(N)+"_T"+str(T)+"_DIRECT"+"_DAR"+str(P)+"_"+net_name+"/realization"+str(k)+"/infections_beta"+str(beta)
+        else:
+            starting_name = "Networks/N"+str(N)+"_T"+str(T)+"_UNDIRECT"+"_DAR"+str(P)+"_"+net_name+"/realization"+str(k)+"/infections_beta"+str(beta)            
+    else:
+        if isDIRECTED:
+            starting_name = "Networks/N"+str(N)+"_T"+str(T)+"_DIRECT"+"_TGRG_"+net_name+"/realization"+str(k)+"/infections_beta"+str(beta)
+        else:
+            starting_name = "Networks/N"+str(N)+"_T"+str(T)+"_UNDIRECT"+"_TGRG_"+net_name+"/realization"+str(k)+"/infections_beta"+str(beta)           
     
-end = time.time()
-print(end-start)
+    with open(starting_name+"_BCENTR.pkl", 'rb') as f:
+        nodes_Bcentrality.append(pickle.load(f))
+    with open(starting_name+"_RCENTR.pkl", 'rb') as f:
+        nodes_Rcentrality.append(pickle.load(f))
+    with open(starting_name+"_VIRULENCE.pkl", 'rb') as f:
+        virulence.append(pickle.load(f))
+
+nodes_B = []
+[nodes_B.extend(el) for el in nodes_Bcentrality]
+nodes_R = []
+[nodes_R.extend(el) for el in nodes_Rcentrality]
+vir = []
+[vir.extend(el) for el in virulence]
+
+plt.figure(1)
+plt.scatter(nodes_B, vir)
+plt.xlabel("Broadcast Centrality")
+plt.ylabel('Epidemic score')
+plt.title(r"Undirected DAR(1) network, $\alpha$ = %.2f, $\chi$ = %.2f; $\beta$ = %.3f; N=%i, T=%i; Netw iter = %i, Epid iter = %i" %(alpha_constant,xi_constant,beta,N,T,NET_REAL,K))
+
+plt.figure(2)
+plt.scatter(nodes_R, vir)
+plt.xlabel("Receive Centrality")
+plt.ylabel('Epidemic score')
+plt.title(r"Undirected DAR(1) network, $\alpha$ = %.2f, $\chi$ = %.2f; $\beta$ = %.3f; N=%i, T=%i; Netw iter = %i, Epid iter = %i" %(alpha_constant,xi_constant,beta,N,T,NET_REAL,K))
+
+
+import scipy.stats
+print(scipy.stats.pearsonr(nodes_B, vir))
+print(scipy.stats.pearsonr(nodes_R, vir))
