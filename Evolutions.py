@@ -168,18 +168,14 @@ def network_generation_tgrg(phi0,phi1,sigma,T=100, directed = False):
     #ADJACENCIES COMPUTATION
     temporal_network = np.zeros((T,N,N)) #tensor definition
     for t in range(T):
-        for i in range(N):
-            for j in range(N):
-                #TGRG FOR UPPER TRIANGLE
-                temporal_network[t] = [[np.random.choice((1,0), p=(np.exp(theta[i,t]+theta[j,t])/(1+np.exp(theta[i,t]+theta[j,t])),
-                                1-np.exp(theta[i,t]+theta[j,t])/(1+np.exp(theta[i,t]+theta[j,t])))) if j>i else 0 for j in range(N)] for i in range(N)]
-                #LOWER TRIANGLE (j<i)
-                if directed == False:    
-                    temporal_network[t] = [[temporal_network[t,j,i] if j<i else temporal_network[t,i,j] for j in range(N)] for i in range(N)]
-                    #copy upper triangle, if undirected
-                else:
-                    temporal_network[t] = [[np.random.choice((1,0), p=(np.exp(theta[i,t]+theta[j,t])/(1+np.exp(theta[i,t]+theta[j,t])),
-                                    1-np.exp(theta[i,t]+theta[j,t])/(1+np.exp(theta[i,t]+theta[j,t])))) if j<i else temporal_network[t,i,j] for j in range(N)] for i in range(N)]
+        prob = np.array([[np.exp(theta[i,t]+theta[j,t])/(1+np.exp(theta[i,t]+theta[j,t])) for j in range(N)] for i in range(N)])
+        #TGRG FOR UPPER TRIANGLE
+        temporal_network[t] = np.array([[np.random.choice((1,0), p=(prob[i,j],1-prob[i,j])) if j>i else 0 for j in range(N)] for i in range(N)])
+        #LOWER TRIANGLE (j<i)
+        if directed == False:    
+            temporal_network[t] = temporal_network[t] + temporal_network[t].T
+        else:
+            temporal_network[t] = temporal_network[t] + np.array([[np.random.choice((1,0), p=(prob[i,j],1-prob[i,j])) if j<i else 0 for j in range(N)] for i in range(N)])
     return temporal_network, theta
     
 #%% NETWORK ANALYSYS
