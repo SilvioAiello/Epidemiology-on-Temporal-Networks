@@ -37,7 +37,7 @@ def network_save(network, start,isDAR=True,isDIRECTED=False,k=1, P=1):
     assert Assertions_suite.check_is_natural(P) #there's no need to perform other checks, since they have been already performed
     assert Assertions_suite.check_is_natural(k)
     assert type(start) == str
-
+    
     #FUNCTION
     T = network.shape[0]
     N = network.shape[1]
