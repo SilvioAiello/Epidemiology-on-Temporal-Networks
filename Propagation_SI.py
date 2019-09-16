@@ -228,8 +228,9 @@ def propagation(tempnet,index_case,probabilities):
     susceptibles = onlyzeros(range(N),states_sequence[0]) #"targets"
     infecteds = {index_case} #they will be decisive to change target state
 
-    for t in range(1,T):
-           #START FROM SUSC AND ALLOW MORE INFECTIONS
+    for t in range(1,T): #START FROM SUSC AND ALLOW MORE INFECTIONS
+        if len(susceptibles) == 0:
+            break
         for s in susceptibles.copy(): #copy avoids rising an error when the iteration set changes
             infectneighbourhood = neighbourhood(tempnet[t-1],s).intersection(infecteds)
             for i in infectneighbourhood.copy(): 
