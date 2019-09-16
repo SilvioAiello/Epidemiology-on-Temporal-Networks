@@ -229,6 +229,7 @@ def propagation(tempnet,index_case,probabilities):
     infecteds = {index_case} #they will be decisive to change target state
     
 #    for t in range(1,T):
+#           #START FROM SUSC
 #        for s in susceptibles.copy(): #copy avoids rising an error when the iteration set changes
 #            infectneighbourhood = neighbourhood(tempnet[t-1],s).intersection(infecteds)
 #            for i in infectneighbourhood.copy(): 
@@ -264,7 +265,8 @@ def propagation(tempnet,index_case,probabilities):
                     set_infected(s,t) #if successful, change the state of the node, at next t
                     susceptibles.remove(s)
                     infecteds.add(s)
-    
+                    
+    #FAILED ATTEMPT:
 #    for t in range(1,T):
 #        for s in susceptibles.copy(): #copy avoids rising an error when the iteration set changes
 #            infectneighbourhood = neighbourhood(tempnet[t-1],s).intersection(infecteds)
