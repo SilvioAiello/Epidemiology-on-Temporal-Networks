@@ -7,7 +7,7 @@ Created on Sat Sep 14 16:54:54 2019
 #%% GENERATING FILES
 import scipy.io
 
-mat = scipy.io.loadmat('C:/Users/Silvio/Desktop/parametri_stimati_EMID.mat')
+mat = scipy.io.loadmat('C:/Users/Silvio/Documents/GitHub/Epidemiology-on-Temporal-Networks/Empiric_Data/parametri_stimati_EMID.mat')
 
 alphaDAR1 = mat['alphaDAR1']
 chiDAR1 = mat['marginalProbabilityDAR1']
