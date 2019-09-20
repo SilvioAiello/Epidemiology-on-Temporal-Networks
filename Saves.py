@@ -107,6 +107,7 @@ def analysis_save(centr,centr_name, start, N,T,isDAR=True,isDIRECTED=False,isSAM
     
     name = make_basics(isDAR=isDAR,P=P,isDIRECTED=isDIRECTED,isSAMPLED=isSAMPLED) + "_N"+str(N)+"_T"+str(T)+"_"+start+"/realization"+str(k)+"/"+centr_name+".pkl"
     
+    os.makedirs(os.path.dirname(name), exist_ok=True)
     with open(name, 'wb') as handle: #wb = write binary
         pickle.dump(centr,handle)
 
