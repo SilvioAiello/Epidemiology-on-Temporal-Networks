@@ -75,11 +75,11 @@ def network_generation_dar(alpha,xi,P=1, T=100, directed = False):
     
     #EVOLUTION
     #Initial adjacency, as tossing simple coin (0.5); if undirected, it's made symmetric
-    initial_state = [[np.random.choice((0,1),p=(0.5,1-0.5)) if j>i else 0 for j in range(N)] for i in range(N)] #upper triangle first (j>i)
+    initial_state = [[np.random.choice((1,0),p=(xi[i,j],1-xi[i,j])) if j>i else 0 for j in range(N)] for i in range(N)] #upper triangle first (j>i)
     if directed == False: #setting lower triangle as directed value
         initial_state = [[initial_state[j][i] if j<i else initial_state[i][j] for j in range(N)] for i in range(N)]
     else:
-        initial_state = [[np.random.choice((0,1),p=(0.5,1-0.5)) if j<i else initial_state[i][j] for j in range(N)] for i in range(N)]
+        initial_state = [[np.random.choice((1,0),p=(xi[i,j],1-xi[i,j])) if j<i else initial_state[i][j] for j in range(N)] for i in range(N)]
     
     #Temporal network initilialization
     temporal_network = np.zeros((T,N,N))
@@ -319,9 +319,7 @@ def communicability(temporal):
     for t in range(T):
         assert Assertions_suite.check_is_square(temporal[t])
         assert Assertions_suite.check_is_nulldiagonal(temporal[t]) #check null diagonal for each step
-    
-    assert any([(temporal[t] == np.zeros((N,N))).all() for t in range(T)]) == False, "At least one adjacency is a zero matrix: communicability is not defined"
-    
+        
     #FUNCTION
     T = temporal.shape[0]
     N = temporal.shape[1]
@@ -335,7 +333,61 @@ def communicability(temporal):
     for t in range(T):
         inv = np.linalg.inv(np.identity(N)-0.25*rec_maxradius*temporal[t]) #new factor for that time step
         Q = np.matmul(Q,inv)/np.linalg.norm(np.matmul(Q,inv)) #Q updating and normalizing
-    return(rec_maxradius,Q) 
+    return(rec_maxradius,Q)
+
+def communicability_onelink(temporal): 
+    """
+    Return Communicability matrix of a tempnetwork, counting only one link per snapshot, and max spectral radius.
+    
+    It uses several numpy functions
+    
+    Parameters
+    ----------
+    temporal: np.array
+        T*N*N adjacencies (so, an adjacency for each time step; null diagonal)
+    
+    Returns
+    -------
+    rec_maxradius: float
+        Reciprocal of maximum eigenvalue of the whole set of adjacencies
+    Q: np.array
+        N*N matrix (N being number of nodes), expressing "how well information can be passed from i to j"
+    
+    Examples
+    --------
+    
+        >>> communicability(np.array([[[0,0,1],[1,0,1],[1,0,0]],
+        [[0,1,1],[1,0,1],[1,0,0]]]))
+        ( 0.6180339887498951, 
+        array([[0.54377529, 0.0840179 , 0.17483766],
+        [0.20185156, 0.52294101, 0.20185156],
+        [0.16411784, 0.0253576 , 0.53305547]]))
+    """
+    #At the moment, this function takes as default, as coefficient, a quarter of the inverse of max spectral radius
+    
+    T = temporal.shape[0]
+    N = temporal.shape[1]
+    
+    #ASSERTS
+    assert Assertions_suite.check_is_ndarray(temporal,3) #ask it to be a square array of the first dimension of the network
+    for t in range(T):
+        assert Assertions_suite.check_is_square(temporal[t])
+        assert Assertions_suite.check_is_nulldiagonal(temporal[t]) #check null diagonal for each step
+        
+    #FUNCTION
+    T = temporal.shape[0]
+    N = temporal.shape[1]
+    #Find max spectral radius:
+    spec = []
+    for t in range(T):
+        spec.append(np.real(max(np.linalg.eigvals(temporal[t])))) #find eigenval with max real part for each adjacency
+    inv_maxradius = 1/max(spec) #reciprocal of the maximum eigenvalue
+    #Communicability builing:
+    Q = np.identity(N)/np.linalg.norm(np.identity(N)) #initialization (and normalization)
+    for t in range(T):
+        matr = np.identity(N)+0.25*inv_maxradius*temporal[t] #new factor for that time step
+        Q = np.matmul(Q,matr)/np.linalg.norm(np.matmul(Q,matr)) #Q updating and normalizing
+    return(inv_maxradius,Q) 
 
 def broadcast_ranking(Q):
     """
