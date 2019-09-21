@@ -281,9 +281,11 @@ def degree_mean(tempnet, out = True):
     return d_seq #output is always a list
 
 #%% CENTRALITY
-def communicability(temporal): 
+def communicability(temporal, eigen_fraction=0.25, length_one=True): 
     """
     Return Communicability matrix of a tempnetwork, as defined by Grindrod, and max spectral radius.
+    User can choose what fraction of maximum eigenvalue select, and if counting walks of all length or just of length 1.
+    Lenght 1 is useful for undirected networks.
     
     It uses several numpy functions
     
@@ -291,6 +293,12 @@ def communicability(temporal):
     ----------
     temporal: np.array
         T*N*N adjacencies (so, an adjacency for each time step; null diagonal)
+    
+    eigen_fractin: float
+        Number in (0,1] expressing how lower, than the inverse of maximum spectral radius, the parameter "a" has to be
+    
+    length_one: bool
+        If true, the version without matrix inverse is selected.
     
     Returns
     -------
@@ -319,60 +327,8 @@ def communicability(temporal):
     for t in range(T):
         assert Assertions_suite.check_is_square(temporal[t])
         assert Assertions_suite.check_is_nulldiagonal(temporal[t]) #check null diagonal for each step
-        
-    #FUNCTION
-    T = temporal.shape[0]
-    N = temporal.shape[1]
-    #Find max spectral radius:
-    spec = []
-    for t in range(T):
-        spec.append(np.real(max(np.linalg.eigvals(temporal[t])))) #find eigenval with max real part for each adjacency
-    rec_maxradius = 1/max(spec) #reciprocal of the maximum eigenvalue
-    #Communicability builing:
-    Q = np.identity(N)/np.linalg.norm(np.identity(N)) #initialization (and normalization)
-    for t in range(T):
-        inv = np.linalg.inv(np.identity(N)-0.25*rec_maxradius*temporal[t]) #new factor for that time step
-        Q = np.matmul(Q,inv)/np.linalg.norm(np.matmul(Q,inv)) #Q updating and normalizing
-    return(rec_maxradius,Q)
-
-def communicability_onelink(temporal): 
-    """
-    Return Communicability matrix of a tempnetwork, counting only one link per snapshot, and max spectral radius.
-    
-    It uses several numpy functions
-    
-    Parameters
-    ----------
-    temporal: np.array
-        T*N*N adjacencies (so, an adjacency for each time step; null diagonal)
-    
-    Returns
-    -------
-    rec_maxradius: float
-        Reciprocal of maximum eigenvalue of the whole set of adjacencies
-    Q: np.array
-        N*N matrix (N being number of nodes), expressing "how well information can be passed from i to j"
-    
-    Examples
-    --------
-    
-        >>> communicability(np.array([[[0,0,1],[1,0,1],[1,0,0]],
-        [[0,1,1],[1,0,1],[1,0,0]]]))
-        ( 0.6180339887498951, 
-        array([[0.54377529, 0.0840179 , 0.17483766],
-        [0.20185156, 0.52294101, 0.20185156],
-        [0.16411784, 0.0253576 , 0.53305547]]))
-    """
-    #At the moment, this function takes as default, as coefficient, a quarter of the inverse of max spectral radius
-    
-    T = temporal.shape[0]
-    N = temporal.shape[1]
-    
-    #ASSERTS
-    assert Assertions_suite.check_is_ndarray(temporal,3) #ask it to be a square array of the first dimension of the network
-    for t in range(T):
-        assert Assertions_suite.check_is_square(temporal[t])
-        assert Assertions_suite.check_is_nulldiagonal(temporal[t]) #check null diagonal for each step
+    assert eigen_fraction <=1
+    assert eigen_fraction > 0
         
     #FUNCTION
     T = temporal.shape[0]
@@ -384,10 +340,17 @@ def communicability_onelink(temporal):
     inv_maxradius = 1/max(spec) #reciprocal of the maximum eigenvalue
     #Communicability builing:
     Q = np.identity(N)/np.linalg.norm(np.identity(N)) #initialization (and normalization)
-    for t in range(T):
-        matr = np.identity(N)+0.25*inv_maxradius*temporal[t] #new factor for that time step
-        Q = np.matmul(Q,matr)/np.linalg.norm(np.matmul(Q,matr)) #Q updating and normalizing
-    return(inv_maxradius,Q) 
+    
+    if length_one:
+        for t in range(T):
+            matr = np.identity(N)+inv_maxradius*temporal[t] #new factor for that time step
+            Q = np.matmul(Q,matr)/np.linalg.norm(np.matmul(Q,matr)) #Q updating and normalizing
+    else:
+        for t in range(T):
+            inv = np.linalg.inv(np.identity(N)-eigen_fraction*inv_maxradius*temporal[t]) #new factor for that time step
+            Q = np.matmul(Q,inv)/np.linalg.norm(np.matmul(Q,inv)) #Q updating and normalizing
+    return(inv_maxradius,Q)
+
 
 def broadcast_ranking(Q):
     """
@@ -455,3 +418,86 @@ def receive_ranking(Q):
     lines_sum = np.sum(Q, axis = 0) #Broadcast -> sum over columns:
     rank = np.flip(np.argsort(lines_sum)) #argsort -> increasing score; flip -> decreasing
     return(lines_sum,rank)
+
+def aggregate_degree(temporal, directed=False):
+    """
+    Provided with a temporal network, returns AD scores for all nodes.
+    Aggregate matrix: sum of 1s, for each couple of nodes, over time.
+    If network is directed, it returns 2 ranking vectors, out and in.
+    
+    It uses several numpy functions
+    
+    Parameters
+    ----------
+    temporal: np.array
+        T*N*N adjacencies (so, an adjacency for each time step; null diagonal)
+    
+    Returns
+    -------
+    lines_sum1: np.array
+        N-list of floats representing out-AD scores of nodes
+    
+    lines_sum2: np.array [if directed = True]
+        N-list of floats representing in-AD scores of nodes
+    """
+    T = temporal.shape[0]
+    N = temporal.shape[1]
+    
+    ad = np.zeros((N,N))
+    for t in range(T):
+        ad += temporal[t]
+    
+    if directed:
+        out_ranking = np.zeros(N)
+        in_ranking = np.zeros(N)
+        for i in range(N):
+            out_ranking[i] = sum(ad[i])
+            in_ranking[i] = sum(ad.T[i])
+        return out_ranking,in_ranking
+    else:
+        ranking = np.zeros(N)
+        for i in range(N):
+            ranking[i] = sum(ad[i])
+        return ranking
+
+def binarized_degree(temporal, directed=False):
+    """
+    Provided with a temporal network, returns BD scores for all nodes.
+    Binarized matrix: 1, for each couple of nodes, if a link exists over time.
+    If network is directed, it returns 2 ranking vectors, out and in.
+    
+    It uses several numpy functions
+    
+    Parameters
+    ----------
+    temporal: np.array
+        T*N*N adjacencies (so, an adjacency for each time step; null diagonal)
+    
+    Returns
+    -------
+    lines_sum1: np.array
+        N-list of floats representing out-BD scores of nodes
+    
+    lines_sum2: np.array [if directed = True]
+        N-list of floats representing in-BD scores of nodes
+    """
+    N = temporal.shape[1]
+    
+    bd = np.zeros((N,N))
+    for i in range(N):
+        for j in range(N):
+            if np.sum(temporal[:,i,j]) != 0:
+                bd[i,j] = 1
+    
+    if directed:
+        out_ranking = np.zeros(N)
+        in_ranking = np.zeros(N)
+        for i in range(N):
+            out_ranking[i] = sum(bd[i])
+            in_ranking[i] = sum(bd.T[i])
+        return out_ranking,in_ranking
+    else:
+        ranking = np.zeros(N)
+        for i in range(N):
+            ranking[i] = sum(bd[i])
+        return ranking
