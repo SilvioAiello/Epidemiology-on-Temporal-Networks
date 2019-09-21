@@ -17,38 +17,53 @@ import Propagation_SI
 import Saves
 
 import pickle
+import os
 import matplotlib.pyplot as plt
 
 #%%         CONFIGURATION PARAMETERS
-net_name = input("Specify the name for this simulation: ")
+net_name = input("Specify a name for this simulation: ")
 
-isSAMPLED = True #if True, sample from the empiric distribution
+isSAMPLED = False #if True, sample from the empiric distribution
 isDAR = True
+P = 1
 isDIRECTED = False
+
+N = 100
+T = 100
 
 beta = 0.01 #infection rate
 
-N = 30
-T = 50
-
-P = 1
-
-NET_REAL = 10
-K = 20 #infection realizations
+NET_REAL = 20
+K = 100 #infection realizations
 assert NET_REAL >= 1, "NET_REAL should be >=1"
 assert K > 1, "K should be >1"
 
-#alpha_constant = 0.25
 alpha_sigma = 0.05
-#xi_constant = 0.5
-#
-#phi0_constant = 0.1
-#phi1_constant = 0.35
-#sigma_constant = 0.05
 
+eigen_fraction = 0.25 #fraction of max eigenvalue to use in communicability
+multiple_infections= True #allow or not multiple infections per time step
 infective_fraction = 0.5
+
+file_name = Saves.make_basics(isDAR=isDAR,P=P,isDIRECTED=isDIRECTED,isSAMPLED=isSAMPLED) + "_N"+str(N)+"_T"+str(T)+"_"+net_name+"/input_parameters.txt"
+os.makedirs(os.path.dirname(file_name), exist_ok=True)
+with open(file_name, 'w') as f:
+    f.write("NAME = " + net_name + "\n\n")
+    f.write("sampled = " + str(isSAMPLED)+ "\n")
+    f.write("dar = " + str(isDAR)+ "\n")
+    f.write("P = %i\n" %P)
+    f.write("directed = " + str(isDIRECTED)+ "\n\n")
+    f.write("N = %i\n" %N)
+    f.write("T = %i\n" %T)
+    f.write("beta = %.2f \n\n" %beta)
+    f.write("NET_REAL = %i\n" %NET_REAL)
+    f.write("K = %i\n\n" %K)
+    f.write("alpha_sigma = %.2f \n\n" %alpha_sigma)
+    f.write("eigen_fraction = %.2f \n" %eigen_fraction)
+    f.write("multiple_infections = " + str(multiple_infections) + "\n")
+    f.write("infective_fraction = %.2f" %infective_fraction)
+
 #%%                         INPUTS BUILDING
-if isSAMPLED == 'y':
+if isSAMPLED:
     #DAR MATRICES
     if isDAR:
         with open('Empiric_Data/alphaDAR1.pkl', 'rb') as f:
@@ -109,18 +124,20 @@ start = time.time()
 #Following lists contain NET_REAL arrays; each of these lists has N entries, with the average scores for each node
 nodes_Bcentrality = []
 nodes_Rcentrality = []
+nodes_AD = []
+nodes_BD = []
 virulence = []
     
-for k in range(1,NET_REAL+1):  #so first realization has index 1
+for k in range(1,NET_REAL+1):  #so first realization has index 1; for each k one tempnet and one k are overwritten
     #TEMPNETS GENERATION AND SAVE
     if isDAR: #use the proper functiond wheter user selected dar or tgrg
         temporal_network = Evolutions.network_generation_dar(alpha,chi,P=P,T=T,directed=isDIRECTED) 
     else:
         temporal_network = Evolutions.network_generation_tgrg(phi0,phi1,sigma,T=T,directed=isDIRECTED)[0]
-    Saves.network_save(temporal_network,net_name, isDAR = isDAR, isDIRECTED = isDIRECTED, k=k, P=P)
+    Saves.network_save(temporal_network,net_name, isDAR = isDAR, isDIRECTED = isDIRECTED, isSAMPLED=isSAMPLED, k=k, P=P)
     
     #CENTRALITIES GENERATION AND SAVE
-    inv_maxradius, Q = Evolutions.communicability(temporal_network) #for each k one tempnet and one k are overwritten
+    inv_maxradius, Q = Evolutions.communicability(temporal_network, eigen_fraction=eigen_fraction, length_one= not isDIRECTED) #if is undirected, use length 1
     
     singleiter_nodes_Bcentrality = Evolutions.broadcast_ranking(Q)[0]
     Saves.analysis_save(singleiter_nodes_Bcentrality,"BCENTR", net_name, N,T,isDAR=isDAR,isDIRECTED=isDIRECTED,isSAMPLED=isSAMPLED, k=k,P=P)
@@ -129,6 +146,14 @@ for k in range(1,NET_REAL+1):  #so first realization has index 1
     singleiter_nodes_Rcentrality = Evolutions.receive_ranking(Q)[0]
     Saves.analysis_save(singleiter_nodes_Rcentrality, "RCENTR", net_name, N,T,isDAR=isDAR,isDIRECTED=isDIRECTED,isSAMPLED=isSAMPLED, k=k,P=P)
     nodes_Rcentrality.append(singleiter_nodes_Rcentrality)   
+    
+    singleiter_nodes_AD = Evolutions.aggregate_degree(temporal_network, directed=False) #if dir = True, there are 2 outputs
+    Saves.analysis_save(singleiter_nodes_AD, "AGGDEG", net_name, N,T,isDAR=isDAR,isDIRECTED=isDIRECTED,isSAMPLED=isSAMPLED, k=k,P=P)
+    nodes_AD.append(singleiter_nodes_AD)
+
+    singleiter_nodes_BD = Evolutions.binarized_degree(temporal_network, directed=False) #if dir = True, there are 2 outputs
+    Saves.analysis_save(singleiter_nodes_BD, "BINDEG", net_name, N,T,isDAR=isDAR,isDIRECTED=isDIRECTED,isSAMPLED=isSAMPLED, k=k,P=P)
+    nodes_BD.append(singleiter_nodes_BD)
     
     #SI PROPAGATION
     probabilities = dict() #probabilities dict
@@ -139,11 +164,11 @@ for k in range(1,NET_REAL+1):  #so first realization has index 1
     for index_case in range(N):
         label.append([]) #create the i-th entry
         for iteration in range(K):
-            label[index_case].append(Propagation_SI.propagation(temporal_network, index_case, probabilities))
+            label[index_case].append(Propagation_SI.propagation(temporal_network, index_case, probabilities, multiple_infections = multiple_infections))
         singleiter_virulece.append(np.mean([Propagation_SI.time_score(label[index_case][iteration],infective_fraction) for iteration in range(K)]))
     virulence.append(singleiter_virulece)
     #SAVES
-    Saves.infection_save(label,N,T,beta, net_name, isDAR = isDAR, isDIRECTED=isDIRECTED, k=k, P=P)
+    Saves.infection_save(label,N,T,beta, net_name, isDAR = isDAR, isDIRECTED=isDIRECTED,isSAMPLED=isSAMPLED, k=k, P=P)
     Saves.analysis_save(singleiter_virulece, "VIRULENCE"+str(beta), net_name, N,T,isDAR=isDAR,isDIRECTED=isDIRECTED,isSAMPLED=isSAMPLED, k=k,P=P)
 print(time.time()-start)  
 #Re-loading of single-iteration lists to re-build the whole ones is possible but not implemented here
@@ -152,18 +177,39 @@ nodes_B = []
 [nodes_B.extend(el) for el in nodes_Bcentrality]
 nodes_R = []
 [nodes_R.extend(el) for el in nodes_Rcentrality]
+nod_A = []
+[nod_A.extend(el) for el in nodes_AD]
+nod_B = []
+[nod_B.extend(el) for el in nodes_BD]
 vir = []
 [vir.extend(el) for el in virulence]
 
-plt.figure(2)
+fig_count = 2
+plt.figure(fig_count)
+fig_count+=1
 plt.scatter(nodes_B, vir)
 plt.xlabel("Broadcast Centrality")
 plt.ylabel('Epidemic score')
 plt.title(r"Undirected DAR(1) network, $\beta$ = %.3f; N=%i, T=%i; Netw iter = %i, Epid iter = %i" %(beta,N,T,NET_REAL,K))
 
-plt.figure(3)
+plt.figure(fig_count)
+fig_count+=1
 plt.scatter(nodes_R, vir)
 plt.xlabel("Receive Centrality")
+plt.ylabel('Epidemic score')
+plt.title(r"Undirected DAR(1) network; $\beta$ = %.3f; N=%i, T=%i; Netw iter = %i, Epid iter = %i" %(beta,N,T,NET_REAL,K))
+
+plt.figure(fig_count)
+fig_count+=1
+plt.scatter(nod_A, vir)
+plt.xlabel("Aggregate Degree")
+plt.ylabel('Epidemic score')
+plt.title(r"Undirected DAR(1) network; $\beta$ = %.3f; N=%i, T=%i; Netw iter = %i, Epid iter = %i" %(beta,N,T,NET_REAL,K))
+
+plt.figure(fig_count)
+fig_count+=1
+plt.scatter(nod_B, vir)
+plt.xlabel("Binarized Degree")
 plt.ylabel('Epidemic score')
 plt.title(r"Undirected DAR(1) network; $\beta$ = %.3f; N=%i, T=%i; Netw iter = %i, Epid iter = %i" %(beta,N,T,NET_REAL,K))
 
@@ -171,8 +217,10 @@ plt.title(r"Undirected DAR(1) network; $\beta$ = %.3f; N=%i, T=%i; Netw iter = %
 import scipy.stats
 print(scipy.stats.pearsonr(nodes_B, vir))
 print(scipy.stats.pearsonr(nodes_R, vir))
+print(scipy.stats.pearsonr(nod_A, vir))
+print(scipy.stats.pearsonr(nod_B, vir))
 
-print("Common nodes in first 10 positions")
+print("Common nodes in first 10 positions, BCENTR vs VIR")
 for k in range(1,NET_REAL+1):
     print(set(np.flip(np.argsort(nodes_Bcentrality[k-1]))[0:10]).intersection(set(np.argsort(virulence[k-1])[0:10])))
     #Highest BCENTR should meet lowest virulence, which is a score of how much time it takes. So virulence is not flipped
