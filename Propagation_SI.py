@@ -258,6 +258,18 @@ def propagation(tempnet,index_case,probabilities, multiple_infections = True):
     
     return(states_sequence)
 
+def when_is_infected(states_sequence,index_case):
+    T = len(states_sequence) #states_sequence is a dict
+    N = len(states_sequence[0])
+    
+    infection_times = 2*T*np.ones(N) #initialization
+    for i in [n for n in range(N) if n != index_case]:
+        for t in range(T):
+            if states_sequence[t][i] == 1:
+                infection_times[i] = t
+                break
+    return infection_times
+
 #%% EPIDEMIC SCORE COMPUTING FUNCTIONS
 def infected_counter(set_of_nodes):
     """
