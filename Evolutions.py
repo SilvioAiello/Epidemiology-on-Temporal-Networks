@@ -13,8 +13,39 @@ For further understandings on how this script operates, check file "docs/howto.m
 For further theoretical understandings, check file "docs/explanation.md".
 """
 import numpy as np
+import matplotlib.pyplot as plt
 import Assertions_suite
 #%%
+def input_sampling(samples,N, isDAR):
+    """
+    This sample generates inputs for the network generation functions, if these input have to be sampled from an external distribution.
+    
+    Parameters
+    ----------
+    samples: array
+        Matrix, or vector (it depends on the observation)
+    N: int
+        nodes of the RESULTING distribution you want to get
+    isDAR: bool
+    
+    Returns
+    -------
+    sampled: np.array
+        If it's a DAR network, the output will be a N*N matrix, otherwise a N-vector
+    """
+    norm = samples.shape[0]*samples.shape[1]
+    resh = samples.reshape(norm,1)
+    empiric_values = np.linspace(resh.min(),resh.max(),N)
+    probabilities = plt.hist(resh, bins = N)[0]/norm 
+    assert abs(sum(probabilities)-1) <=0.001
+    if isDAR:
+        size = (N,N)
+    else:
+        size = N
+    sampled = np.random.choice(empiric_values, size=size,p=probabilities)
+    return sampled
+
+
 def network_generation_dar(alpha,xi,P=1, T=100, directed = False):
     """
     Generates a DAR(P) network in form of np.array
@@ -168,7 +199,7 @@ def network_generation_tgrg(phi0,phi1,sigma,T=100, directed = False):
     #ADJACENCIES COMPUTATION
     temporal_network = np.zeros((T,N,N)) #tensor definition
     for t in range(T):
-        prob = np.array([[np.exp(theta[i,t]+theta[j,t])/(1+np.exp(theta[i,t]+theta[j,t])) for j in range(N)] for i in range(N)])
+        prob = np.array([[np.exp(theta[i,t]+theta[j,t])/(1+np.exp(theta[i,t]+theta[j,t])) if np.exp(theta[i,t]+theta[j,t])< np.exp(705) else 1 for j in range(N)] for i in range(N)])
         #TGRG FOR UPPER TRIANGLE
         temporal_network[t] = np.array([[np.random.choice((1,0), p=(prob[i,j],1-prob[i,j])) if j>i else 0 for j in range(N)] for i in range(N)])
         #LOWER TRIANGLE (j<i)

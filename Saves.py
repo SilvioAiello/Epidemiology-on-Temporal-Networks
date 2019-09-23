@@ -95,6 +95,37 @@ def network_load(N,T,start,isDAR=True,isDIRECTED=False,isSAMPLED=True,k=1,P=1):
     with open(name, 'rb') as f:
         return pickle.load(f)
 
+def matrix_save(matrix,matrix_name, start, N,T,isDAR=True,isDIRECTED=False,isSAMPLED=True,P=1):
+    """
+    Here N and T need to be specified
+    
+    Returns
+    -------
+    Saves an array of length N, containing the scores for each node
+    """
+    assert type(matrix_name) == str
+    
+    name = make_basics(isDAR=isDAR,P=P,isDIRECTED=isDIRECTED,isSAMPLED=isSAMPLED) + "_N"+str(N)+"_T"+str(T)+"_"+start+"/"+matrix_name+".pkl"
+    
+    os.makedirs(os.path.dirname(name), exist_ok=True)
+    with open(name, 'wb') as handle: #wb = write binary
+        pickle.dump(matrix,handle)
+
+def matrix_load(matrix_name, start, N,T,isDAR=True,isDIRECTED=False,isSAMPLED=True,P=1):
+    """
+    Here N and T need to be specified
+    
+    Returns
+    -------
+    Saves an array of length N, containing the scores for each node
+    """
+    assert type(matrix_name) == str
+    
+    name = make_basics(isDAR=isDAR,P=P,isDIRECTED=isDIRECTED,isSAMPLED=isSAMPLED) + "_N"+str(N)+"_T"+str(T)+"_"+start+"/"+matrix_name+".pkl"
+    
+    with open(name, 'rb') as handle: #wb = write binary
+        return pickle.load(handle)
+
 def analysis_save(centr,centr_name, start, N,T,isDAR=True,isDIRECTED=False,isSAMPLED=True,k=1,P=1):
     """
     Here N and T need to be specified
@@ -111,7 +142,7 @@ def analysis_save(centr,centr_name, start, N,T,isDAR=True,isDIRECTED=False,isSAM
     with open(name, 'wb') as handle: #wb = write binary
         pickle.dump(centr,handle)
 
-def analysis_load(centr, centr_name, start, N,T,isDAR=True,isDIRECTED=False,isSAMPLED=True,k=1,P=1):
+def analysis_load(centr_name, start, N,T,isDAR=True,isDIRECTED=False,isSAMPLED=True,k=1,P=1):
     """
     Here N and T need to be specified
     
@@ -123,7 +154,7 @@ def analysis_load(centr, centr_name, start, N,T,isDAR=True,isDIRECTED=False,isSA
     
     name = make_basics(isDAR=isDAR,P=P,isDIRECTED=isDIRECTED,isSAMPLED=isSAMPLED) + "_N"+str(N)+"_T"+str(T)+"_"+start+"/realization"+str(k)+"/"+centr_name+".pkl"
     
-    with open(name, 'wb') as handle: #wb = write binary
+    with open(name, 'rb') as handle: #wb = write binary
         return pickle.load(handle)
 
 def infection_save(label, N,T, beta, start,isDAR=True,isDIRECTED=False,isSAMPLED=True,k=1, P=1):
