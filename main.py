@@ -23,22 +23,22 @@ import matplotlib.pyplot as plt
 #%%         CONFIGURATION PARAMETERS
 net_name = input("Specify a name for this simulation: ")
 
-isSAMPLED = False #if True, sample from the empiric distribution
+isSAMPLED = True #if True, sample from the empiric distribution
 isDAR = True
 P = 1
 isDIRECTED = False
 
-N = 100
-T = 100
+N = 10
+T = 25
 
-beta = 0.01 #infection rate
+beta = 0.01 #infection rate; sampled -> 0.1, not sampled -> 0.05
 
-NET_REAL = 20
-K = 100 #infection realizations
+NET_REAL = 1
+K = 50 #infection realizations
 assert NET_REAL >= 1, "NET_REAL should be >=1"
 assert K > 1, "K should be >1"
 
-alpha_sigma = 0.05
+alpha_sigma = 0.09
 
 eigen_fraction = 0.25 #fraction of max eigenvalue to use in communicability
 multiple_infections= True #allow or not multiple infections per time step
@@ -71,17 +71,11 @@ if isSAMPLED:
         with open('Empiric_Data/chiDAR1.pkl', 'rb') as f:
             chiDAR1 = pickle.load(f)
         #ALPHAS
-        resh = alphaDAR1.reshape(98*98,1)
-        empiric_alphas = np.linspace(0,0.99,N)
-        alphas_probabilities = plt.hist(resh, bins = N)[0]/(98*98) #entry [0] is a count, so it has to be normalized
-        alpha = np.random.choice(empiric_alphas, size=(N,N),p=alphas_probabilities)
+        alpha = Evolutions.input_sampling(alphaDAR1,N=N,isDAR = isDAR)
+        Saves.matrix_save(alpha,'alpha',net_name,N=N,T=T,isDAR=isDAR,isDIRECTED=isDIRECTED,isSAMPLED=isSAMPLED,P=P)
         #CHIS
-        resh = chiDAR1.reshape(98*98,1)
-        empiric_chis = np.linspace(0,0.99,N)
-        chis_probabilities = plt.hist(resh, bins = N)[0]/(98*98) #entry [0] is a count, so it has to be normalized
-        chi = np.random.choice(empiric_chis, size=(N,N),p=chis_probabilities)
-        assert abs(sum(alphas_probabilities)-1) <=0.001
-        assert abs(sum(chis_probabilities)-1) <= 0.001
+        chi = Evolutions.input_sampling(chiDAR1,N=N,isDAR = isDAR)
+        Saves.matrix_save(chi,'chi',net_name,N=N,T=T,isDAR=isDAR,isDIRECTED=isDIRECTED,isSAMPLED=isSAMPLED,P=P)
     else:   
         #TGRG MATRICES
         with open('Empiric_Data/phi0TGRG.pkl', 'rb') as f:
@@ -90,27 +84,21 @@ if isSAMPLED:
             phi1TGRG = pickle.load(f)
         with open('Empiric_Data/sigmaTGRG.pkl', 'rb') as f:
             sigmaTGRG = pickle.load(f)
+        if isDIRECTED == False: #if it's undirected, only first 98 observations are took
+            phi0TGRG = phi0TGRG[1:98]
+            phi1TGRG = phi0TGRG[1:98]
+            sigmaTGRG = sigmaTGRG[1:98]
         #PHI0S
-        resh = phi0TGRG[0:98] #FOR DIRECTED CASE, ALL 196 SHOULD BE TOOK
-        empiric_phi0s = np.linspace(resh.min(),resh.max(),N)
-        phi0s_probabilities = plt.hist(resh, bins = N)[0]/98 #entry [0] is a count, so it has to be normalized
-        phi0 = np.random.choice(empiric_phi0s, size=N,p=phi0s_probabilities)
+        phi0 = Evolutions.input_sampling(phi0TGRG,N=N,isDAR = isDAR)
+        Saves.matrix_save(phi0,'phi0',net_name,N=N,T=T,isDAR=isDAR,isDIRECTED=isDIRECTED,isSAMPLED=isSAMPLED,P=P)
         #PHI1S
-        resh = phi1TGRG[0:98] #FOR DIRECTED CASE, ALL 196 SHOULD BE TOOK
-        empiric_phi1s = np.linspace(resh.min(),resh.max(),N)
-        phi1s_probabilities = plt.hist(resh, bins = N)[0]/98 #entry [0] is a count, so it has to be normalized
-        phi1 = np.random.choice(empiric_phi1s, size=N,p=phi1s_probabilities)
+        phi1 = Evolutions.input_sampling(phi1TGRG,N=N,isDAR = isDAR)
+        Saves.matrix_save(phi1,'phi1',net_name,N=N,T=T,isDAR=isDAR,isDIRECTED=isDIRECTED,isSAMPLED=isSAMPLED,P=P)
         #SIGMAS
-        resh = sigmaTGRG[0:98] #FOR DIRECTED CASE, ALL 196 SHOULD BE TOOK
-        empiric_sigmas = np.linspace(resh.min(),resh.max(),N)
-        sigmas_probabilities = plt.hist(resh, bins = N)[0]/98 #entry [0] is a count, so it has to be normalized
-        sigma = np.random.choice(empiric_sigmas, size=N,p=sigmas_probabilities)
-        assert abs(sum(phi0s_probabilities)-1) <=0.001
-        assert abs(sum(phi1s_probabilities)-1) <= 0.001
-        assert abs(sum(sigmas_probabilities)-1) <= 0.001
-else:
+        sigma = Evolutions.input_sampling(sigmaTGRG,N=N,isDAR = isDAR)
+        Saves.matrix_save(sigma,'sigma',net_name,N=N,T=T,isDAR=isDAR,isDIRECTED=isDIRECTED,isSAMPLED=isSAMPLED,P=P)
+else: #extract from analytic distribution
     if isDAR:
-        alpha_sigma = 0.09
         alpha = np.random.normal(0.5, alpha_sigma, size=(N,N))
         chi = np.random.normal(0.5, alpha_sigma, size=(N,N))
     else:
@@ -126,7 +114,9 @@ nodes_Bcentrality = []
 nodes_Rcentrality = []
 nodes_AD = []
 nodes_BD = []
-virulence = []
+
+virulence = [] #scores computed when each node is the index case
+time_tobe_infected = [] #scores computed when each node is not the index case
     
 for k in range(1,NET_REAL+1):  #so first realization has index 1; for each k one tempnet and one k are overwritten
     #TEMPNETS GENERATION AND SAVE
@@ -161,15 +151,19 @@ for k in range(1,NET_REAL+1):  #so first realization has index 1; for each k one
         probabilities[t] = quad(Propagation_SI.poisson_probability,0,t, args = beta)[0] #quad produces several outputs, integral is the first
     label = []
     singleiter_virulece = []
+    singleiter_time_tobe_infected = []
     for index_case in range(N):
         label.append([]) #create the i-th entry
         for iteration in range(K):
             label[index_case].append(Propagation_SI.propagation(temporal_network, index_case, probabilities, multiple_infections = multiple_infections))
         singleiter_virulece.append(np.mean([Propagation_SI.time_score(label[index_case][iteration],infective_fraction) for iteration in range(K)]))
+        singleiter_time_tobe_infected.append(np.mean([Propagation_SI.when_is_infected(label[index_case][iteration], index_case) for iteration in range(K)],axis=0))
     virulence.append(singleiter_virulece)
+    time_tobe_infected.append(singleiter_time_tobe_infected)
     #SAVES
     Saves.infection_save(label,N,T,beta, net_name, isDAR = isDAR, isDIRECTED=isDIRECTED,isSAMPLED=isSAMPLED, k=k, P=P)
     Saves.analysis_save(singleiter_virulece, "VIRULENCE"+str(beta), net_name, N,T,isDAR=isDAR,isDIRECTED=isDIRECTED,isSAMPLED=isSAMPLED, k=k,P=P)
+    Saves.analysis_save(time_tobe_infected, "TIMEINFECTED"+str(beta), net_name, N,T,isDAR=isDAR,isDIRECTED=isDIRECTED,isSAMPLED=isSAMPLED, k=k,P=P)
 print(time.time()-start)  
 #Re-loading of single-iteration lists to re-build the whole ones is possible but not implemented here
 #%% ANALYSIS
@@ -183,6 +177,14 @@ nod_B = []
 [nod_B.extend(el) for el in nodes_BD]
 vir = []
 [vir.extend(el) for el in virulence]
+vir = [1/i for i in vir] #so lowest times have correctly greatest score
+time_tobe_infected = np.mean(time_tobe_infected,axis=1) #averaged over all the iterations
+tim = []
+[tim.extend(el) for el in time_tobe_infected] 
+tim = [1/i for i in tim] #so lowest times have correctly greatest score
+
+file_name = Saves.make_basics(isDAR=isDAR,P=P,isDIRECTED=isDIRECTED,isSAMPLED=isSAMPLED) + "_N"+str(N)+"_T"+str(T)+"_"+net_name+"results/"
+os.makedirs(os.path.dirname(file_name), exist_ok=True)
 
 fig_count = 2
 plt.figure(fig_count)
@@ -191,6 +193,7 @@ plt.scatter(nodes_B, vir)
 plt.xlabel("Broadcast Centrality")
 plt.ylabel('Epidemic score')
 plt.title(r"Undirected DAR(1) network, $\beta$ = %.3f; N=%i, T=%i; Netw iter = %i, Epid iter = %i" %(beta,N,T,NET_REAL,K))
+plt.savefig(file_name+"BC.pdf")
 
 plt.figure(fig_count)
 fig_count+=1
@@ -198,6 +201,7 @@ plt.scatter(nodes_R, vir)
 plt.xlabel("Receive Centrality")
 plt.ylabel('Epidemic score')
 plt.title(r"Undirected DAR(1) network; $\beta$ = %.3f; N=%i, T=%i; Netw iter = %i, Epid iter = %i" %(beta,N,T,NET_REAL,K))
+plt.savefig(file_name+"RC.pdf")
 
 plt.figure(fig_count)
 fig_count+=1
@@ -205,22 +209,42 @@ plt.scatter(nod_A, vir)
 plt.xlabel("Aggregate Degree")
 plt.ylabel('Epidemic score')
 plt.title(r"Undirected DAR(1) network; $\beta$ = %.3f; N=%i, T=%i; Netw iter = %i, Epid iter = %i" %(beta,N,T,NET_REAL,K))
+plt.savefig(file_name+"AD.pdf")
+
+#plt.figure(fig_count)
+#fig_count+=1
+#plt.scatter(nod_B, vir)
+#plt.xlabel("Binarized Degree")
+#plt.ylabel('Epidemic score')
+#plt.title(r"Undirected DAR(1) network; $\beta$ = %.3f; N=%i, T=%i; Netw iter = %i, Epid iter = %i" %(beta,N,T,NET_REAL,K))
+#plt.savefig(file_name+"BD.pdf")
 
 plt.figure(fig_count)
 fig_count+=1
-plt.scatter(nod_B, vir)
-plt.xlabel("Binarized Degree")
-plt.ylabel('Epidemic score')
+plt.scatter(nodes_R, tim)
+plt.xlabel("Receive Centrality")
+plt.ylabel('Time to be infected')
 plt.title(r"Undirected DAR(1) network; $\beta$ = %.3f; N=%i, T=%i; Netw iter = %i, Epid iter = %i" %(beta,N,T,NET_REAL,K))
-
+plt.savefig(file_name+"TIM.pdf")
 
 import scipy.stats
+print("BC - vir correlation:")
 print(scipy.stats.pearsonr(nodes_B, vir))
+print("RC - vir correlation:")
 print(scipy.stats.pearsonr(nodes_R, vir))
+print("AD - vir correlation:")
 print(scipy.stats.pearsonr(nod_A, vir))
-print(scipy.stats.pearsonr(nod_B, vir))
+#print("BD - vir correlation:")
+#print(scipy.stats.pearsonr(nod_B, vir))
+print("RC - tim correlation:")
+print(scipy.stats.pearsonr(nodes_R, tim))
 
-print("Common nodes in first 10 positions, BCENTR vs VIR")
+print("Common nodes in first 10 positions, BCENTR vs VIR, for each network realization")
 for k in range(1,NET_REAL+1):
     print(set(np.flip(np.argsort(nodes_Bcentrality[k-1]))[0:10]).intersection(set(np.argsort(virulence[k-1])[0:10])))
+    #Highest BCENTR should meet lowest virulence, which is a score of how much time it takes. So virulence is not flipped
+
+print("Common nodes in first 10 positions, RCENTR vs TIM, for each network realization")
+for k in range(1,NET_REAL+1):
+    print(set(np.flip(np.argsort(nodes_Rcentrality[k-1]))[0:10]).intersection(set(np.argsort(time_tobe_infected[k-1])[0:10])))
     #Highest BCENTR should meet lowest virulence, which is a score of how much time it takes. So virulence is not flipped
