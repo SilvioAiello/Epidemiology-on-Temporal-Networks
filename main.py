@@ -42,25 +42,6 @@ alpha_sigma = 0.09
 eigen_fraction = 0.25 #fraction of max eigenvalue to use in communicability
 multiple_infections= True #allow or not multiple infections per time step
 infective_fraction = 0.5
-
-file_name = Saves.make_basics(beta=beta,isDAR=isDAR,P=P,isDIRECTED=isDIRECTED,isSAMPLED=isSAMPLED) + "_N"+str(N)+"_T"+str(T)+"_"+net_name+"/input_parameters.txt"
-os.makedirs(os.path.dirname(file_name), exist_ok=True)
-with open(file_name, 'w') as f:
-    f.write("NAME = " + net_name + "\n\n")
-    f.write("sampled = " + str(isSAMPLED)+ "\n")
-    f.write("dar = " + str(isDAR)+ "\n")
-    f.write("P = %i\n" %P)
-    f.write("directed = " + str(isDIRECTED)+ "\n\n")
-    f.write("N = %i\n" %N)
-    f.write("T = %i\n" %T)
-    f.write("beta = %.2f \n\n" %beta)
-    f.write("NET_REAL = %i\n" %NET_REAL)
-    f.write("K = %i\n\n" %K)
-    f.write("alpha_sigma = %.2f \n\n" %alpha_sigma)
-    f.write("eigen_fraction = %.2f \n" %eigen_fraction)
-    f.write("multiple_infections = " + str(multiple_infections) + "\n")
-    f.write("infective_fraction = %.2f" %infective_fraction)
-
 #%%                         INPUTS BUILDING
 if isSAMPLED:
     #DAR MATRICES
@@ -183,7 +164,9 @@ tim = []
 [tim.extend(el) for el in time_tobe_infected] 
 tim = [1/i for i in tim] #so lowest times have correctly greatest score
 
-file_name = Saves.make_basics(beta=beta, isDAR=isDAR,P=P,isDIRECTED=isDIRECTED,isSAMPLED=isSAMPLED) + "_N"+str(N)+"_T"+str(T)+"_"+net_name+"/results/"
+
+#%% RESULTS OUTPUT
+file_name = Saves.make_basics(beta=beta, isDAR=isDAR,P=P,isDIRECTED=isDIRECTED,isSAMPLED=isSAMPLED) + "_N"+str(N)+"_T"+str(T)+"_"+net_name+"/grapichs/"
 os.makedirs(os.path.dirname(file_name), exist_ok=True)
 
 fig_count = 2
@@ -228,23 +211,43 @@ plt.title(r"Undirected DAR(1) network; $\beta$ = %.3f; N=%i, T=%i; Netw iter = %
 plt.savefig(file_name+"TIM.pdf")
 
 import scipy.stats
-print("BC - vir correlation:")
-print(scipy.stats.pearsonr(nodes_B, vir))
-print("RC - vir correlation:")
-print(scipy.stats.pearsonr(nodes_R, vir))
-print("AD - vir correlation:")
-print(scipy.stats.pearsonr(nod_A, vir))
-#print("BD - vir correlation:")
-#print(scipy.stats.pearsonr(nod_B, vir))
-print("RC - tim correlation:")
-print(scipy.stats.pearsonr(nodes_R, tim))
 
-print("Common nodes in first 10 positions, BCENTR vs VIR, for each network realization")
-for k in range(1,NET_REAL+1):
-    print(set(np.flip(np.argsort(nodes_Bcentrality[k-1]))[0:10]).intersection(set(np.argsort(virulence[k-1])[0:10])))
-    #Highest BCENTR should meet lowest virulence, which is a score of how much time it takes. So virulence is not flipped
-
-print("Common nodes in first 10 positions, RCENTR vs TIM, for each network realization")
-for k in range(1,NET_REAL+1):
-    print(set(np.flip(np.argsort(nodes_Rcentrality[k-1]))[0:10]).intersection(set(np.argsort(time_tobe_infected[k-1])[0:10])))
-    #Highest BCENTR should meet lowest virulence, which is a score of how much time it takes. So virulence is not flipped
+file_name = Saves.make_basics(beta=beta,isDAR=isDAR,P=P,isDIRECTED=isDIRECTED,isSAMPLED=isSAMPLED) + "_N"+str(N)+"_T"+str(T)+"_"+net_name+"/resume.txt"
+os.makedirs(os.path.dirname(file_name), exist_ok=True)
+with open(file_name, 'w') as f:
+    f.write("### INPUTS ###\n\n")
+    f.write("NAME = " + net_name + "\n\n")
+    f.write("sampled = " + str(isSAMPLED)+ "\n")
+    f.write("dar = " + str(isDAR)+ "\n")
+    f.write("P = %i\n" %P)
+    f.write("directed = " + str(isDIRECTED)+ "\n\n")
+    f.write("N = %i\n" %N)
+    f.write("T = %i\n" %T)
+    f.write("beta = %.2f \n\n" %beta)
+    f.write("NET_REAL = %i\n" %NET_REAL)
+    f.write("K = %i\n\n" %K)
+    f.write("alpha_sigma = %.2f \n\n" %alpha_sigma)
+    f.write("eigen_fraction = %.2f \n" %eigen_fraction)
+    f.write("multiple_infections = " + str(multiple_infections) + "\n")
+    f.write("infective_fraction = %.2f" %infective_fraction)
+    print("\n\n### OUTPUTS ###\n", file=f)
+    print("BC - vir correlation:", file=f)
+    print(scipy.stats.pearsonr(nodes_B, vir), file=f)
+    print("RC - vir correlation:", file=f)
+    print(scipy.stats.pearsonr(nodes_R, vir), file=f)
+    print("AD - vir correlation:", file=f)
+    print(scipy.stats.pearsonr(nod_A, vir), file=f)
+    print("BD - vir correlation:", file=f)
+    print(scipy.stats.pearsonr(nod_B, vir), file=f)
+    print("RC - tim correlation:", file=f)
+    print(scipy.stats.pearsonr(nodes_R, tim), file=f)
+    
+    print("Common nodes in first 10 positions, BCENTR vs VIR, for each network realization", file=f)
+    for k in range(1,NET_REAL+1):
+        print(set(np.flip(np.argsort(nodes_Bcentrality[k-1]))[0:10]).intersection(set(np.argsort(virulence[k-1])[0:10])), file=f)
+        #Highest BCENTR should meet lowest virulence, which is a score of how much time it takes. So virulence is not flipped
+    
+    print("Common nodes in first 10 positions, RCENTR vs TIM, for each network realization", file=f)
+    for k in range(1,NET_REAL+1):
+        print(set(np.flip(np.argsort(nodes_Rcentrality[k-1]))[0:10]).intersection(set(np.argsort(time_tobe_infected[k-1])[0:10])), file=f)
+        #Highest BCENTR should meet lowest virulence, which is a score of how much time it takes. So virulence is not flipped
