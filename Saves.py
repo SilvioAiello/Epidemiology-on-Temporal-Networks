@@ -12,7 +12,7 @@ import os
 
 import Assertions_suite
 
-def make_basics(isDAR=True,P=1,isDIRECTED=False,isSAMPLED=True):
+def make_basics(beta,isDAR=True,P=1,isDIRECTED=False,isSAMPLED=True):
     name = str()
     if isDAR:
         name = "Networks/DAR" + str(P)
@@ -28,9 +28,11 @@ def make_basics(isDAR=True,P=1,isDIRECTED=False,isSAMPLED=True):
         name+="_DIRECTED"
     else:
         name+="_DIRECTED"
+    
+    name = name + "_beta"+str(beta)
     return name
 
-def network_save(network, start,isDAR=True,isDIRECTED=False,isSAMPLED=True,k=1, P=1):
+def network_save(network, start, beta, isDAR=True,isDIRECTED=False,isSAMPLED=True,k=1, P=1):
     """ Saves network using pickle (so it must be installed) and giving it its proper name (with an identification provided by user) and folder
     
     Parameters
@@ -60,13 +62,13 @@ def network_save(network, start,isDAR=True,isDIRECTED=False,isSAMPLED=True,k=1, 
     T = network.shape[0]
     N = network.shape[1]
     
-    name = make_basics(isDAR=isDAR,P=P,isDIRECTED=isDIRECTED,isSAMPLED=isSAMPLED) + "_N"+str(N)+"_T"+str(T)+"_"+start+"/realization"+str(k)+"/network.pkl"
+    name = make_basics(beta=beta, isDAR=isDAR,P=P,isDIRECTED=isDIRECTED,isSAMPLED=isSAMPLED) + "_N"+str(N)+"_T"+str(T)+"_"+start+"/realization"+str(k)+"/network.pkl"
 
     os.makedirs(os.path.dirname(name), exist_ok=True)
     with open(name, 'wb') as handle: #wb = write binary
         pickle.dump(network,handle)
 
-def network_load(N,T,start,isDAR=True,isDIRECTED=False,isSAMPLED=True,k=1,P=1):
+def network_load(N,T,start, beta, isDAR=True,isDIRECTED=False,isSAMPLED=True,k=1,P=1):
     """ Loads a previously generated temporal network using pickle (so it must be installed), if it's present
     
     Parameters
@@ -90,12 +92,12 @@ def network_load(N,T,start,isDAR=True,isDIRECTED=False,isSAMPLED=True,k=1,P=1):
         TNN-tempnet is returned
     """
 
-    name = make_basics(isDAR=isDAR,P=P,isDIRECTED=isDIRECTED,isSAMPLED=isSAMPLED) + "_N"+str(N)+"_T"+str(T)+"_"+start+"/realization"+str(k)+"/network.pkl"
+    name = make_basics(beta=beta,isDAR=isDAR,P=P,isDIRECTED=isDIRECTED,isSAMPLED=isSAMPLED) + "_N"+str(N)+"_T"+str(T)+"_"+start+"/realization"+str(k)+"/network.pkl"
 
     with open(name, 'rb') as f:
         return pickle.load(f)
 
-def matrix_save(matrix,matrix_name, start, N,T,isDAR=True,isDIRECTED=False,isSAMPLED=True,P=1):
+def matrix_save(matrix,matrix_name, start, N,T, beta, isDAR=True,isDIRECTED=False,isSAMPLED=True,P=1):
     """
     Here N and T need to be specified
     
@@ -105,13 +107,13 @@ def matrix_save(matrix,matrix_name, start, N,T,isDAR=True,isDIRECTED=False,isSAM
     """
     assert type(matrix_name) == str
     
-    name = make_basics(isDAR=isDAR,P=P,isDIRECTED=isDIRECTED,isSAMPLED=isSAMPLED) + "_N"+str(N)+"_T"+str(T)+"_"+start+"/"+matrix_name+".pkl"
+    name = make_basics(beta=beta, isDAR=isDAR,P=P,isDIRECTED=isDIRECTED,isSAMPLED=isSAMPLED) + "_N"+str(N)+"_T"+str(T)+"_"+start+"/"+matrix_name+".pkl"
     
     os.makedirs(os.path.dirname(name), exist_ok=True)
     with open(name, 'wb') as handle: #wb = write binary
         pickle.dump(matrix,handle)
 
-def matrix_load(matrix_name, start, N,T,isDAR=True,isDIRECTED=False,isSAMPLED=True,P=1):
+def matrix_load(matrix_name, start, N,T, beta, isDAR=True,isDIRECTED=False,isSAMPLED=True,P=1):
     """
     Here N and T need to be specified
     
@@ -121,12 +123,12 @@ def matrix_load(matrix_name, start, N,T,isDAR=True,isDIRECTED=False,isSAMPLED=Tr
     """
     assert type(matrix_name) == str
     
-    name = make_basics(isDAR=isDAR,P=P,isDIRECTED=isDIRECTED,isSAMPLED=isSAMPLED) + "_N"+str(N)+"_T"+str(T)+"_"+start+"/"+matrix_name+".pkl"
+    name = make_basics(beta=beta,isDAR=isDAR,P=P,isDIRECTED=isDIRECTED,isSAMPLED=isSAMPLED) + "_N"+str(N)+"_T"+str(T)+"_"+start+"/"+matrix_name+".pkl"
     
     with open(name, 'rb') as handle: #wb = write binary
         return pickle.load(handle)
 
-def analysis_save(centr,centr_name, start, N,T,isDAR=True,isDIRECTED=False,isSAMPLED=True,k=1,P=1):
+def analysis_save(centr,centr_name, start, N,T, beta, isDAR=True,isDIRECTED=False,isSAMPLED=True,k=1,P=1):
     """
     Here N and T need to be specified
     
@@ -136,13 +138,13 @@ def analysis_save(centr,centr_name, start, N,T,isDAR=True,isDIRECTED=False,isSAM
     """
     assert type(centr_name) == str
     
-    name = make_basics(isDAR=isDAR,P=P,isDIRECTED=isDIRECTED,isSAMPLED=isSAMPLED) + "_N"+str(N)+"_T"+str(T)+"_"+start+"/realization"+str(k)+"/"+centr_name+".pkl"
+    name = make_basics(beta=beta,isDAR=isDAR,P=P,isDIRECTED=isDIRECTED,isSAMPLED=isSAMPLED) + "_N"+str(N)+"_T"+str(T)+"_"+start+"/realization"+str(k)+"/"+centr_name+".pkl"
     
     os.makedirs(os.path.dirname(name), exist_ok=True)
     with open(name, 'wb') as handle: #wb = write binary
         pickle.dump(centr,handle)
 
-def analysis_load(centr_name, start, N,T,isDAR=True,isDIRECTED=False,isSAMPLED=True,k=1,P=1):
+def analysis_load(centr_name, start, N,T, beta, isDAR=True,isDIRECTED=False,isSAMPLED=True,k=1,P=1):
     """
     Here N and T need to be specified
     
@@ -152,7 +154,7 @@ def analysis_load(centr_name, start, N,T,isDAR=True,isDIRECTED=False,isSAMPLED=T
     """
     assert type(centr_name) == str
     
-    name = make_basics(isDAR=isDAR,P=P,isDIRECTED=isDIRECTED,isSAMPLED=isSAMPLED) + "_N"+str(N)+"_T"+str(T)+"_"+start+"/realization"+str(k)+"/"+centr_name+".pkl"
+    name = make_basics(beta=beta, isDAR=isDAR,P=P,isDIRECTED=isDIRECTED,isSAMPLED=isSAMPLED) + "_N"+str(N)+"_T"+str(T)+"_"+start+"/realization"+str(k)+"/"+centr_name+".pkl"
     
     with open(name, 'rb') as handle: #wb = write binary
         return pickle.load(handle)
@@ -184,7 +186,7 @@ def infection_save(label, N,T, beta, start,isDAR=True,isDIRECTED=False,isSAMPLED
         If PATH didn't exist, it's created
     """
     
-    name = make_basics(isDAR=isDAR,P=P,isDIRECTED=isDIRECTED,isSAMPLED=isSAMPLED) + "_N"+str(N)+"_T"+str(T)+"_"+start+"/realization"+str(k)+"/infections_beta"+str(beta)+".pkl"
+    name = make_basics(beta=beta,isDAR=isDAR,P=P,isDIRECTED=isDIRECTED,isSAMPLED=isSAMPLED) + "_N"+str(N)+"_T"+str(T)+"_"+start+"/realization"+str(k)+"/infection.pkl"
 
     os.makedirs(os.path.dirname(name), exist_ok=True)
     with open(name, 'wb') as handle: #wb = write binary
@@ -213,7 +215,8 @@ def infection_load(N,T, beta, start,isDAR=True,isDIRECTED=False,isSAMPLED=True,k
     /PATH/infections.pkl
         If PATH didn't exist, it's created
     """
-    name = make_basics(isDAR=isDAR,P=P,isDIRECTED=isDIRECTED,isSAMPLED=isSAMPLED) + "_N"+str(N)+"_T"+str(T)+"_"+start+"/realization"+str(k)+"/infections_beta"+str(beta)+".pkl"
+    name = make_basics(beta=beta, isDAR=isDAR,P=P,isDIRECTED=isDIRECTED,isSAMPLED=isSAMPLED) + "_N"+str(N)+"_T"+str(T)+"_"+start+"/realization"+str(k)+"/infection.pkl"
     os.makedirs(os.path.dirname(name), exist_ok=True)
     with open(name, 'rb') as f:
         return pickle.load(f)
+#Aggiornare le funzioni in main, magari generare una tupla di variabili canoniche

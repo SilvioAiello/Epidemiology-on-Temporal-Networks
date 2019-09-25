@@ -28,13 +28,12 @@ isDAR = True
 P = 1
 isDIRECTED = False
 
-N = 10
-T = 25
-
-beta = 0.01 #infection rate; sampled -> 0.1, not sampled -> 0.05
+N = 25
+T = 50
+beta = 0.25 #infection rate; sampled -> 0.1, not sampled -> 0.05
 
 NET_REAL = 1
-K = 50 #infection realizations
+K = 20 #infection realizations
 assert NET_REAL >= 1, "NET_REAL should be >=1"
 assert K > 1, "K should be >1"
 
@@ -44,7 +43,7 @@ eigen_fraction = 0.25 #fraction of max eigenvalue to use in communicability
 multiple_infections= True #allow or not multiple infections per time step
 infective_fraction = 0.5
 
-file_name = Saves.make_basics(isDAR=isDAR,P=P,isDIRECTED=isDIRECTED,isSAMPLED=isSAMPLED) + "_N"+str(N)+"_T"+str(T)+"_"+net_name+"/input_parameters.txt"
+file_name = Saves.make_basics(beta=beta,isDAR=isDAR,P=P,isDIRECTED=isDIRECTED,isSAMPLED=isSAMPLED) + "_N"+str(N)+"_T"+str(T)+"_"+net_name+"/input_parameters.txt"
 os.makedirs(os.path.dirname(file_name), exist_ok=True)
 with open(file_name, 'w') as f:
     f.write("NAME = " + net_name + "\n\n")
@@ -72,10 +71,10 @@ if isSAMPLED:
             chiDAR1 = pickle.load(f)
         #ALPHAS
         alpha = Evolutions.input_sampling(alphaDAR1,N=N,isDAR = isDAR)
-        Saves.matrix_save(alpha,'alpha',net_name,N=N,T=T,isDAR=isDAR,isDIRECTED=isDIRECTED,isSAMPLED=isSAMPLED,P=P)
+        Saves.matrix_save(alpha,'alpha',net_name,N=N,T=T,beta=beta,isDAR=isDAR,isDIRECTED=isDIRECTED,isSAMPLED=isSAMPLED,P=P)
         #CHIS
         chi = Evolutions.input_sampling(chiDAR1,N=N,isDAR = isDAR)
-        Saves.matrix_save(chi,'chi',net_name,N=N,T=T,isDAR=isDAR,isDIRECTED=isDIRECTED,isSAMPLED=isSAMPLED,P=P)
+        Saves.matrix_save(chi,'chi',net_name,N=N,T=T,beta=beta,isDAR=isDAR,isDIRECTED=isDIRECTED,isSAMPLED=isSAMPLED,P=P)
     else:   
         #TGRG MATRICES
         with open('Empiric_Data/phi0TGRG.pkl', 'rb') as f:
@@ -90,13 +89,13 @@ if isSAMPLED:
             sigmaTGRG = sigmaTGRG[1:98]
         #PHI0S
         phi0 = Evolutions.input_sampling(phi0TGRG,N=N,isDAR = isDAR)
-        Saves.matrix_save(phi0,'phi0',net_name,N=N,T=T,isDAR=isDAR,isDIRECTED=isDIRECTED,isSAMPLED=isSAMPLED,P=P)
+        Saves.matrix_save(phi0,'phi0',net_name,N=N,T=T,beta=beta,isDAR=isDAR,isDIRECTED=isDIRECTED,isSAMPLED=isSAMPLED,P=P)
         #PHI1S
         phi1 = Evolutions.input_sampling(phi1TGRG,N=N,isDAR = isDAR)
-        Saves.matrix_save(phi1,'phi1',net_name,N=N,T=T,isDAR=isDAR,isDIRECTED=isDIRECTED,isSAMPLED=isSAMPLED,P=P)
+        Saves.matrix_save(phi1,'phi1',net_name,N=N,T=T,beta=beta,isDAR=isDAR,isDIRECTED=isDIRECTED,isSAMPLED=isSAMPLED,P=P)
         #SIGMAS
         sigma = Evolutions.input_sampling(sigmaTGRG,N=N,isDAR = isDAR)
-        Saves.matrix_save(sigma,'sigma',net_name,N=N,T=T,isDAR=isDAR,isDIRECTED=isDIRECTED,isSAMPLED=isSAMPLED,P=P)
+        Saves.matrix_save(sigma,'sigma',net_name,N=N,T=T,beta=beta,isDAR=isDAR,isDIRECTED=isDIRECTED,isSAMPLED=isSAMPLED,P=P)
 else: #extract from analytic distribution
     if isDAR:
         alpha = np.random.normal(0.5, alpha_sigma, size=(N,N))
@@ -124,25 +123,25 @@ for k in range(1,NET_REAL+1):  #so first realization has index 1; for each k one
         temporal_network = Evolutions.network_generation_dar(alpha,chi,P=P,T=T,directed=isDIRECTED) 
     else:
         temporal_network = Evolutions.network_generation_tgrg(phi0,phi1,sigma,T=T,directed=isDIRECTED)[0]
-    Saves.network_save(temporal_network,net_name, isDAR = isDAR, isDIRECTED = isDIRECTED, isSAMPLED=isSAMPLED, k=k, P=P)
+    Saves.network_save(temporal_network,net_name,beta=beta, isDAR = isDAR, isDIRECTED = isDIRECTED, isSAMPLED=isSAMPLED, k=k, P=P)
     
     #CENTRALITIES GENERATION AND SAVE
     inv_maxradius, Q = Evolutions.communicability(temporal_network, eigen_fraction=eigen_fraction, length_one= not isDIRECTED) #if is undirected, use length 1
     
     singleiter_nodes_Bcentrality = Evolutions.broadcast_ranking(Q)[0]
-    Saves.analysis_save(singleiter_nodes_Bcentrality,"BCENTR", net_name, N,T,isDAR=isDAR,isDIRECTED=isDIRECTED,isSAMPLED=isSAMPLED, k=k,P=P)
+    Saves.analysis_save(singleiter_nodes_Bcentrality,"BCENTR", net_name, N,T,beta=beta,isDAR=isDAR,isDIRECTED=isDIRECTED,isSAMPLED=isSAMPLED, k=k,P=P)
     nodes_Bcentrality.append(singleiter_nodes_Bcentrality)
     
     singleiter_nodes_Rcentrality = Evolutions.receive_ranking(Q)[0]
-    Saves.analysis_save(singleiter_nodes_Rcentrality, "RCENTR", net_name, N,T,isDAR=isDAR,isDIRECTED=isDIRECTED,isSAMPLED=isSAMPLED, k=k,P=P)
+    Saves.analysis_save(singleiter_nodes_Rcentrality, "RCENTR", net_name, N,T,beta=beta,isDAR=isDAR,isDIRECTED=isDIRECTED,isSAMPLED=isSAMPLED, k=k,P=P)
     nodes_Rcentrality.append(singleiter_nodes_Rcentrality)   
     
     singleiter_nodes_AD = Evolutions.aggregate_degree(temporal_network, directed=False) #if dir = True, there are 2 outputs
-    Saves.analysis_save(singleiter_nodes_AD, "AGGDEG", net_name, N,T,isDAR=isDAR,isDIRECTED=isDIRECTED,isSAMPLED=isSAMPLED, k=k,P=P)
+    Saves.analysis_save(singleiter_nodes_AD, "AGGDEG", net_name, N,T,beta=beta,isDAR=isDAR,isDIRECTED=isDIRECTED,isSAMPLED=isSAMPLED, k=k,P=P)
     nodes_AD.append(singleiter_nodes_AD)
 
     singleiter_nodes_BD = Evolutions.binarized_degree(temporal_network, directed=False) #if dir = True, there are 2 outputs
-    Saves.analysis_save(singleiter_nodes_BD, "BINDEG", net_name, N,T,isDAR=isDAR,isDIRECTED=isDIRECTED,isSAMPLED=isSAMPLED, k=k,P=P)
+    Saves.analysis_save(singleiter_nodes_BD, "BINDEG", net_name, N,T,beta=beta,isDAR=isDAR,isDIRECTED=isDIRECTED,isSAMPLED=isSAMPLED, k=k,P=P)
     nodes_BD.append(singleiter_nodes_BD)
     
     #SI PROPAGATION
@@ -162,8 +161,8 @@ for k in range(1,NET_REAL+1):  #so first realization has index 1; for each k one
     time_tobe_infected.append(singleiter_time_tobe_infected)
     #SAVES
     Saves.infection_save(label,N,T,beta, net_name, isDAR = isDAR, isDIRECTED=isDIRECTED,isSAMPLED=isSAMPLED, k=k, P=P)
-    Saves.analysis_save(singleiter_virulece, "VIRULENCE"+str(beta), net_name, N,T,isDAR=isDAR,isDIRECTED=isDIRECTED,isSAMPLED=isSAMPLED, k=k,P=P)
-    Saves.analysis_save(time_tobe_infected, "TIMEINFECTED"+str(beta), net_name, N,T,isDAR=isDAR,isDIRECTED=isDIRECTED,isSAMPLED=isSAMPLED, k=k,P=P)
+    Saves.analysis_save(singleiter_virulece, "VIRULENCE"+str(beta), net_name, N,T,beta=beta,isDAR=isDAR,isDIRECTED=isDIRECTED,isSAMPLED=isSAMPLED, k=k,P=P)
+    Saves.analysis_save(time_tobe_infected, "TIMEINFECTED"+str(beta), net_name, N,T,beta=beta,isDAR=isDAR,isDIRECTED=isDIRECTED,isSAMPLED=isSAMPLED, k=k,P=P)
 print(time.time()-start)  
 #Re-loading of single-iteration lists to re-build the whole ones is possible but not implemented here
 #%% ANALYSIS
@@ -183,7 +182,7 @@ tim = []
 [tim.extend(el) for el in time_tobe_infected] 
 tim = [1/i for i in tim] #so lowest times have correctly greatest score
 
-file_name = Saves.make_basics(isDAR=isDAR,P=P,isDIRECTED=isDIRECTED,isSAMPLED=isSAMPLED) + "_N"+str(N)+"_T"+str(T)+"_"+net_name+"results/"
+file_name = Saves.make_basics(beta=beta, isDAR=isDAR,P=P,isDIRECTED=isDIRECTED,isSAMPLED=isSAMPLED) + "_N"+str(N)+"_T"+str(T)+"_"+net_name+"/results/"
 os.makedirs(os.path.dirname(file_name), exist_ok=True)
 
 fig_count = 2
