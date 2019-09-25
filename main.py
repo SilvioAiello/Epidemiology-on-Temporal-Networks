@@ -163,7 +163,8 @@ for k in range(1,NET_REAL+1):  #so first realization has index 1; for each k one
     Saves.infection_save(label,N,T,beta, net_name, isDAR = isDAR, isDIRECTED=isDIRECTED,isSAMPLED=isSAMPLED, k=k, P=P)
     Saves.analysis_save(singleiter_virulece, "VIRULENCE"+str(beta), net_name, N,T,beta=beta,isDAR=isDAR,isDIRECTED=isDIRECTED,isSAMPLED=isSAMPLED, k=k,P=P)
     Saves.analysis_save(time_tobe_infected, "TIMEINFECTED"+str(beta), net_name, N,T,beta=beta,isDAR=isDAR,isDIRECTED=isDIRECTED,isSAMPLED=isSAMPLED, k=k,P=P)
-print(time.time()-start)  
+end = time.time()
+print(end-start)  
 #Re-loading of single-iteration lists to re-build the whole ones is possible but not implemented here
 #%% ANALYSIS
 nodes_B = []
