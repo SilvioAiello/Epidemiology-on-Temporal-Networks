@@ -139,8 +139,8 @@ def contact_lasting(tempnet,states_sequence,t,infected_node,susceptible_node):
     
     #FUNCTION
     counter = 0
-    for instant in range(t+1):
-        if (tempnet[t-instant,infected_node,susceptible_node] == 1 and states_sequence[t-instant][infected_node] != states_sequence[t-instant][susceptible_node]):
+    for instant in range(t+1): #for each step when there's the link and the infected is infective
+        if (tempnet[t-instant,infected_node,susceptible_node] == 1 and states_sequence[t-instant][infected_node] != 0):
             counter +=1
         else:
             break
@@ -227,16 +227,18 @@ def propagation(tempnet,index_case,probabilities, multiple_infections = True):
     #Sets initialization
     susceptibles = onlyzeros(range(N),states_sequence[0]) #"targets"
     infecteds = {index_case} #they will be decisive to change target state
-
+    
+    extractions = np.random.uniform(0,1, size = T)
+    
     if multiple_infections:
         #ANALYZE SUSCEPTIBLES AND ALLOW MORE INFECTIONS
         for t in range(1,T): 
-            if len(susceptibles) == 0:
+            if len(susceptibles) == 0: #infection is complete
                 break
             for s in susceptibles.copy(): #copy avoids rising an error when the iteration set changes
-                infectneighbourhood = neighbourhood(tempnet[t-1],s).intersection(infecteds)
+                infectneighbourhood = neighbourhood(tempnet[t-1],s).intersection(infecteds) #infected nodes that REACH the suptible one
                 for i in infectneighbourhood.copy(): 
-                    if probabilities[contact_lasting(tempnet,states_sequence,t-1,i,s)]>np.random.uniform(0,1): #rand extraction
+                    if probabilities[contact_lasting(tempnet,states_sequence,t-1,i,s)]>extractions[t]: #rand extraction
                             set_infected(s,t) #if successful, change the state of the node, at next t
                             susceptibles.remove(s)
                             infecteds.add(s)
@@ -244,6 +246,8 @@ def propagation(tempnet,index_case,probabilities, multiple_infections = True):
     else:
         #ANALYZE SUSCEPTIBLES AND ALLOW 1 INFECTION
         for t in range(1,T):
+            if len(susceptibles) == 0: #infection is complete
+                break
             for s in susceptibles.copy(): #copy avoids rising an error when the iteration set changes
                 infectneighbourhood = neighbourhood(tempnet[t-1],s).intersection(infecteds)
                 for i in infectneighbourhood.copy(): 
