@@ -120,9 +120,9 @@ def contact_lasting(tempnet,states_sequence,t,infected_node,susceptible_node):
 #    assert isinstance(infected_node, int)
 #    assert isinstance(susceptible_node, int)
 #    assert isinstance(states_sequence, dict), "states_sequence is not a dictionary"
-    
-    T = tempnet.shape[0]
-    N = tempnet.shape[1]
+#    
+#    T = tempnet.shape[0]
+#    N = tempnet.shape[1]
 #    assert t <= T, "t is bigger than the total network duration"
 #    assert infected_node<N, "infected_node doesn't exist"
 #    assert susceptible_node<N, "susceptible_node doesn't exist"

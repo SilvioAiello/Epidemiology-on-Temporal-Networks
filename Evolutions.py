@@ -56,8 +56,6 @@ def network_generation_dar(alpha,xi,P=1, T=100, directed = False):
         N*N matrix expressing probability of "persistence" of previous state of each link; null-diagonal only
     xi: np.array 
         N*N matrix expressing "tossing coin" probability for each link state
-    N: int (default = 100)
-        Natural number expressing network dimension
     T: int (default = 100)
         Natural number expressing duration of temporal evolution
     P: int (default = 1)
@@ -105,14 +103,13 @@ def network_generation_dar(alpha,xi,P=1, T=100, directed = False):
     assert type(directed) == bool, "Error: only bool type is allowed for variable directed"
     
     #EVOLUTION
-    #Initial adjacency, as tossing simple coin (0.5); if undirected, it's made symmetric
+    #Initializazion (with just "coin tossing")
     initial_state = [[np.random.choice((1,0),p=(xi[i,j],1-xi[i,j])) if j>i else 0 for j in range(N)] for i in range(N)] #upper triangle first (j>i)
     if directed == False: #setting lower triangle as directed value
         initial_state = [[initial_state[j][i] if j<i else initial_state[i][j] for j in range(N)] for i in range(N)]
     else:
         initial_state = [[np.random.choice((1,0),p=(xi[i,j],1-xi[i,j])) if j<i else initial_state[i][j] for j in range(N)] for i in range(N)]
     
-    #Temporal network initilialization
     temporal_network = np.zeros((T,N,N))
     temporal_network[0] = initial_state
     
@@ -123,12 +120,10 @@ def network_generation_dar(alpha,xi,P=1, T=100, directed = False):
                         p=(alpha[i,j],1-alpha[i,j])) if j>i else 0 for j in range(N)] for i in range(N)] #DAR(P) generation
         #LOWER TRIANGLE (j<i)
         if directed == False:    
-            temporal_network[t] = [[temporal_network[t,j,i] if j<i else temporal_network[t,i,j] for j in range(N)] for i in range(N)]
-            #copy upper triangle, if undirected
+            temporal_network[t] = temporal_network[t] + temporal_network[t].T  #copy upper triangle, if undirected
         else:
-            temporal_network[t] = [[np.random.choice((temporal_network[t-P,i,j],np.random.choice((1,0), p=(xi[i,j],1-xi[i,j]))),
-                        p=(alpha[i,j],1-alpha[i,j])) if j<i else temporal_network[t,i,j] for j in range(N)] for i in range(N)]
-            #follow the same rule as upper, if directed
+            temporal_network[t] = temporal_network[t] + np.array([[np.random.choice((temporal_network[t-P,i,j],np.random.choice((1,0), p=(xi[i,j],1-xi[i,j]))),
+                        p=(alpha[i,j],1-alpha[i,j])) if j<i else 0 for j in range(N)] for i in range(N)]) #first choice has as 1° argument a 2-tuple
     return temporal_network
 
 #%%
@@ -208,108 +203,6 @@ def network_generation_tgrg(phi0,phi1,sigma,T=100, directed = False):
         else:
             temporal_network[t] = temporal_network[t] + np.array([[np.random.choice((1,0), p=(prob[i,j],1-prob[i,j])) if j<i else 0 for j in range(N)] for i in range(N)])
     return temporal_network, theta
-    
-#%% NETWORK ANALYSYS
-def degree_node(network,node,out = True):
-    """
-    Returns out- or in-going degree of a node at a certain time
-    
-    Parameters
-    ----------
-    network: np.array
-        N*N adjacency (so, for a selected time; null diagonal)
-    node: int
-        index of the node of interest
-    out: bool
-        Expresses interest in out or in-going degree; if undirected graph, both give the same result
-    
-    Returns
-    -------
-    degree: int
-    
-    Examples
-    --------
-    
-        >>> degree_node(np.array([[0,0,1],[1,0,1],[1,0,0]]),0)
-        1
-        
-        >>> degree_node(np.array([[0,0,1],[1,0,1],[1,0,0]]),1)
-        2
-        
-    """
-    #ASSERTS
-    assert Assertions_suite.check_is_ndarray(network,2)
-    assert Assertions_suite.check_is_square(network)
-    assert Assertions_suite.check_is_nulldiagonal(network)
-    
-    assert type(node) == int, "Error: index for nodes must be an integer"
-    assert node <= len(network), "Error: node not present"
-     
-    #FUNCTION
-    if out:
-        return sum(network[node])
-    else:
-        return sum(network[:,node])
-    
-def degree_mean(tempnet, out = True):
-    """
-    Returns out- or in-going mean degree of a whole temporal network, even of duration 1 (i.e. a single adjacency).
-    It returns a list of mean degrees over time.
-    If you're interested in just one instant, just select the proper output entry.
-    
-    Parameters
-    ----------
-    tempnet: np.array
-        TNN temporal network
-    out: bool
-        Expresses interest in out or in-going degree; if undirected graph, both give the same result
-    
-    Returns
-    -------
-    d_seq: list
-        list of floats, one per temporal step, expressing mean degree at that time
-    
-    Examples
-    --------
-    
-        >>> degree_mean(np.array([[0,0,1],[1,0,1],[1,0,0]]))
-        [1.3333333333333333]
-        
-        >>> degree_mean(np.array([[[0,0,1],[1,0,1],[1,0,0]],
-        [[0,1,1],[1,0,1],[1,0,0]]]))
-        [1.3333333333333333, 1.6666666666666667]
-        
-    """
-    assert isinstance(tempnet,np.ndarray)
-    
-    N = tempnet.shape[1] #this is true anyway
-    #Infer temporal duration and perform assertions
-    if len(tempnet.shape) == 3:
-        T = tempnet.shape[0]
-        for t in range(T):
-            assert Assertions_suite.check_is_square(tempnet[t]) #check square for each step
-            assert Assertions_suite.check_is_nulldiagonal(tempnet[t]) #check null diagonal for each step
-        network = tempnet #same new for 3- or 2-dimensional arrays
-    elif len(tempnet.shape) == 2:
-        T = 1
-        assert Assertions_suite.check_is_square(tempnet) #check square for each step
-        assert Assertions_suite.check_is_nulldiagonal(tempnet) #check null diagonal for each step
-        network = np.zeros((T,N,N))
-        network[0] = tempnet #same new for 3- or 2-dimensional arrays
-    else:
-        raise AssertionError ("You must provide an adjacency or a sequence of adjacencies")
-        
-    #FUNCTION
-    d_seq = []
-    for t in range(T):
-        degrees = []
-        for node in range(N):
-            if out:
-                degrees.append(sum(network[t][node]))
-            else:
-                degrees.append(sum(network[t][:,node]))
-        d_seq.append(np.average(degrees))
-    return d_seq #output is always a list
 
 #%% CENTRALITY
 def communicability(temporal, eigen_fraction=0.25, length_one=True): 
@@ -532,3 +425,105 @@ def binarized_degree(temporal, directed=False):
         for i in range(N):
             ranking[i] = sum(bd[i])
         return ranking
+
+#%% OLD FUNCTIONS FOR NETWORK ANALYSIS
+def degree_node(network,node,out = True):
+    """
+    Returns out- or in-going degree of a node at a certain time
+    
+    Parameters
+    ----------
+    network: np.array
+        N*N adjacency (so, for a selected time; null diagonal)
+    node: int
+        index of the node of interest
+    out: bool
+        Expresses interest in out or in-going degree; if undirected graph, both give the same result
+    
+    Returns
+    -------
+    degree: int
+    
+    Examples
+    --------
+    
+        >>> degree_node(np.array([[0,0,1],[1,0,1],[1,0,0]]),0)
+        1
+        
+        >>> degree_node(np.array([[0,0,1],[1,0,1],[1,0,0]]),1)
+        2
+        
+    """
+    #ASSERTS
+    assert Assertions_suite.check_is_ndarray(network,2)
+    assert Assertions_suite.check_is_square(network)
+    assert Assertions_suite.check_is_nulldiagonal(network)
+    
+    assert type(node) == int, "Error: index for nodes must be an integer"
+    assert node <= len(network), "Error: node not present"
+     
+    #FUNCTION
+    if out:
+        return sum(network[node])
+    else:
+        return sum(network[:,node])
+    
+def degree_mean(tempnet, out = True):
+    """
+    Returns out- or in-going mean degree of a whole temporal network, even of duration 1 (i.e. a single adjacency).
+    It returns a list of mean degrees over time.
+    If you're interested in just one instant, just select the proper output entry.
+    
+    Parameters
+    ----------
+    tempnet: np.array
+        TNN temporal network
+    out: bool
+        Expresses interest in out or in-going degree; if undirected graph, both give the same result
+    
+    Returns
+    -------
+    d_seq: list
+        list of floats, one per temporal step, expressing mean degree at that time
+    
+    Examples
+    --------
+    
+        >>> degree_mean(np.array([[0,0,1],[1,0,1],[1,0,0]]))
+        [1.3333333333333333]
+        
+        >>> degree_mean(np.array([[[0,0,1],[1,0,1],[1,0,0]],
+        [[0,1,1],[1,0,1],[1,0,0]]]))
+        [1.3333333333333333, 1.6666666666666667]
+        
+    """
+    assert isinstance(tempnet,np.ndarray)
+    
+    N = tempnet.shape[1] #this is true anyway
+    #Infer temporal duration and perform assertions
+    if len(tempnet.shape) == 3:
+        T = tempnet.shape[0]
+        for t in range(T):
+            assert Assertions_suite.check_is_square(tempnet[t]) #check square for each step
+            assert Assertions_suite.check_is_nulldiagonal(tempnet[t]) #check null diagonal for each step
+        network = tempnet #same new for 3- or 2-dimensional arrays
+    elif len(tempnet.shape) == 2:
+        T = 1
+        assert Assertions_suite.check_is_square(tempnet) #check square for each step
+        assert Assertions_suite.check_is_nulldiagonal(tempnet) #check null diagonal for each step
+        network = np.zeros((T,N,N))
+        network[0] = tempnet #same new for 3- or 2-dimensional arrays
+    else:
+        raise AssertionError ("You must provide an adjacency or a sequence of adjacencies")
+        
+    #FUNCTION
+    d_seq = []
+    for t in range(T):
+        degrees = []
+        for node in range(N):
+            if out:
+                degrees.append(sum(network[t][node]))
+            else:
+                degrees.append(sum(network[t][:,node]))
+        d_seq.append(np.average(degrees))
+    return d_seq #output is always a list
