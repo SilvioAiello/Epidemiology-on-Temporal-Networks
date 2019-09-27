@@ -3,9 +3,6 @@ From this script, user can generate temporal networks and perform epidemic upon 
 System parameters must be set in "inputs.ini" file.
 Functions in this script work in Pyhon3, may require numpy (v1.16) and function "quad" from scipy.integrate (scipy v1.3).
 
-In this module are defined the following functions:
-    * poisson_probability
-
 For further understandings on how this script operates, check file "howto.md".
 For further theoretical understandings, check file "explanation.md".
 """
@@ -23,68 +20,101 @@ import matplotlib.pyplot as plt
 #%%         CONFIGURATION PARAMETERS
 net_name = input("Specify a name for this simulation: ")
 
-isSAMPLED = True #if True, sample from the empiric distribution
+isSAMPLED = False #if True, sample from the empiric distribution
 isDAR = True
 P = 1
 isDIRECTED = False
 
-N = 25
+N = 50
 T = 50
-beta = 0.25 #infection rate; sampled -> 0.1, not sampled -> 0.05
+beta = 0.15 #infection rate; sampled -> 0.1, not sampled -> 0.05
 
 NET_REAL = 1
 K = 20 #infection realizations
-assert NET_REAL >= 1, "NET_REAL should be >=1"
-assert K > 1, "K should be >1"
-
-alpha_sigma = 0.09
 
 eigen_fraction = 0.25 #fraction of max eigenvalue to use in communicability
 multiple_infections= True #allow or not multiple infections per time step
 infective_fraction = 0.5
 #%%                         INPUTS BUILDING
-if isSAMPLED:
-    #DAR MATRICES
-    if isDAR:
-        with open('Empiric_Data/alphaDAR1.pkl', 'rb') as f:
-            alphaDAR1 = pickle.load(f)
-        with open('Empiric_Data/chiDAR1.pkl', 'rb') as f:
-            chiDAR1 = pickle.load(f)
-        #ALPHAS
+if isDAR:
+    #SAMPLED DATA WILL BE USED ANYWAY
+    with open('Empiric_Data/alphaDAR1.pkl', 'rb') as f:
+        alphaDAR1 = pickle.load(f)
+    with open('Empiric_Data/chiDAR1.pkl', 'rb') as f:
+        chiDAR1 = pickle.load(f)
+        
+    if isSAMPLED: #extract from empiric distribution
         alpha = Evolutions.input_sampling(alphaDAR1,N=N,isDAR = isDAR)
-        Saves.matrix_save(alpha,'alpha',net_name,N=N,T=T,beta=beta,isDAR=isDAR,isDIRECTED=isDIRECTED,isSAMPLED=isSAMPLED,P=P)
-        #CHIS
         chi = Evolutions.input_sampling(chiDAR1,N=N,isDAR = isDAR)
-        Saves.matrix_save(chi,'chi',net_name,N=N,T=T,beta=beta,isDAR=isDAR,isDIRECTED=isDIRECTED,isSAMPLED=isSAMPLED,P=P)
-    else:   
-        #TGRG MATRICES
-        with open('Empiric_Data/phi0TGRG.pkl', 'rb') as f:
-            phi0TGRG = pickle.load(f)
-        with open('Empiric_Data/phi1TGRG.pkl', 'rb') as f:
-            phi1TGRG = pickle.load(f)
-        with open('Empiric_Data/sigmaTGRG.pkl', 'rb') as f:
-            sigmaTGRG = pickle.load(f)
-        if isDIRECTED == False: #if it's undirected, only first 98 observations are took
-            phi0TGRG = phi0TGRG[1:98]
-            phi1TGRG = phi0TGRG[1:98]
-            sigmaTGRG = sigmaTGRG[1:98]
+    else: #generate from analytic distribution
+        
+#        mu_alpha = np.average(alphaDAR1)
+#        sigma_alpha= np.std(alphaDAR1)
+#        def lognorm(x,mu,sigma): #my attempt
+#            return np.exp(-((np.log(x)-mu)**2)/(2*sigma**2))/x
+#        factor = quad(lognorm,0,1, args=(mu_alpha, sigma_alpha))[0]
+#        prob = [quad(lognorm,x-0.005,x+0.005, args=(mu_alpha, sigma_alpha))[0]/factor for x in np.linspace(0.01,0.99,100)]
+#        
+#        plt.plot(np.linspace(0.01,0.99,100),prob)
+#        plt.xlabel(r"$\alpha_{ij}$ possible values")
+#        plt.ylabel("Probability")
+#        plt.title(r"$\mu =$ %.3f, $\sigma =$ %.3f"%(mu_alpha,sigma_alpha))
+#        plt.show()
+        
+        #truncated gaussians
+        import scipy.stats
+        lower = 0
+        upper = 1
+        N=1000
+        mu = np.mean(alphaDAR1)
+        sigma = np.std(alphaDAR1)
+        alpha = scipy.stats.truncnorm.rvs((lower-mu)/sigma,(upper-mu)/sigma,loc=mu,scale=sigma,size=(N,N))
+        plt.figure(1)
+        plt.hist(alpha.reshape(N*N,1))
+        plt.title(r"Generazione di valori per $\alpha$ da Gaussiana troncata, $\mu$ e $\sigma$ uguali alla distr $\alpha$ empiriche, num = %i$^2$" %N)
+        plt.xlabel(r"$\alpha_{ij}$")
+        plt.ylabel("Occorrenze")
+        
+        mu = np.mean(chiDAR1)
+        sigma = np.std(chiDAR1)
+        chi = scipy.stats.truncnorm.rvs((lower-mu)/sigma,(upper-mu)/sigma,loc=mu,scale=sigma,size=(N,N))
+        plt.figure(2)
+        plt.hist(chi.reshape(N*N,1))
+        plt.title(r"Generazione di valori per $\chi$ da Gaussiana troncata, $\mu$ e $\sigma$ uguali alla distr $\chi$ empiriche, num = %i$^2$" %N)
+        plt.xlabel(r"$\chi_{ij}$")
+        plt.ylabel("Occorrenze")
+    
+    Saves.matrix_save(alpha,'alpha',net_name,N=N,T=T,beta=beta,isDAR=isDAR,isDIRECTED=isDIRECTED,isSAMPLED=isSAMPLED,P=P)
+    Saves.matrix_save(chi,'chi',net_name,N=N,T=T,beta=beta,isDAR=isDAR,isDIRECTED=isDIRECTED,isSAMPLED=isSAMPLED,P=P)
+else:
+    #SAMPLED DATA WILL BE USED ANYWAY
+    with open('Empiric_Data/phi0TGRG.pkl', 'rb') as f:
+        phi0TGRG = pickle.load(f)
+    with open('Empiric_Data/phi1TGRG.pkl', 'rb') as f:
+        phi1TGRG = pickle.load(f)
+    with open('Empiric_Data/sigmaTGRG.pkl', 'rb') as f:
+        sigmaTGRG = pickle.load(f)
+    if isDIRECTED == False: #if it's undirected, only first 98 observations are took
+        phi0TGRG = phi0TGRG[1:98]
+        phi1TGRG = phi0TGRG[1:98]
+        sigmaTGRG = sigmaTGRG[1:98]
+    
+    if isSAMPLED:
         #PHI0S
         phi0 = Evolutions.input_sampling(phi0TGRG,N=N,isDAR = isDAR)
-        Saves.matrix_save(phi0,'phi0',net_name,N=N,T=T,beta=beta,isDAR=isDAR,isDIRECTED=isDIRECTED,isSAMPLED=isSAMPLED,P=P)
         #PHI1S
         phi1 = Evolutions.input_sampling(phi1TGRG,N=N,isDAR = isDAR)
-        Saves.matrix_save(phi1,'phi1',net_name,N=N,T=T,beta=beta,isDAR=isDAR,isDIRECTED=isDIRECTED,isSAMPLED=isSAMPLED,P=P)
         #SIGMAS
         sigma = Evolutions.input_sampling(sigmaTGRG,N=N,isDAR = isDAR)
-        Saves.matrix_save(sigma,'sigma',net_name,N=N,T=T,beta=beta,isDAR=isDAR,isDIRECTED=isDIRECTED,isSAMPLED=isSAMPLED,P=P)
-else: #extract from analytic distribution
-    if isDAR:
-        alpha = np.random.normal(0.5, alpha_sigma, size=(N,N))
-        chi = np.random.normal(0.5, alpha_sigma, size=(N,N))
-    else:
+    else: #extract from analytic distribution
         phi0 = np.random.poisson(3, size = N)
         phi1 = np.random.uniform(-0.99,0.99, size = N)
         sigma = np.random.poisson(1, size = N)
+
+    Saves.matrix_save(phi0,'phi0',net_name,N=N,T=T,beta=beta,isDAR=isDAR,isDIRECTED=isDIRECTED,isSAMPLED=isSAMPLED,P=P) 
+    Saves.matrix_save(phi1,'phi1',net_name,N=N,T=T,beta=beta,isDAR=isDAR,isDIRECTED=isDIRECTED,isSAMPLED=isSAMPLED,P=P)
+    Saves.matrix_save(sigma,'sigma',net_name,N=N,T=T,beta=beta,isDAR=isDAR,isDIRECTED=isDIRECTED,isSAMPLED=isSAMPLED,P=P)
+
 #%%                         OUTPUTS GENERATION
 import time
 start = time.time()
@@ -194,13 +224,13 @@ plt.ylabel('Epidemic score')
 plt.title(r"Undirected DAR(1) network; $\beta$ = %.3f; N=%i, T=%i; Netw iter = %i, Epid iter = %i" %(beta,N,T,NET_REAL,K))
 plt.savefig(file_name+"AD.pdf")
 
-#plt.figure(fig_count)
-#fig_count+=1
-#plt.scatter(nod_B, vir)
-#plt.xlabel("Binarized Degree")
-#plt.ylabel('Epidemic score')
-#plt.title(r"Undirected DAR(1) network; $\beta$ = %.3f; N=%i, T=%i; Netw iter = %i, Epid iter = %i" %(beta,N,T,NET_REAL,K))
-#plt.savefig(file_name+"BD.pdf")
+plt.figure(fig_count)
+fig_count+=1
+plt.scatter(nod_B, vir)
+plt.xlabel("Binarized Degree")
+plt.ylabel('Epidemic score')
+plt.title(r"Undirected DAR(1) network; $\beta$ = %.3f; N=%i, T=%i; Netw iter = %i, Epid iter = %i" %(beta,N,T,NET_REAL,K))
+plt.savefig(file_name+"BD.pdf")
 
 plt.figure(fig_count)
 fig_count+=1
@@ -226,7 +256,6 @@ with open(file_name, 'w') as f:
     f.write("beta = %.2f \n\n" %beta)
     f.write("NET_REAL = %i\n" %NET_REAL)
     f.write("K = %i\n\n" %K)
-    f.write("alpha_sigma = %.2f \n\n" %alpha_sigma)
     f.write("eigen_fraction = %.2f \n" %eigen_fraction)
     f.write("multiple_infections = " + str(multiple_infections) + "\n")
     f.write("infective_fraction = %.2f" %infective_fraction)
