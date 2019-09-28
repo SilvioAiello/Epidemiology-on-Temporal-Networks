@@ -10,14 +10,21 @@ For further understandings on how this script operates, check file "docs/howto.m
 import pickle
 import os
 
-import Assertions_suite
-
-def make_basics(beta,isDAR=True,P=1,isDIRECTED=False,isSAMPLED=True):
-    name = str()
+def main_directory(beta, isDIRECTED,isDAR,P,isSAMPLED,N,T,title):
+    assert type(beta) == float
+    assert type(isDIRECTED) == bool
+    assert type(isDAR) == bool
+    assert type(P) == int
+    assert type(isSAMPLED) == bool
+    assert type(N) == int
+    assert type(T) == int
+    assert type(title) == str
+    
+    name = "Networks/beta"+str(beta)
     if isDAR:
-        name = "Networks/DAR" + str(P)
+        name+= "_DAR" + str(P)
     else:
-        name = "Networks/TGRG"
+        name+= "_TGRG"
     
     if isSAMPLED:
         name+="_SAMPLED"
@@ -27,196 +34,65 @@ def make_basics(beta,isDAR=True,P=1,isDIRECTED=False,isSAMPLED=True):
     if isDIRECTED:
         name+="_DIRECTED"
     else:
-        name+="_DIRECTED"
+        name+="_UNDIRECTED"
     
-    name = name + "_beta"+str(beta)
+    name = name + "_N"+str(N)+ "_T"+str(T) + "_" + title
+    
     return name
 
-def network_save(network, start, beta, isDAR=True,isDIRECTED=False,isSAMPLED=True,k=1, P=1):
-    """ Saves network using pickle (so it must be installed) and giving it its proper name (with an identification provided by user) and folder
+def network_save(network, directory_name, k, data_structure_name):
+    """ Saves data structures using pickle. Be sure to provide the proper name:
+        
     
     Parameters
     ----------
-    network: np.array
-        T*N*N tensor (the functions extracts by itself T and N)
-    start: str
-        Name you choose for the function
-    isDAR: bool (default = True)
-        User is required to specify wheter network is DAR or TGRG
-    P: int (default = 1)
-        DAR order. If network is TGRG, its value doesn't affect the result
-    k: int (default = 1)
-        Iteration of the same network this is
+    network: np.array or list
+        The data structure you want to save
+    directory_name: string
+        PATH of simulation directory (es. Networks/betaX_DAR_DIRECTED ecc)
+    k: int 
+        Number of network's realization
+    data_structure_name: str
+        One of these: alpha/chi/phi0/1/sigma; 
+        AGGDEG/BINDEG,BCENTR/RCENTR, 
+        TIMEINRECTED/VIRULECE; 
+        infections/network
     
     Returns
     -------
-    /PATH/network.pkl
-        If PATH didn't exist, it's created
+    /directory_name/realizationk/data_structure_name.pkl
+        If PATH doesn't exist, it's created
     """
-    #ASSERTS
-    assert Assertions_suite.check_is_natural(P) #there's no need to perform other checks, since they have been already performed
-    assert Assertions_suite.check_is_natural(k)
-    assert type(start) == str
-    
-    #FUNCTION
-    T = network.shape[0]
-    N = network.shape[1]
-    
-    name = make_basics(beta=beta, isDAR=isDAR,P=P,isDIRECTED=isDIRECTED,isSAMPLED=isSAMPLED) + "_N"+str(N)+"_T"+str(T)+"_"+start+"/realization"+str(k)+"/network.pkl"
-
+    name = directory_name + "/realization"+str(k)+"/"+data_structure_name+".pkl"
     os.makedirs(os.path.dirname(name), exist_ok=True)
     with open(name, 'wb') as handle: #wb = write binary
         pickle.dump(network,handle)
 
-def network_load(N,T,start, beta, isDAR=True,isDIRECTED=False,isSAMPLED=True,k=1,P=1):
-    """ Loads a previously generated temporal network using pickle (so it must be installed), if it's present
+def network_load(directory_name, k,data_structure):
+    """ 
+    Loads a previously generated temporal network using pickle (so it must be installed), if it's present.
+    Network should be saved in "Networks/directory_name/realizationk/network.pkl
     
     Parameters
     ----------
-    N: int
-        number of nodes
-    T: int
-        temporal duration
-    start: string
-        identificative name of the network
-    k: int (default = 1)
-        iteration of network realization
-    isDAR: bool (default = True)
-        whether to search a DAR(P) or TGRG
-    P: int (default = 1)
-        DAR order
+    network: np.array or list
+        The data structure you want to save
+    directory_name: string
+        PATH of simulation directory (es. Networks/betaX_DAR_DIRECTED ecc)
+    k: int 
+        Number of network's realization
+    data_structure_name: str
+        One of these: alpha/chi/phi0/1/sigma; 
+        AGGDEG/BINDEG,BCENTR/RCENTR, 
+        TIMEINRECTED/VIRULECE; 
+        infections/network
     
     Returns
     -------
     pickle.load(f): np.array
-        TNN-tempnet is returned
+        Data structure is returned
     """
-
-    name = make_basics(beta=beta,isDAR=isDAR,P=P,isDIRECTED=isDIRECTED,isSAMPLED=isSAMPLED) + "_N"+str(N)+"_T"+str(T)+"_"+start+"/realization"+str(k)+"/network.pkl"
-
+    name = directory_name + "/realization"+str(k)+"/"+data_structure+".pkl"
     with open(name, 'rb') as f:
         return pickle.load(f)
 
-def matrix_save(matrix,matrix_name, start, N,T, beta, isDAR=True,isDIRECTED=False,isSAMPLED=True,P=1):
-    """
-    Here N and T need to be specified
-    
-    Returns
-    -------
-    Saves an array of length N, containing the scores for each node
-    """
-    assert type(matrix_name) == str
-    
-    name = make_basics(beta=beta, isDAR=isDAR,P=P,isDIRECTED=isDIRECTED,isSAMPLED=isSAMPLED) + "_N"+str(N)+"_T"+str(T)+"_"+start+"/"+matrix_name+".pkl"
-    
-    os.makedirs(os.path.dirname(name), exist_ok=True)
-    with open(name, 'wb') as handle: #wb = write binary
-        pickle.dump(matrix,handle)
-
-def matrix_load(matrix_name, start, N,T, beta, isDAR=True,isDIRECTED=False,isSAMPLED=True,P=1):
-    """
-    Here N and T need to be specified
-    
-    Returns
-    -------
-    Saves an array of length N, containing the scores for each node
-    """
-    assert type(matrix_name) == str
-    
-    name = make_basics(beta=beta,isDAR=isDAR,P=P,isDIRECTED=isDIRECTED,isSAMPLED=isSAMPLED) + "_N"+str(N)+"_T"+str(T)+"_"+start+"/"+matrix_name+".pkl"
-    
-    with open(name, 'rb') as handle: #wb = write binary
-        return pickle.load(handle)
-
-def analysis_save(centr,centr_name, start, N,T, beta, isDAR=True,isDIRECTED=False,isSAMPLED=True,k=1,P=1):
-    """
-    Here N and T need to be specified
-    
-    Returns
-    -------
-    Saves an array of length N, containing the scores for each node
-    """
-    assert type(centr_name) == str
-    
-    name = make_basics(beta=beta,isDAR=isDAR,P=P,isDIRECTED=isDIRECTED,isSAMPLED=isSAMPLED) + "_N"+str(N)+"_T"+str(T)+"_"+start+"/realization"+str(k)+"/"+centr_name+".pkl"
-    
-    os.makedirs(os.path.dirname(name), exist_ok=True)
-    with open(name, 'wb') as handle: #wb = write binary
-        pickle.dump(centr,handle)
-
-def analysis_load(centr_name, start, N,T, beta, isDAR=True,isDIRECTED=False,isSAMPLED=True,k=1,P=1):
-    """
-    Here N and T need to be specified
-    
-    Returns
-    -------
-    Saves an array of length N, containing the scores for each node
-    """
-    assert type(centr_name) == str
-    
-    name = make_basics(beta=beta, isDAR=isDAR,P=P,isDIRECTED=isDIRECTED,isSAMPLED=isSAMPLED) + "_N"+str(N)+"_T"+str(T)+"_"+start+"/realization"+str(k)+"/"+centr_name+".pkl"
-    
-    with open(name, 'rb') as handle: #wb = write binary
-        return pickle.load(handle)
-
-def infection_save(label, N,T, beta, start,isDAR=True,isDIRECTED=False,isSAMPLED=True,k=1, P=1):
-    """ Saves an infection data structure, defined by its different iterations, using pickle (so it must be installed).
-    A proper name and folder is provided for this strucure.
-    
-    Parameters
-    ----------
-    label: NKTN data structure
-        epidemic spread iterations
-    N: int
-        number of nodes
-    T: int
-        temporal duration
-    start: string
-        identificative name of the network
-    k: int (default = 1)
-        iteration of network realization
-    isDAR: bool (default = True)
-        whether to search a DAR(P) or TGRG
-    P: int (default = 1)
-        DAR order
-    
-    Returns
-    -------
-    /PATH/infections.pkl
-        If PATH didn't exist, it's created
-    """
-    
-    name = make_basics(beta=beta,isDAR=isDAR,P=P,isDIRECTED=isDIRECTED,isSAMPLED=isSAMPLED) + "_N"+str(N)+"_T"+str(T)+"_"+start+"/realization"+str(k)+"/infection.pkl"
-
-    os.makedirs(os.path.dirname(name), exist_ok=True)
-    with open(name, 'wb') as handle: #wb = write binary
-        pickle.dump(label,handle)
-
-def infection_load(N,T, beta, start,isDAR=True,isDIRECTED=False,isSAMPLED=True,k=1, P=1):
-    """ Loads a previously generated infection data structure, defined by its different iterations, using pickle (so it must be installed).
-    
-    Parameters
-    ----------
-    N: int
-        number of nodes
-    T: int
-        temporal duration
-    start: string
-        identificative name of the network
-    k: int (default = 1)
-        iteration of network realization
-    isDAR: bool (default = True)
-        whether to search a DAR(P) or TGRG
-    P: int (default = 1)
-        DAR order
-    
-    Returns
-    -------
-    /PATH/infections.pkl
-        If PATH didn't exist, it's created
-    """
-    name = make_basics(beta=beta, isDAR=isDAR,P=P,isDIRECTED=isDIRECTED,isSAMPLED=isSAMPLED) + "_N"+str(N)+"_T"+str(T)+"_"+start+"/realization"+str(k)+"/infection.pkl"
-    os.makedirs(os.path.dirname(name), exist_ok=True)
-    with open(name, 'rb') as f:
-        return pickle.load(f)
-#Aggiornare le funzioni in main, magari generare una tupla di variabili canoniche
