@@ -267,7 +267,7 @@ def communicability(temporal, eigen_fraction=0.25, length_one=True):
     
     if length_one:
         for t in range(T):
-            matr = np.identity(N)+inv_maxradius*temporal[t] #new factor for that time step
+            matr = np.identity(N)+eigen_fraction*inv_maxradius*temporal[t] #new factor for that time step
             Q = np.matmul(Q,matr)/np.linalg.norm(np.matmul(Q,matr)) #Q updating and normalizing
     else:
         for t in range(T):
