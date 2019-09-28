@@ -31,7 +31,7 @@ for section in config.sections():
     T = config[section].getint('T')
     beta = config[section].getfloat('beta')    
     
-    isSAMPLED = config[section].getboolean('isSAMPLED')
+    isSAMPLED = config[section].getboolean('isSAMPLED') #directly sampled from empiric distribution
     isDAR = config[section].getboolean('isDAR')
     P = config[section].getint('P')
     isDIRECTED = config[section].getboolean('isDIRECTED')
