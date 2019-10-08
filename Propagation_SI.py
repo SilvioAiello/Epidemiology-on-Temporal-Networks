@@ -275,12 +275,12 @@ def when_is_infected(states_sequence,index_case):
     return infection_times
 
 #%% EPIDEMIC SCORE COMPUTING FUNCTIONS
-def infected_counter(set_of_nodes):
+def infected_counter(set_of_nodes,N):
     """
     Counts the number of infected nodes in a states-set at a certain time
     """
     counter = 0
-    for i in range(len(set_of_nodes)):
+    for i in range(N):
         if set_of_nodes[i]==1:
             counter+=1
     return counter
@@ -327,7 +327,7 @@ def time_score(scores_evolution,fraction):
     #FUNCTION
     time_spent = T #initialized as the final temporal step + 1
     for t in range(T):
-        if infected_counter(scores_evolution[t])>=fraction*N:
+        if infected_counter(scores_evolution[t],N)>=fraction*N:
             time_spent = t
             break
     return time_spent
