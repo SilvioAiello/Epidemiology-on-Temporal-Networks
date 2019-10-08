@@ -3,4 +3,5 @@
 *.pkl
 *.txt
 *.png
+*.rar
 __pycache__/

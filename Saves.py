@@ -22,7 +22,7 @@ def main_directory(beta, isDIRECTED,isDAR,P,isSAMPLED,N,T,title):
     
     name = "Networks/beta"+str(beta)
     if isDAR:
-        name+= "_DAR" + str(P)
+        name = name + "_DAR" + str(P)
     else:
         name+= "_TGRG"
     
