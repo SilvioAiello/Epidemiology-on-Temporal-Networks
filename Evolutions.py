@@ -13,7 +13,9 @@ For further understandings on how this script operates, check file "docs/howto.m
 For further theoretical understandings, check file "docs/explanation.md".
 """
 import numpy as np
+import scipy.stats
 import matplotlib.pyplot as plt
+import os
 import Assertions_suite
 #%%
 def input_sampling(samples,N, isDAR):
@@ -45,6 +47,45 @@ def input_sampling(samples,N, isDAR):
     sampled = np.random.choice(empiric_values, size=size,p=probabilities)
     return sampled
 
+def beta_distribution(dataset,shape):
+    """
+    Returns random extractions by beta distribution sampled from an empiric dataset
+    """
+    mu = np.mean(dataset)
+    sigma = np.std(dataset)
+    A = ((1-mu)/(sigma**2) - 1/mu)*(mu**2)
+    B = A*(1/mu - 1)
+    output = scipy.stats.beta.rvs(A,B, size = shape)
+    return output
+
+def hist_plots(fig_count,data,N,isDAR,string_title,saving_path):
+    """
+    Sequence of recurring operations to plot an histogram.
+    
+    Parameters
+    ----------
+    fig_count: int
+        It is also an output
+    data: N or N*N array 
+        data you want to perform an histogram over
+    size: int or tuple
+    """
+    assert N == data.shape[0]
+    
+    plt.figure(fig_count)
+    fig_count +=1
+    if isDAR:
+        plt.hist(data.reshape(N*N,1))
+    else:
+        plt.hist(data)
+    plt.xlabel("Values")
+    plt.ylabel("Occurences")
+    plt.grid()
+    plt.title(string_title)
+    os.makedirs(os.path.dirname(saving_path), exist_ok=True)
+    plt.savefig(saving_path)
+    return fig_count
+    
 
 def network_generation_dar(alpha,xi,P=1, T=100, directed = False):
     """
