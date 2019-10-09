@@ -231,11 +231,14 @@ def network_generation_tgrg(phi0,phi1,sigma,T=100, directed = False):
     theta[:,0] = phi0
     for t in range(1,T):
         theta[:,t] = phi0 + phi1*theta[:,t-1] + np.random.normal(0,sigma,size=N) #evolution for each node and each time
-
+    
+    def logistic(x,y):
+        return np.exp(x+y)/(1+np.exp(x+y))
+    
     #ADJACENCIES COMPUTATION
     temporal_network = np.zeros((T,N,N)) #tensor definition
     for t in range(T):
-        prob = np.array([[np.exp(theta[i,t]+theta[j,t])/(1+np.exp(theta[i,t]+theta[j,t])) if np.exp(theta[i,t]+theta[j,t])< np.exp(705) else 1 for j in range(N)] for i in range(N)])
+        prob = np.array([[logistic(theta[i,t],theta[j,t]) if logistic(theta[i,t],theta[j,t])< np.exp(705) else 1 for j in range(N)] for i in range(N)])
         #TGRG FOR UPPER TRIANGLE
         temporal_network[t] = np.array([[np.random.choice((1,0), p=(prob[i,j],1-prob[i,j])) if j>i else 0 for j in range(N)] for i in range(N)])
         #LOWER TRIANGLE (j<i)
