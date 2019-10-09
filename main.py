@@ -101,9 +101,9 @@ for section in config.sections():
                     phi1[i] = 0.99
             sigma = Evolutions.input_sampling(sigmaTGRG,N=N,isDAR = isDAR)
         else: #extract from analytic distribution
-            phi0 = np.random.poisson(3, size = N)
+            phi0 = np.random.poisson(np.average(phi0TGRG), size = N)
             phi1 = np.random.uniform(-0.99,0.99, size = N)
-            sigma = np.random.poisson(1, size = N)
+            sigma = np.random.poisson(np.average(sigmaTGRG), size = N)
         
         #CHECKS AND SAVES
         assert abs(min(phi1))>=0
@@ -216,69 +216,53 @@ for section in config.sections():
 #%% RESULTS OUTPUT
     file_name = directory_name+"/grapichs/"
     os.makedirs(os.path.dirname(file_name), exist_ok=True)
-
-    plt.figure(fig_count)
-    fig_count+=1
-    plt.scatter(nodes_B, nodes_R)
-    plt.xlabel("Broadcast Centrality")
-    plt.ylabel('Receiver Centrality')
-    plt.title(r"Direct=%s, DAR=%s; $\beta$=%.3f; N=%i, T=%i; Net_itr=%i, Epi_itr=%i" %(str(isDIRECTED),str(isDAR),beta,N,T,NET_REAL,K))
-    plt.savefig(file_name+"BCvsRC.pdf")
     
-    plt.figure(fig_count)
-    fig_count+=1
-    plt.scatter(nodes_B, vir)
-    plt.xlabel("Broadcast Centrality")
-    plt.ylabel('Epidemic score')
-    plt.title(r"Direct=%s, DAR=%s; $\beta$=%.3f; N=%i, T=%i; Net_itr=%i, Epi_itr=%i" %(str(isDIRECTED),str(isDAR),beta,N,T,NET_REAL,K))
-    plt.savefig(file_name+"BC.pdf")
+    if isDAR == False:
+        fig_count+=1
+        plt.figure(fig_count)
+        plt.errorbar(np.linspace(0,T-1,T),np.average(thetas,axis=0),yerr = np.std(thetas,axis=0))
+        t = np.linspace(0,T-1,T)
+        plt.grid()
+        plt.title("Evolution of avg (over nodes) fitness with error bars (stdev), last realization")
+        plt.xlabel("Temporal step")
+        plt.ylabel(r"$<\theta>(t)$")
+        plt.savefig(file_name+"TGRG_fitness_evolution_lastrealizat.pdf")
     
-    plt.figure(fig_count)
-    fig_count+=1
-    plt.scatter(nodes_R, vir)
-    plt.xlabel("Receive Centrality")
-    plt.ylabel('Epidemic score')
-    plt.title(r"Direct=%s, DAR=%s; $\beta$=%.3f; N=%i, T=%i; Net_itr=%i, Epi_itr=%i" %(str(isDIRECTED),str(isDAR),beta,N,T,NET_REAL,K))
-    plt.savefig(file_name+"RC.pdf")
+    f, axes = plt.subplots(2,2)
+    axes[0, 0].scatter(nodes_B, vir)
+    axes[0, 0].set(xlabel="Broadcast Centrality", ylabel="Epidemic score")
+    axes[0, 1].scatter(nodes_R, vir)
+    axes[0, 1].set(xlabel="Receiver Centrality", ylabel="Epidemic score")
+    axes[1, 0].scatter(nod_A, vir)
+    axes[1, 0].set(xlabel="Aggregate Degree", ylabel="Epidemic score")
+    axes[1, 1].scatter(nod_B, vir)
+    axes[1, 1].set(xlabel="Binarized Degree", ylabel="Epidemic score")
+    f.suptitle(r"Direct=%s, DAR=%s; $\beta$=%.3f; N=%i, T=%i; Net_itr=%i, Epi_itr=%i" %(str(isDIRECTED),str(isDAR),beta,N,T,NET_REAL,K))
+    plt.savefig(file_name+"Virulece_correlations.pdf")
     
-    plt.figure(fig_count)
-    fig_count+=1
+    f, axes = plt.subplots(1,2)
+    axes[0].scatter(nodes_R, nodes_B)
+    axes[0].set(xlabel="Receiver Centrality", ylabel="Broadcast Centrality")
+    axes[1].scatter(nodes_R, tim)
+    axes[1].set(xlabel="Receiver Centrality", ylabel="Time to be infected")
+    f.suptitle(r"Direct=%s, DAR=%s; $\beta$=%.3f; N=%i, T=%i; Net_itr=%i, Epi_itr=%i" %(str(isDIRECTED),str(isDAR),beta,N,T,NET_REAL,K))
+    plt.savefig(file_name+"Receiver_correlations.pdf")
+    
     avg = np.mean(degree_evolution, axis=0)/N
-    plt.plot(np.linspace(0,T-1,T), avg, label="Average degree(t)")
-    plt.plot(np.linspace(0,T-1,T),min(avg)*np.ones(T),linestyle='--', label="Min degree")
-    plt.plot(np.linspace(0,T-1,T),max(avg)*np.ones(T),linestyle='--', label="Max degree")
-    plt.plot(np.linspace(0,T-1,T), np.mean(epidemic_size_evolution, axis=0)/N, label="Average epidemic size") 
-    plt.grid()
-    plt.xlabel("Temporal step")
-    plt.ylabel("Networks' mean degree")
-    plt.legend()
-    plt.title(r"Direct=%s, DAR=%s; $\beta$=%.3f; N=%i, T=%i; Net_itr=%i, Epi_itr=%i" %(str(isDIRECTED),str(isDAR),beta,N,T,NET_REAL,K))
-    plt.savefig(file_name+"Degree_Evolution.pdf")  
+    f, (ax1, ax2) = plt.subplots(1,2)
+    ax1.plot(np.linspace(0,T-1,T), avg, label="Average degree(t)")
+    ax1.plot(np.linspace(0,T-1,T),min(avg)*np.ones(T),linestyle='--', label="Min degree")
+    ax1.plot(np.linspace(0,T-1,T),max(avg)*np.ones(T),linestyle='--', label="Max degree")
+    ax1.legend()
+    ax1.grid()
+    ax1.set(xlabel="Temporal step", ylabel="Network's average percentual degree")
+    ax2.plot(np.linspace(0,T-1,T), np.mean(epidemic_size_evolution, axis=0)/N) 
+    ax2.grid()
+    ax2.set(xlabel="Temporal step", ylabel="Average percentual epidemic size")
+    f.suptitle(r"Direct=%s, DAR=%s; $\beta$=%.3f; N=%i, T=%i; Net_itr=%i, Epi_itr=%i" %(str(isDIRECTED),str(isDAR),beta,N,T,NET_REAL,K))
+    plt.savefig(file_name+"Degree_and_virulence.pdf")  
     
-    plt.figure(fig_count)
-    fig_count+=1
-    plt.scatter(nod_A, vir)
-    plt.xlabel("Aggregate Degree")
-    plt.ylabel('Epidemic score')
-    plt.title(r"Direct=%s, DAR=%s; $\beta$=%.3f; N=%i, T=%i; Net_itr=%i, Epi_itr=%i" %(str(isDIRECTED),str(isDAR),beta,N,T,NET_REAL,K))
-    plt.savefig(file_name+"AD.pdf")
-    
-    plt.figure(fig_count)
-    fig_count+=1
-    plt.scatter(nod_B, vir)
-    plt.xlabel("Binarized Degree")
-    plt.ylabel('Epidemic score')
-    plt.title(r"Direct=%s, DAR=%s; $\beta$=%.3f; N=%i, T=%i; Net_itr=%i, Epi_itr=%i" %(str(isDIRECTED),str(isDAR),beta,N,T,NET_REAL,K))
-    plt.savefig(file_name+"BD.pdf")
-    
-    plt.figure(fig_count)
-    fig_count+=1
-    plt.scatter(nodes_R, tim)
-    plt.xlabel("Receive Centrality")
-    plt.ylabel('Time to be infected')
-    plt.title(r"Direct=%s, DAR=%s; $\beta$=%.3f; N=%i, T=%i; Net_itr=%i, Epi_itr=%i" %(str(isDIRECTED),str(isDAR),beta,N,T,NET_REAL,K))
-    plt.savefig(file_name+"TIM.pdf")
-    
+        
     file_name = directory_name+"/resume.txt"
     os.makedirs(os.path.dirname(file_name), exist_ok=True)
     with open(file_name, 'w') as f:
