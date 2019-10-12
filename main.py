@@ -133,7 +133,8 @@ for section in config.sections():
     import time
     start = time.time()
     
-    #Following lists contain NET_REAL arrays; each of these arrays has N entries, with the average scores for each node
+    #Following lists contain NET_REAL arrays; each of these arrays has N entries, with the average scores for each node, so
+    #  x[0][6] -> score of node 6 for iteration 0
     nodes_Bcentrality = []
     nodes_Rcentrality = []
     nodes_AD = []
@@ -150,17 +151,32 @@ for section in config.sections():
             temporal_network = Evolutions.network_generation_dar(alpha,chi,P=P,T=T,directed=isDIRECTED) 
         else:
             temporal_network, thetas = Evolutions.network_generation_tgrg(phi0,phi1,sigma,T=T,directed=isDIRECTED)
-        degree_evolution.append(Evolutions.degree_mean(temporal_network))
         Saves.network_save(temporal_network,directory_name,k,'network')
         
-        #CENTRALITIES GENERATION AND SAVE
-        inv_maxradius, Q = Evolutions.communicability(temporal_network, eigen_fraction=eigen_fraction, length_one= not isDIRECTED) #if is undirected, use length 1
+        degree_evolution.append(Evolutions.degree_mean(temporal_network))        
+        Saves.network_save(degree_evolution, directory_name,k,'DEGREE_EVOLUTION')
         
-        singleiter_nodes_Bcentrality = Evolutions.broadcast_ranking(Q)[0]
+        #CENTRALITIES GENERATION AND SAVE
+        
+        #!!!activate this area if you want a communicability whose parameter depends on spectral radius:!!!
+#        spec = []
+#        for t in range(T):
+#            spec.append(np.real(max(np.linalg.eigvals(temporal_network[t])))) #find eigenval with max real part for each adjacency
+#        a = 1/max(spec) #reciprocal of the maximum eigenvalue
+
+        
+        Q = Evolutions.communicability(temporal_network, a = beta, length_one= not isDIRECTED) #if is undirected, use length 1
+        
+        #Computing broadcast evolutions for correlation decay
+        bc_evolutions = []
+        for i in range(N):
+            bc_evolutions.append([Evolutions.broadcast_ranking(Q[t])[0][i] for t in range(T)])
+        
+        singleiter_nodes_Bcentrality = Evolutions.broadcast_ranking(Q[T-1])[0]
         Saves.network_save(singleiter_nodes_Bcentrality,directory_name,k,'BCENTR')
         nodes_Bcentrality.append(singleiter_nodes_Bcentrality)
         
-        singleiter_nodes_Rcentrality = Evolutions.receive_ranking(Q)[0]
+        singleiter_nodes_Rcentrality = Evolutions.receive_ranking(Q[T-1])[0]
         Saves.network_save(singleiter_nodes_Rcentrality, directory_name,k,'RCENTR')
         nodes_Rcentrality.append(singleiter_nodes_Rcentrality)   
         
@@ -179,6 +195,7 @@ for section in config.sections():
         label = []
         singleiter_virulece = []
         singleiter_time_tobe_infected = []
+        #epidemic_size_evolution = [] mi sono fermato qui 
         for index_case in range(N):
             label.append([]) #create the i-th entry
             for iteration in range(K):
@@ -192,7 +209,17 @@ for section in config.sections():
         Saves.network_save(label,directory_name,k,'infections')
         Saves.network_save(virulence, directory_name,k,'VIRULENCE')
         Saves.network_save(time_tobe_infected, directory_name,k,'TIMEINFECTED')
+        Saves.network_save(epidemic_size_evolution, directory_name,k,'EPIDEMIC_EVOLUTION')
     end = time.time()
+    
+    #Correlation BC(t) - epi(t)
+    file_name = directory_name + "/realization"+str(k)+"/"+"corr_decay.txt"
+    os.makedirs(os.path.dirname(file_name), exist_ok=True)
+    for i in range(N):
+        a = bc_evolutions[i][0:T-2]
+        b = np.mean(epidemic_size_evolution, axis=0)[1:]
+    
+    
     print(end-start)  
     #Re-loading of single-iteration lists to re-build the whole ones is possible but not implemented here
 #%% ANALYSIS

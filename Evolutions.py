@@ -249,11 +249,11 @@ def network_generation_tgrg(phi0,phi1,sigma,T=100, directed = False):
     return temporal_network, theta
 
 #%% CENTRALITY
-def communicability(temporal, eigen_fraction=0.25, length_one=True): 
+def communicability(temporal, a, length_one=True): 
     """
     Return Communicability matrix of a tempnetwork, as defined by Grindrod, and max spectral radius.
-    User can choose what fraction of maximum eigenvalue select, and if counting walks of all length or just of length 1.
-    Lenght 1 is useful for undirected networks.
+    User must set the parameter of computation, a, and can choose if counting walks of all length or just of length 1.
+    Lenght 1 is useful for undirected networks?
     
     It uses several numpy functions
     
@@ -262,8 +262,8 @@ def communicability(temporal, eigen_fraction=0.25, length_one=True):
     temporal: np.array
         T*N*N adjacencies (so, an adjacency for each time step; null diagonal)
     
-    eigen_fractin: float
-        Number in (0,1] expressing how lower, than the inverse of maximum spectral radius, the parameter "a" has to be
+    a: float
+        Parameter used in matrix computing, which must be within (0,1]. It might be a quarter of max spec rad
     
     length_one: bool
         If true, the version without matrix inverse is selected.
@@ -295,29 +295,26 @@ def communicability(temporal, eigen_fraction=0.25, length_one=True):
     for t in range(T):
         assert Assertions_suite.check_is_square(temporal[t])
         assert Assertions_suite.check_is_nulldiagonal(temporal[t]) #check null diagonal for each step
-    assert eigen_fraction <=1
-    assert eigen_fraction > 0
+    assert a<=1
+    assert a>0
         
     #FUNCTION
     T = temporal.shape[0]
     N = temporal.shape[1]
-    #Find max spectral radius:
-    spec = []
-    for t in range(T):
-        spec.append(np.real(max(np.linalg.eigvals(temporal[t])))) #find eigenval with max real part for each adjacency
-    inv_maxradius = 1/max(spec) #reciprocal of the maximum eigenvalue
+    
     #Communicability builing:
-    Q = np.identity(N)/np.linalg.norm(np.identity(N)) #initialization (and normalization)
+    Q = np.zeros((T,N,N))
+    Q[0] = np.identity(N)/np.linalg.norm(np.identity(N)) #initialization (and normalization)
     
     if length_one:
-        for t in range(T):
-            matr = np.identity(N)+eigen_fraction*inv_maxradius*temporal[t] #new factor for that time step
-            Q = np.matmul(Q,matr)/np.linalg.norm(np.matmul(Q,matr)) #Q updating and normalizing
+        for t in range(1,T):
+            matr = np.identity(N)+a*temporal[t] #new factor for that time step
+            Q[t] = np.matmul(Q[t-1],matr)/np.linalg.norm(np.matmul(Q[t-1],matr)) #Q updating and normalizing
     else:
-        for t in range(T):
-            inv = np.linalg.inv(np.identity(N)-eigen_fraction*inv_maxradius*temporal[t]) #new factor for that time step
-            Q = np.matmul(Q,inv)/np.linalg.norm(np.matmul(Q,inv)) #Q updating and normalizing
-    return(inv_maxradius,Q)
+        for t in range(1,T):
+            inv = np.linalg.inv(np.identity(N)-a*temporal[t]) #new factor for that time step
+            Q[t] = np.matmul(Q[t-1],inv)/np.linalg.norm(np.matmul(Q[t-1],inv)) #Q updating and normalizing
+    return Q
 
 
 def broadcast_ranking(Q):
