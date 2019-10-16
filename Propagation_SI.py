@@ -53,35 +53,6 @@ def neighbourhood(adjacency,node):
     neigh = {i for i in range(len(adjacency)) if adjacency[i,node]==1}
     return neigh
 
-def onlyzeros(nodes_set,states_dict):
-    """Extracts the susceptible ones from a list of nodes.
-    
-    Parameters
-    ----------
-    nodes_set: tuple/list/set
-        Ensemble of nodes (not necessairly all network's nodes)
-    states_dict: N-dict
-        Dict mapping state of required nodes to a 0 or 1 value.
-        It can have more keys than nodes_set: the extra ones won't be scanned.
-        As an example, state_dict may be a label_dar[t]
-    
-    Returns
-    -------
-    selected: set
-        Set of susceptible nodes
-    
-    Examples
-    -------
-        
-        >>> onlyzeros([0,1,2], {0:1,1:0,2:0})
-        {1,2}
-        
-    """
-#    assert type(states_dict) == dict, "states_dict is not a dictionary"
-    
-    selected = {node for node in nodes_set if states_dict[node]==0} #0 means susceptible
-    return selected
-
 def contact_lasting(tempnet,states_sequence,t,infected_node,susceptible_node):
     """
     Computes the number of consectuive temporal steps a couple of nodes I-S are linked, as long as they hold these states.
@@ -168,6 +139,151 @@ def poisson_probability(t,beta):
     return(lamda*np.exp(-lamda*t))
     
 #%%
+def propagation_v2(tempnet,index_case,probabilities, multiple_infections = True):
+    T = tempnet.shape[0] #shape of array returns (T,N,N)-tuple
+    N = tempnet.shape[1] #shape of array returns (T,N,N)-tuple
+
+     #FUNCTION
+    def set_infected(node,t): #once one is infected,it stays infeced
+        for instant in range(t,T):
+            states_sequence[instant][node] = 1
+        return
+    
+    #Output initialization:
+    states_sequence = np.zeros((T,N))
+    set_infected(index_case,0)
+    
+    #Sets initialization
+    susceptibles = {node for node in range(N) if states_sequence[0][node]==0}
+    infecteds = {index_case} #they will be decisive to change target state
+    
+    extractions = np.random.uniform(0,1, size = (T,N))
+    nodes_stats = dict()
+    
+    if multiple_infections:
+        #ANALYZE SUSCEPTIBLES AND ALLOW MORE INFECTIONS
+        for t in range(1,T): 
+            if len(susceptibles) == 0: #infection is complete
+                break
+            for s in susceptibles.copy(): #copy avoids rising an error when the iteration set changes
+                infectneighbourhood = neighbourhood(tempnet[t-1],s).intersection(infecteds) #infected nodes that REACH the suptible one
+                for i in infectneighbourhood.copy(): 
+                    if probabilities[contact_lasting(tempnet,states_sequence,t-1,i,s)]>extractions[t-1,s]: #rand extraction
+                        nodes_stats[s] = dict()
+                        nodes_stats[s]['inf node'] = i
+                        nodes_stats[s]['inf time'] = t-1
+                        nodes_stats[s]['cont last']= contact_lasting(tempnet,states_sequence,t-1,i,s)
+                        nodes_stats[s]['extr'] = extractions[t-1,s]
+                        set_infected(s,t) #if successful, change the state of the node, at next t
+                        susceptibles.remove(s)
+                        infecteds.add(s)
+                        break
+    else:
+        #ANALYZE SUSCEPTIBLES AND ALLOW 1 INFECTION
+        for t in range(1,T):
+            if len(susceptibles) == 0: #infection is complete
+                break
+            for s in susceptibles.copy(): #copy avoids rising an error when the iteration set changes
+                infectneighbourhood = neighbourhood(tempnet[t-1],s).intersection(infecteds)
+                for i in infectneighbourhood.copy(): 
+                    if probabilities[contact_lasting(tempnet,states_sequence,t-1,i,s)]>extractions[t-1,s]: #rand extraction
+                        nodes_stats[s] = dict()
+                        nodes_stats[s]['inf node'] = i
+                        nodes_stats[s]['inf time'] = t-1
+                        nodes_stats[s]['cont last']= contact_lasting(tempnet,states_sequence,t-1,i,s)
+                        nodes_stats[s]['extr'] = extractions[t-1,s]
+                        set_infected(s,t) #if successful, change the state of the node, at next t
+                        susceptibles.remove(s)
+                        infecteds.add(s)
+                        break #just one infection per time
+                else:
+                    continue # only executed if the inner loop did NOT break
+                break  # only executed if the inner loop DID break
+    return(states_sequence, nodes_stats)
+
+
+def when_is_infected(states_sequence,index_case): #DEPRECATED
+    T = len(states_sequence) #states_sequence is a dict
+    N = len(states_sequence[0])
+    
+    infection_times = 2*T*np.ones(N) #initialization
+    for i in [n for n in range(N) if n != index_case]:
+        for t in range(T):
+            if states_sequence[t][i] == 1:
+                infection_times[i] = t
+                break
+    return infection_times
+
+def time_score_v2(scores_evolution,fraction):
+    T = len(scores_evolution)
+    N = len(scores_evolution[0])
+    
+    time_spent = T #initialized as the final temporal step + 1
+    for t in range(T):
+        if sum(scores_evolution[t])>=fraction*N:
+            time_spent = t
+            break
+    return time_spent
+
+#%% DEPRECATED FUNCTIONS
+def infected_counter(set_of_nodes,N):
+    """
+    Counts the number of infected nodes in a states-set at a certain time
+    """
+    counter = 0
+    for i in range(N):
+        if set_of_nodes[i]==1:
+            counter+=1
+    return counter
+
+def time_score(scores_evolution,fraction):
+    """
+    Returns the time step when a certain fraction of a network is infected.
+    
+    If this never happens, function just returns the last time step + 1 of network evolution.
+    Output is computed using external function "infected_counter".
+    Remember: first time step is 0, last is T-1
+    
+    Parameters
+    ----------
+    scores: TN-dict
+        Sequence of T dictionaries of the states of all N nodes (T and N are extracted by function iteself)
+    fraction: float
+        Real number, from 0 to 1, representing network fraction
+        
+    Returns
+    -------
+    time_spent: int
+        Score for that iteration; 
+    
+    Examples
+    -------
+    
+        >>> time_score({0:{0:0,1:1,2:1,3:0,4:0,5:0},1:{0:1,1:1,2:1,3:0,4:0,5:0},2:{0:1,1:1,2:1,3:1,4:1,5:1}},0.5)
+        1
+        
+        >>> time_score({0:{0:0,1:1,2:1,3:0,4:0,5:0},1:{0:1,1:1,2:1,3:0,4:0,5:0},2:{0:1,1:1,2:1,3:1,4:1,5:0}},0.8)
+        2
+        
+        >>> time_score({0:{0:0,1:1,2:1,3:0,4:0,5:0},1:{0:1,1:1,2:1,3:0,4:0,5:0},2:{0:1,1:1,2:1,3:1,4:1,5:0}},0.9)
+        3
+    """
+    T = len(scores_evolution)
+    N = len(scores_evolution[0])
+    
+    #ASSERTS
+    assert fraction > 0, "Error, only values between 0 and 1 are allowed"
+    assert fraction < 1, "Error, only values between 0 and 1 are allowed"
+    assert isinstance(scores_evolution, dict), "scores_evolution is not a dictionary"
+    
+    #FUNCTION
+    time_spent = T #initialized as the final temporal step + 1
+    for t in range(T):
+        if infected_counter(scores_evolution[t],N)>=fraction*N:
+            time_spent = t
+            break
+    return time_spent
+
 def propagation(tempnet,index_case,probabilities, multiple_infections = True):
     '''
     Produces the evolution of disease states over a temporal network.
@@ -225,13 +341,12 @@ def propagation(tempnet,index_case,probabilities, multiple_infections = True):
     set_infected(index_case,0)
     
     #Sets initialization
-    susceptibles = onlyzeros(range(N),states_sequence[0]) #"targets"
+    susceptibles = {node for node in range(N) if states_sequence[0][node]==0}
     infecteds = {index_case} #they will be decisive to change target state
     
     extractions = np.random.uniform(0,1, size = T)
     
     if multiple_infections:
-        #ANALYZE SUSCEPTIBLES AND ALLOW MORE INFECTIONS
         for t in range(1,T): 
             if len(susceptibles) == 0: #infection is complete
                 break
@@ -244,7 +359,6 @@ def propagation(tempnet,index_case,probabilities, multiple_infections = True):
                             infecteds.add(s)
                             break
     else:
-        #ANALYZE SUSCEPTIBLES AND ALLOW 1 INFECTION
         for t in range(1,T):
             if len(susceptibles) == 0: #infection is complete
                 break
@@ -261,73 +375,3 @@ def propagation(tempnet,index_case,probabilities, multiple_infections = True):
                 break  # only executed if the inner loop DID break
     
     return(states_sequence)
-
-def when_is_infected(states_sequence,index_case):
-    T = len(states_sequence) #states_sequence is a dict
-    N = len(states_sequence[0])
-    
-    infection_times = 2*T*np.ones(N) #initialization
-    for i in [n for n in range(N) if n != index_case]:
-        for t in range(T):
-            if states_sequence[t][i] == 1:
-                infection_times[i] = t
-                break
-    return infection_times
-
-#%% EPIDEMIC SCORE COMPUTING FUNCTIONS
-def infected_counter(set_of_nodes,N):
-    """
-    Counts the number of infected nodes in a states-set at a certain time
-    """
-    counter = 0
-    for i in range(N):
-        if set_of_nodes[i]==1:
-            counter+=1
-    return counter
-def time_score(scores_evolution,fraction):
-    """
-    Returns the time step when a certain fraction of a network is infected.
-    
-    If this never happens, function just returns the last time step + 1 of network evolution.
-    Output is computed using external function "infected_counter".
-    Remember: first time step is 0, last is T-1
-    
-    Parameters
-    ----------
-    scores: TN-dict
-        Sequence of T dictionaries of the states of all N nodes (T and N are extracted by function iteself)
-    fraction: float
-        Real number, from 0 to 1, representing network fraction
-        
-    Returns
-    -------
-    time_spent: int
-        Score for that iteration; 
-    
-    Examples
-    -------
-    
-        >>> time_score({0:{0:0,1:1,2:1,3:0,4:0,5:0},1:{0:1,1:1,2:1,3:0,4:0,5:0},2:{0:1,1:1,2:1,3:1,4:1,5:1}},0.5)
-        1
-        
-        >>> time_score({0:{0:0,1:1,2:1,3:0,4:0,5:0},1:{0:1,1:1,2:1,3:0,4:0,5:0},2:{0:1,1:1,2:1,3:1,4:1,5:0}},0.8)
-        2
-        
-        >>> time_score({0:{0:0,1:1,2:1,3:0,4:0,5:0},1:{0:1,1:1,2:1,3:0,4:0,5:0},2:{0:1,1:1,2:1,3:1,4:1,5:0}},0.9)
-        3
-    """
-    T = len(scores_evolution)
-    N = len(scores_evolution[0])
-    
-    #ASSERTS
-    assert fraction > 0, "Error, only values between 0 and 1 are allowed"
-    assert fraction < 1, "Error, only values between 0 and 1 are allowed"
-    assert isinstance(scores_evolution, dict), "scores_evolution is not a dictionary"
-    
-    #FUNCTION
-    time_spent = T #initialized as the final temporal step + 1
-    for t in range(T):
-        if infected_counter(scores_evolution[t],N)>=fraction*N:
-            time_spent = t
-            break
-    return time_spent
