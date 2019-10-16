@@ -40,7 +40,7 @@ def main_directory(beta, isDIRECTED,isDAR,P,isSAMPLED,N,T,title):
     
     return name
 
-def network_save(network, directory_name, k, data_structure_name):
+def network_save(network, directory_name, data_structure_name):
     """ Saves data structures using pickle. Be sure to provide the proper name:
         
     
@@ -63,12 +63,12 @@ def network_save(network, directory_name, k, data_structure_name):
     /directory_name/realizationk/data_structure_name.pkl
         If PATH doesn't exist, it's created
     """
-    name = directory_name + "/realization"+str(k)+"/"+data_structure_name+".pkl"
+    name = directory_name +"/"+data_structure_name+".pkl"
     os.makedirs(os.path.dirname(name), exist_ok=True)
     with open(name, 'wb') as handle: #wb = write binary
         pickle.dump(network,handle)
 
-def network_load(directory_name, k,data_structure):
+def network_load(directory_name, data_structure):
     """ 
     Loads a previously generated temporal network using pickle (so it must be installed), if it's present.
     Network should be saved in "Networks/directory_name/realizationk/network.pkl
@@ -92,7 +92,6 @@ def network_load(directory_name, k,data_structure):
     pickle.load(f): np.array
         Data structure is returned
     """
-    name = directory_name + "/realization"+str(k)+"/"+data_structure+".pkl"
+    name = directory_name+"/"+data_structure+".pkl"
     with open(name, 'rb') as f:
         return pickle.load(f)
-
