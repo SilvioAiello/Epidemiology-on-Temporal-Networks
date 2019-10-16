@@ -249,6 +249,14 @@ def network_generation_tgrg(phi0,phi1,sigma,T=100, directed = False):
     return temporal_network, theta
 
 #%% CENTRALITY
+def recipr_max_eigen(temporal):
+    T = temporal.shape[0]
+    spec = []
+    for t in range(T):
+        spec.append(np.real(max(np.linalg.eigvals(temporal[t])))) #find eigenval with max real part for each adjacency
+    a = 1/max(spec) #reciprocal of the maximum eigenvalue
+    return 1/a    
+
 def communicability(temporal, a, length_one=True): 
     """
     Return Communicability matrix of a tempnetwork, as defined by Grindrod, and max spectral radius.
