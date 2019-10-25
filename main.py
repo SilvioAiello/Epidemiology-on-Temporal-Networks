@@ -47,8 +47,12 @@ for section in config.sections():
 #%%                         INPUTS BUILDING AND SAVE     
     if isDAR:
         start = time.time()
-        temporal_networks_RTNN, alpha, chi, avgdegree_evolution_RT,communicabilities_RTNN,nodes_Bcentrality_RN,nodes_Rcentrality_RN,nodes_AD_RN,nodes_BD_RN, fig_count = Main_functions.STRUCTURE_GEN_ANALYSIS(N,T, alfa, NET_REAL, P, q_param, isDIRECTED, isDAR,isSAMPLED,fig_count, directory_name)
-        infection_matrices_RNITN,virulence_RNI,time_tobe_infected_RNIN,epidemic_size_evolution_RNIT,nodes_Bcentrality_RNT,mean_epidemic_RNT,correlations_RT = Main_functions.INFECTION_GEN_ANALYSIS(N,T, beta, NET_REAL, K, isDAR, infective_fraction,multiple_infections, temporal_networks_RTNN,communicabilities_RTNN, q_param, directory_name)
+        temporal_networks_RTNN, alpha, chi, avgdegree_evolution_RT, \
+         communicabilities_RTNN,nodes_Bcentrality_RN,nodes_Rcentrality_RN, nodes_AD_RN,nodes_BD_RN, fig_count \
+           = Main_functions.STRUCTURE_GEN_ANALYSIS(N,T, alfa, NET_REAL, P, q_param, isDIRECTED, isDAR,isSAMPLED,fig_count, directory_name)
+        infection_matrices_RNITN,virulence_RNI,time_tobe_infected_RNIN,epidemic_size_evolution_RNIT, \
+          nodes_Bcentrality_RNT,mean_epidemic_RNT,correlations_RT \
+            = Main_functions.INFECTION_GEN_ANALYSIS(N,T, beta, NET_REAL, K, isDAR, infective_fraction,multiple_infections, temporal_networks_RTNN,communicabilities_RTNN, q_param, directory_name)
         end = time.time()
 #    else:
 #        start = time.time()
@@ -57,9 +61,6 @@ for section in config.sections():
 #        end = time.time()
     print(end-start)
     #%%                         ANALYSIS AND RESULTS
-        #virulence_scores,timetobe_scores,avg_epid_ev,avg_correlations_evolution,correlationsBR,correlationsBV,correlationsRV,correlationsAV,correlationsBinV,correlationsRTim, fig_count = Main_functions.results(N,T, beta, K, alfa, isDAR,P, isDIRECTED, isSAMPLED, NET_REAL,net_name, multiple_infections,eigen_fraction, infective_fraction, fig_count, virulence_RNI, directory_name+'_alfa'+str(alfa)+'_beta'+str(beta), time_tobe_infected_RNIN,epidemic_size_evolution_RNIT, correlations_ABRT[alfa][beta],nodes_Bcentrality_RN,nodes_Rcentrality_RN,nodes_AD_RN,nodes_BD_RN,avgdegree_evolution_RT)
-    virulence_scores,timetobe_scores,avg_epid_ev,avg_correlations_evolution, fig_count = Main_functions.results(N,T, beta, K, alfa, isDAR,P, isDIRECTED, isSAMPLED, NET_REAL,net_name, multiple_infections,eigen_fraction, infective_fraction, fig_count, virulence_RNI, directory_name, time_tobe_infected_RNIN,epidemic_size_evolution_RNIT, correlations_RT,q_param,nodes_Bcentrality_RN,nodes_Rcentrality_RN,nodes_AD_RN,nodes_BD_RN,avgdegree_evolution_RT)
-    #virulence_scores,avg_epid_ev,avg_correlations_evolution, fig_count = Main_functions.results(N,T, beta, K, alfa, isDAR,P, isDIRECTED, isSAMPLED, NET_REAL,net_name, multiple_infections,eigen_fraction, infective_fraction, fig_count, virulence_RNI, directory_name, time_tobe_infected_RNIN,epidemic_size_evolution_RNIT, correlations_QRT,q_parameters,nodes_Bcentrality_RN,nodes_Rcentrality_RN,nodes_AD_RN,nodes_BD_RN,avgdegree_evolution_RT)
-    
-    #Per queste analisi ulteriori, lasciamo sempre che le funzioni normalmente agiscano fino a R, per livelli superiori agire da qua
+    virulence_scores,timetobe_scores,avg_epid_ev,avg_correlations_evolution, fig_count \
+       = Main_functions.results(N,T, beta, K, alfa, isDAR,P, isDIRECTED, isSAMPLED, NET_REAL,net_name, multiple_infections,eigen_fraction, infective_fraction, fig_count, virulence_RNI, directory_name, time_tobe_infected_RNIN,epidemic_size_evolution_RNIT, correlations_RT,q_param,nodes_Bcentrality_RN,nodes_Rcentrality_RN,nodes_AD_RN,nodes_BD_RN,avgdegree_evolution_RT)
     
