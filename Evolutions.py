@@ -312,16 +312,17 @@ def communicability(temporal, a, length_one=True):
     
     #Communicability builing:
     Q = np.zeros((T,N,N))
-    Q[0] = np.identity(N)/np.linalg.norm(np.identity(N)) #initialization (and normalization)
     
     if length_one:
+        Q[0] = np.identity(N)+a*temporal[0]
         for t in range(1,T):
             matr = np.identity(N)+a*temporal[t] #new factor for that time step
-            Q[t] = np.matmul(Q[t-1],matr)/np.linalg.norm(np.matmul(Q[t-1],matr)) #Q updating and normalizing
+            Q[t] = np.matmul(Q[t-1],matr) #Q updating, no normalization
     else:
+        Q[0] = np.linalg.inv(np.identity(N)+a*temporal[0])/np.linalg.norm(np.linalg.inv(np.identity(N)+a*temporal[0]))
         for t in range(1,T):
-            inv = np.linalg.inv(np.identity(N)-a*temporal[t]) #new factor for that time step
-            Q[t] = np.matmul(Q[t-1],inv)/np.linalg.norm(np.matmul(Q[t-1],inv)) #Q updating and normalizing
+            matr = np.linalg.inv(np.identity(N)-a*temporal[t]) #new factor for that time step
+            Q[t] = np.matmul(Q[t-1],matr)/np.linalg.norm(np.matmul(Q[t-1],matr)) #Q updating and normalizing
     return Q
 
 
