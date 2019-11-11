@@ -7,7 +7,7 @@ In this module are defined the following functions:
 
 For further understandings on how this script operates, check file "docs/howto.md"
 """
-import pickle
+import joblib
 import os
 
 def main_directory(beta, isDIRECTED,isDAR,P,isSAMPLED,N,T,title):
@@ -66,7 +66,7 @@ def network_save(network, directory_name, data_structure_name):
     name = directory_name +"/"+data_structure_name+".pkl"
     os.makedirs(os.path.dirname(name), exist_ok=True)
     with open(name, 'wb') as handle: #wb = write binary
-        pickle.dump(network,handle)
+        joblib.dump(network,handle)
 
 def network_load(directory_name, data_structure):
     """ 
@@ -94,4 +94,4 @@ def network_load(directory_name, data_structure):
     """
     name = directory_name+"/"+data_structure+".pkl"
     with open(name, 'rb') as f:
-        return pickle.load(f)
+        return joblib.load(f)

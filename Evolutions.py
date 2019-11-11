@@ -134,7 +134,7 @@ def network_generation_dar(alpha,xi,P=1, T=100, directed = False):
     assert Assertions_suite.check_is_probability(xi)
 
     N = len(alpha) #if everything is ok, get info about number of nodes
-    assert N<1000, "Error: for computational ease, this functuion accepts only networks with dimension < 1000"
+    #assert N<1000, "Error: for computational ease, this functuion accepts only networks with dimension < 1000"
     
     assert Assertions_suite.check_is_natural(T)
     assert Assertions_suite.check_is_natural(P)
